@@ -1,0 +1,25 @@
+{
+  "name": "qwiki",
+  "version": "1.0.0",
+  "description": "A lightweight and extendable wiki application",
+  "main": "qwiki.js",
+  "scripts": {
+    "compile": "npx tsc",
+    "dev": "npx tsc && node ./target/app.js --listen",
+    "release": "node ./target/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qooando/qwiki.git"
+  },
+  "author": "Qooando",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/qooando/qwiki/issues"
+  },
+  "homepage": "https://github.com/qooando/qwiki#readme",
+  "devDependencies": {
+    "typescript": "^5.4.2"
+  }
+}
