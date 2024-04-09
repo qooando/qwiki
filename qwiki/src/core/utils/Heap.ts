@@ -107,6 +107,7 @@ export class Heap<T> {
     }
 
     toSortedArray() {
+        // @ts-ignore
         return [...this.iterator()]
     }
 
@@ -123,6 +124,7 @@ export class Heap<T> {
     }
 
     forEach(fun: Function) {
+        // @ts-ignore
         for (let x of this.iterator()) {
             fun(x)
         }
@@ -130,6 +132,7 @@ export class Heap<T> {
 
     map(fun: Function) {
         let result = []
+        // @ts-ignore
         for (let x of this.iterator()) {
             result.push(fun(x))
         }
@@ -137,6 +140,7 @@ export class Heap<T> {
     }
 
     find(predicate: Function) {
+        // @ts-ignore
         for (let x of this.iterator()) {
             if (predicate(x)) {
                 return x;
@@ -152,6 +156,7 @@ export class Heap<T> {
     filter(fun: Function) {
         let result = this.copy();
         result.clear();
+        // @ts-ignore
         for (let x of this.iterator()) {
             if (fun(x)) {
                 result.push(x)
