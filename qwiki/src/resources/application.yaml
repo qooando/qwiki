@@ -1,0 +1,45 @@
+qwiki:
+  modules:
+    searchPaths:
+      # search paths where search for modules
+      - "./core/**/*.js"
+      - "./core_modules/**/*.js"
+      - "./core_modules/**/*.json"
+    policies:
+      # specify default missing provider policy
+      # FIXME used?
+      missingProvider: default # error|default
+  wiki:
+    persistences:
+      markdown:
+        module: "$:/core/persistences/markdown"
+        rootPath: "./data"
+  http:
+    #      autoCreate: true # create servers on startup using following configuration
+    #      autoStart: true # start servers on startup, default
+    servers:
+      main:
+        factoryName: express
+        host: 0.0.0.0
+        port: 8080
+  storage:
+    storages: { }
+
+#        staticResourcesPath:
+#          - "./static"
+#        dataResourcesPath:
+#          - "./data"
+#        authProviders: # order should be important
+#          - "authProvider/jwt"
+#  providers:
+#    authProvider:
+#      jwt:
+#        publicKey: "./certs/server.pem"
+#        privateKey: "./certs/server.key"
+#        signOptions:
+#          algorithm: 'RS256'
+#        csrSubject: "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
+#        users:
+#          file: "./config/users.json"
+#        groups:
+#          file: "./config/groups.json"

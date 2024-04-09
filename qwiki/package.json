@@ -4,9 +4,12 @@
   "description": "A lightweight and extendable wiki application",
   "main": "qwiki.js",
   "scripts": {
-    "compile": "npx tsc",
-    "dev": "npx tsc && node ./target/app.js --listen",
-    "release": "node ./target/app.js",
+    "tsc": "tsc",
+    "prestart": "npm run tsc --target es2015 ",
+    "build": "npx tsc --target es2015 && cp -r ./src/resources ./dist/",
+    "build+dev": "npx tsc --target es2015 && cp -r ./src/resources ./dist/ && node ./dist/app.js --listen",
+    "dev": "node ./dist/app.js --listen",
+    "release": "node ./dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -21,5 +24,9 @@
   "homepage": "https://github.com/qooando/qwiki#readme",
   "devDependencies": {
     "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "pino": "^8.19.0",
+    "pino-pretty": "^11.0.0"
   }
 }
