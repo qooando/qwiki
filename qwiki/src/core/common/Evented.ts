@@ -1,18 +1,20 @@
+import {EventCallback, EventContext, EventManager} from "../utils/EventManager";
+import {Heap} from "../utils/Heap";
 
 export interface LoggerConfig {
     nameSuffix?: string;
 }
 
 export interface Evented {
-    // _callbacks: Map<string, Array<Function>>
+    _eventManager: EventManager
+    on: Function
+    emit: Function
+    emitSync: Function
 }
 
-export function $events(self: Evented, options: LoggerConfig = {}) {
-    // options = Object.assign({
-    //     nameSuffix: null
-    // }, options)
-    // const loggerName = self.constructor.name + (options.nameSuffix ? `|${options.nameSuffix}` : "");
-    // self.log ??= pinoMainLogger.child({
-    //     name: loggerName
-    // })
+export function initializeEvented(self: Evented) {
+    self._eventManager = new EventManager()
+    self.on = self._eventManager.on
+    self.emit = self._eventManager.emit
+    self.emitSync = self._eventManager.emitSync
 }

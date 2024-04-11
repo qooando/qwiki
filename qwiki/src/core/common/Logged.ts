@@ -29,7 +29,7 @@ export interface Logged {
 
 }
 
-export function $log(self: Logged, options: LoggerConfig = {}) {
+export function initializeLogged(self: Logged, options: LoggerConfig = {}) {
     options = Object.assign({
         nameSuffix: null
     }, options)
