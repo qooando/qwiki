@@ -4,23 +4,35 @@ import {ApplicationConfig} from "./models/ApplicationConfig";
 import * as fs from "fs";
 import * as process from "process";
 import * as path from "path";
+import pino from "pino";
+import {ModuleManager} from "./ModuleManager";
+import {EventNames} from "./models/EventNames";
+
+declare global {
+    var $qw: Qwiki;
+    var $log: pino.Logger;
+}
 
 export class Qwiki extends Base implements Configurable {
 
     _configPath: string;
     _reloadConfig: Function;
     config: ApplicationConfig;
+    _moduleManager: ModuleManager
 
-    static Events: object = {
-        CORE_BEFORE_INIT: "CORE_BEFORE_INIT",
-        CORE_AFTER_INIT: "CORE_AFTER_INIT",
-        STARTUP: "STARTUP",
-        END: "END"
+    constructor() {
+        super();
     }
 
-    constructor(configPath: string = undefined) {
-        super();
+    async boot(configPath: string = undefined) {
+        this.log.info("Boot qwiki")
+        global["$qw"] = this;
+        global["$log"] = this.log
+        this.loadConfiguration(configPath)
+        this.loadModules()
+    }
 
+    loadConfiguration(configPath: string = undefined) {
         let configPathCandidates = [
             configPath,
             process.env["QWIKICONFIG"],
@@ -39,9 +51,7 @@ export class Qwiki extends Base implements Configurable {
                 }
             })
             .filter(x => !!x)
-
         configPath = configPathCandidates[0];
-
         try {
             this.log.info(`Load config from: ${configPath}`)
             initializeConfigurable(this, configPath)
@@ -50,17 +60,12 @@ export class Qwiki extends Base implements Configurable {
         }
     }
 
-    async boot(config: object | string = null) {
-        this.log.info("Boot qwiki")
-
-        /*
-         load configuration
-         load module manager
-         load other modules
-         startup event
-         */
-        if (typeof config == "string") {
-
-        }
+    loadModules() {
+        this.emitSync(EventNames.CORE_BEFORE_INIT)
+        this._moduleManager = new ModuleManager();
+        this._moduleManager.initialize()
+        this.emitSync(EventNames.CORE_AFTER_INIT)
+        this.emitSync(EventNames.STARTUP)
     }
+
 }

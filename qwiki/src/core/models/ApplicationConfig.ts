@@ -4,5 +4,10 @@ export interface ApplicationConfig {
 }
 
 export interface QwikiConfig {
+    modules: ModulesConfig
+}
 
+export interface ModulesConfig {
+    searchPaths: Array<string>
+    policies: Map<string, string>
 }

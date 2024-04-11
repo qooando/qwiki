@@ -1,7 +1,7 @@
 import {initializeLogged, Logged} from "./Logged";
 import pino from "pino";
 import {Evented, initializeEvented} from "./Evented";
-import {EventManager} from "../utils/EventManager";
+import {EventManager} from "../EventManager";
 
 export class Base implements Logged, Evented {
     log: pino.Logger;
