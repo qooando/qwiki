@@ -1,4 +1,4 @@
-import {EventCallback, EventContext, EventManager} from "../utils/EventManager";
+import {EventCallback, EventContext, EventManager} from "../EventManager";
 import {Heap} from "../utils/Heap";
 
 export interface LoggerConfig {
@@ -14,7 +14,7 @@ export interface Evented {
 
 export function initializeEvented(self: Evented) {
     self._eventManager = new EventManager()
-    self.on = self._eventManager.on
-    self.emit = self._eventManager.emit
-    self.emitSync = self._eventManager.emitSync
+    self.on = self._eventManager.on.bind(self._eventManager)
+    self.emit = self._eventManager.emit.bind(self._eventManager)
+    self.emitSync = self._eventManager.emitSync.bind(self._eventManager)
 }

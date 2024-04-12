@@ -1,5 +1,3 @@
-import {EventCallback, EventContext, EventManager} from "../utils/EventManager";
-import {Heap} from "../utils/Heap";
 import {ApplicationConfig} from "../models/ApplicationConfig";
 import * as yaml from 'js-yaml';
 import * as fs from "fs";

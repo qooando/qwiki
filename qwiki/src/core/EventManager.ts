@@ -1,5 +1,4 @@
-import {Base} from "../common/Base";
-import {Heap} from "./Heap";
+import {Heap} from "./utils/Heap";
 import * as assert from "assert";
 
 export interface EventCallback extends Function {

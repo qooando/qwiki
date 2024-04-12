@@ -6,7 +6,7 @@ import * as process from "process";
 import * as path from "path";
 import pino from "pino";
 import {ModuleManager} from "./ModuleManager";
-import {EventNames} from "./models/EventNames";
+import {EventNames} from "./constants/EventNames";
 
 declare global {
     var $qw: Qwiki;
@@ -63,9 +63,13 @@ export class Qwiki extends Base implements Configurable {
     loadModules() {
         this.emitSync(EventNames.CORE_BEFORE_INIT)
         this._moduleManager = new ModuleManager();
-        this._moduleManager.initialize()
+        this._moduleManager.initialize(this.config.qwiki.modules)
         this.emitSync(EventNames.CORE_AFTER_INIT)
         this.emitSync(EventNames.STARTUP)
+    }
+
+    require(identifier: string, optional: boolean = false) {
+        return this._moduleManager.require(identifier, optional)
     }
 
 }
