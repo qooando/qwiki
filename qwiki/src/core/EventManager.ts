@@ -2,7 +2,7 @@ import {Heap} from "./utils/Heap";
 import * as assert from "assert";
 
 export interface EventCallback extends Function {
-    priority: number;
+    priority?: number;
 }
 
 export interface EventContext extends Object {
@@ -16,19 +16,22 @@ export interface EventContext extends Object {
  */
 export class EventManager {
 
-    _callbacks: Map<string, Heap<Function>>;
+    _callbacks: Map<string, Heap<EventCallback>>;
     _comparingFun: Function;
 
     constructor(comparingfun: Function = undefined) {
-        this._callbacks = new Map<string, Heap<Function>>();
+        this._callbacks = new Map<string, Heap<EventCallback>>();
         this._comparingFun = comparingfun ?? ((a: EventCallback, b: EventCallback) => (a.priority ?? 0) - (b.priority ?? 0));
     }
 
-    on(event: string, callback: EventCallback | Function) {
-        if (!this._callbacks.has(event)) {
-            this._callbacks.set(event, new Heap<Function>())
+    on(event: string, callback: EventCallback, priority: number = undefined) {
+        if (priority !== undefined) {
+            callback.priority = priority;
         }
-        let _callbacks: Heap<Function> = this._callbacks.get(event)
+        if (!this._callbacks.has(event)) {
+            this._callbacks.set(event, new Heap<EventCallback>(this._comparingFun))
+        }
+        let _callbacks: Heap<EventCallback> = this._callbacks.get(event)
         _callbacks.push(callback)
     }
 
