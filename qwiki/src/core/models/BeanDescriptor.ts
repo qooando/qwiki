@@ -1,7 +1,13 @@
 export interface BeanDescriptor {
     name: string;
     clazz: any;
-    priority: number;
+    priority?: number;
+    scope: BeanScope;
+    lazy?: boolean;
+    instances: Array<any>;
+}
 
-    instance: any;
+export enum BeanScope {
+    SINGLETON = "SINGLETON",
+    PROTOTYPE = "PROTOTYPE"
 }

@@ -1,8 +1,9 @@
 import {Base} from "./common/Base";
 import {ModulesConfig} from "./models/ApplicationConfig";
 import * as assert from "assert";
-import {BeanDescriptor} from "./models/BeanDescriptor";
+import {BeanDescriptor, BeanScope} from "./models/BeanDescriptor";
 import {Heap} from "./utils/Heap";
+import {Bean} from "./common/Bean";
 
 export class ModuleManager extends Base {
     config: ModulesConfig;
@@ -13,6 +14,7 @@ export class ModuleManager extends Base {
 
     constructor() {
         super();
+        this.config = undefined;
         this.beans = new Map<string, Heap<BeanDescriptor>>();
     }
 
@@ -77,14 +79,58 @@ export class ModuleManager extends Base {
      * if a kind is provided, it returns a list of all beans of the specified kind -> ordered or not?
      * if a name is provided, it returns only the specified name, if multiple beans have the same name -> use "primary" or an order?
      * @param identifier
-     * @param optional
+     * @param isOptional
+     * @param asList
      */
-    require(identifier: string, optional: boolean = true) {
-        throw new Error("Not implemented");
+    require(identifier: string, isOptional: boolean = true, asList: boolean = false): any {
+        assert(identifier)
+        assert(isOptional)
+        if (!this.beans.has(identifier)) {
+            if (!isOptional) {
+                throw new Error(`Bean not found: ${identifier}`)
+            } else {
+                return asList ? [] : null;
+            }
+        }
+        const heap = this.beans.get(identifier);
+        if (asList) {
+            let descriptors = heap.toSortedArray();
+            return descriptors.map(this.requireFromDescriptor);
+        } else {
+            return this.requireFromDescriptor(heap.top());
+        }
     }
 
-    autowire(fun: Function) {
-        throw new Error("Not implemented") ;
+    requireFromDescriptor(descriptor: BeanDescriptor) {
+        assert(descriptor)
+        switch (descriptor.scope) {
+            case BeanScope.PROTOTYPE:
+                assert(descriptor.clazz);
+                assert(descriptor.instances);
+                let instance = this.autoconstruct(descriptor.clazz);
+                descriptor.instances.push(instance);
+                return instance;
+            case BeanScope.SINGLETON:
+                assert(descriptor.instances);
+                if (descriptor.instances.length == 0) {
+                    let instance = this.autoconstruct(descriptor.clazz);
+                    descriptor.instances.push(instance);
+                }
+                return descriptor.instances.at(0);
+            default:
+                throw new Error(`Not implemented bean scope: ${descriptor.scope}`)
+        }
+    }
+
+    /**
+     * construct a class instance, autoresolve all constructor arguments from other beans
+     *
+     * @param clazz
+     */
+    autoconstruct<T>(clazz: new () => T) {
+        assert(clazz);
+        // FIXME autowire arguments, find bean descriptor for clazz ?
+        return new clazz();
     }
 
     registerBeanFromDescriptor(descriptor: BeanDescriptor) {
@@ -92,7 +138,10 @@ export class ModuleManager extends Base {
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
-        [descriptor.clazz, descriptor.name].forEach(
+        [
+            "class:" + descriptor.clazz.name,
+            descriptor.name,
+        ].forEach(
             (key: string) => {
                 if (!this.beans.has(key)) {
                     this.beans.set(key, new Heap<BeanDescriptor>(Heap.Comparators.priority))
@@ -100,8 +149,45 @@ export class ModuleManager extends Base {
                 this.beans.get(key).push(descriptor)
             }
         );
+        return descriptor;
     }
 
+    registerBeanFromInstance(
+        instance: object,
+        priority: number = 0
+    ) {
+        assert(instance)
+        let d: BeanDescriptor = {
+            clazz: instance.constructor,
+            name: instance.constructor.name.at(0).toLowerCase() + instance.constructor.name.slice(1),
+            priority: priority,
+            scope: BeanScope.SINGLETON,
+            lazy: false,
+            instances: [instance]
+        }
+        return this.registerBeanFromDescriptor(d);
+    }
+
+    registerBeanFromClass<T>(
+        clazz: new () => T,
+        scope: BeanScope = BeanScope.SINGLETON,
+        lazy: boolean = false,
+        priority: number = 0
+    ) {
+        assert(clazz);
+        let d: BeanDescriptor = {
+            clazz: clazz,
+            name: clazz.name.at(0).toLowerCase() + clazz.name.slice(1),
+            priority: priority,
+            scope: scope,
+            lazy: lazy,
+            instances: new Array<any>()
+        }
+        if (!lazy && scope === BeanScope.SINGLETON) {
+            d.instances.push(this.autoconstruct(clazz))
+        }
+        return this.registerBeanFromDescriptor(d);
+    }
 
 
 }

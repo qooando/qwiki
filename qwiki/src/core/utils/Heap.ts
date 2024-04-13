@@ -10,7 +10,7 @@ export class Heap<T> {
     static Comparators = {
         min: (a: any, b: any) => a - b,
         max: (a: any, b: any) => b - a,
-        priority: (a: Prioritized, b: Prioritized) => a.priority - b.priority
+        priority: (a: Prioritized, b: Prioritized) => (a.priority ?? 0) - (b.priority ?? 0)
     }
 
     constructor(comparator: Function | Heap<T> = undefined) {
