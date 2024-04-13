@@ -87,5 +87,19 @@ export class ModuleManager extends Base {
         throw new Error("Not implemented") ;
     }
 
+    registerBeanFromDescriptor(descriptor: BeanDescriptor) {
+        assert(descriptor);
+        assert(this.beans);
+        assert(descriptor.clazz);
+        assert(descriptor.name);
+        [descriptor.clazz, descriptor.name].forEach(
+            (key: string) => {
+                if (!this.beans.has(key)) {
+                    this.beans.set(key, new Heap<BeanDescriptor>(Heap.Comparators.priority))
+                }
+                this.beans.get(key).push(descriptor)
+            }
+        );
+    }
 
 }

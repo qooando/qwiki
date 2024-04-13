@@ -1,11 +1,16 @@
+export interface Prioritized {
+    priority: number
+}
+
 export class Heap<T> {
 
     _comparator: Function;
     _items: Array<T>;
 
-    Comparators = {
+    static Comparators = {
         min: (a: any, b: any) => a - b,
-        max: (a: any, b: any) => a - b
+        max: (a: any, b: any) => b - a,
+        priority: (a: Prioritized, b: Prioritized) => a.priority - b.priority
     }
 
     constructor(comparator: Function | Heap<T> = undefined) {
@@ -13,7 +18,7 @@ export class Heap<T> {
             this._items = [...comparator._items]
             this._comparator = comparator._comparator
         } else {
-            this._comparator = comparator ?? this.Comparators.min
+            this._comparator = comparator ?? Heap.Comparators.min
             this._items = []
         }
     }

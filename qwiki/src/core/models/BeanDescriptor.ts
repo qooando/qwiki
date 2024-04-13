@@ -1,6 +1,7 @@
-
 export interface BeanDescriptor {
-    kind: string
-    name: string
-    content: any
+    name: string;
+    clazz: any;
+    priority: number;
+
+    instance: any;
 }
