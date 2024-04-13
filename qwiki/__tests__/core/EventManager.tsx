@@ -49,59 +49,49 @@ describe('Class implementing Evented', () => {
         expect(cbs[1].priority).toBe(15)
     });
 
-    // test('Register callbacks with custom priority', () => {
-    //     let h = new Instrumented((a, b) => b.foo - a.foo);
-    //     let cb1 = (ctx) => {
-    //     };
-    //     let cb2 = (ctx) => {
-    //     };
-    //     h.on("Foo", cb1, {foo: 5})
-    //     h.on("Foo", cb2, {foo: 15})
-    //     expect(h._callbacks["Foo"].size()).toBe(2);
-    //     expect(h._callbacks["Foo"]._items).toStrictEqual([cb2, cb1]);
-    //     let cbs = h._callbacks["Foo"].toSortedArray();
-    //     expect(cbs).toStrictEqual([cb2, cb1]);
-    //     expect(cbs[0].foo).toBe(15)
-    //     expect(cbs[1].foo).toBe(5)
-    // });
-    //
-    // test('Emit sync event', () => {
-    //     let h = new Instrumented();
-    //     let result = {foo: null};
-    //     h.on("Foo", (ctx, value) => {
-    //         result.foo = value;
-    //     })
-    //     h.emitSync("Foo", true)
-    //     expect(result.foo).toBe(true);
-    //     h.emitSync("Foo", false)
-    //     expect(result.foo).toBe(false);
-    //     h.emitSync("Foo", 14)
-    //     expect(result.foo).toBe(14);
-    // });
-    //
-    // test('Emit async event', () => {
-    //     let h = new Instrumented();
-    //     let result = {foo: null};
-    //     h.on("Foo", (ctx, value) => {
-    //         result.foo = value;
-    //     })
-    //     h.emit("Foo", 14).then(() =>
-    //         expect(result.foo).toBe(14)
-    //     )
-    // });
-    //
-    // test('Sequential callbacks', () => {
-    //     let h = new Instrumented();
-    //     let result = {foo: null};
-    //     h.on("Foo", (ctx, value) => {
-    //         result.foo = value;
-    //     }, 1)
-    //     h.on("Foo", (ctx, value) => {
-    //         result.foo = result.foo * 2;
-    //     }, 2)
-    //     h.emit("Foo", 14).then(() =>
-    //         expect(result.foo).toBe(28)
-    //     )
-    // });
+    test('Emit sync event', () => {
+        let h = new Instrumented();
+        let result = new class {
+            foo: any
+        };
+        h.on("Foo", (ctx: EventContext, value: any) => {
+            result.foo = value;
+        })
+        h.emitSync("Foo", true)
+        expect(result.foo).toBe(true);
+        h.emitSync("Foo", false)
+        expect(result.foo).toBe(false);
+        h.emitSync("Foo", 14)
+        expect(result.foo).toBe(14);
+    });
+
+    test('Emit async event', () => {
+        let h = new Instrumented();
+        let result = new class {
+            foo: any
+        };
+        h.on("Foo", (ctx: EventContext, value: any) => {
+            result.foo = value;
+        })
+        h.emit("Foo", 14).then(() =>
+            expect(result.foo).toBe(14)
+        )
+    });
+
+    test('Sequential callbacks', () => {
+        let h = new Instrumented();
+        let result = new class {
+            foo: any
+        };
+        h.on("Foo", (ctx: EventContext, value: any) => {
+            result.foo = value;
+        }, 1)
+        h.on("Foo", (ctx: EventContext, value: any) => {
+            result.foo = result.foo * 2;
+        }, 2)
+        h.emit("Foo", 14).then(() =>
+            expect(result.foo).toBe(28)
+        )
+    });
 
 });
