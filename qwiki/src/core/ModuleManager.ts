@@ -4,74 +4,37 @@ import * as assert from "assert";
 import {BeanDescriptor, BeanScope} from "./models/BeanDescriptor";
 import {Heap} from "./utils/Heap";
 import {Bean} from "./common/Bean";
+import {Loader} from "./common/Loader";
+import {JavascriptLoader} from "./JavascriptLoader";
+import {EventNames} from "./constants/EventNames";
+import * as path from "path";
+import * as fs from "fs";
+import {glob} from "glob";
+import {mime} from "./utils/Mime";
 
 export class ModuleManager extends Base {
     config: ModulesConfig;
     beans: Map<string, Heap<BeanDescriptor>>;
-
-    // loadersByMimeType: Map<string, Loader>;
-    // modules: Map<string, Module>; // apiVersion|kindAndName|kind -> Module
+    loaders: Map<string, Loader>;
 
     constructor() {
         super();
         this.config = undefined;
         this.beans = new Map<string, Heap<BeanDescriptor>>();
+        this.loaders = new Map<string, Loader>;
     }
 
     initialize(config: ModulesConfig) {
         this.config = config;
         const self = this;
 
-        //
-        // /*
-        //  * Manually boostrap dependencies for preload
-        //  */
-        // this._defaultModuleLoader = require("./loaders/JavascriptModuleLoader");
-        //
-        // if (this._defaultModuleLoader.init) {
-        //     this._defaultModuleLoader.init(this.ctx);
-        // }
-        //
-        // Object.assign(this.loadersByMimeTypes, Object.fromEntries(
-        //     this._defaultModuleLoader.__qwiki__.mimeTypes.map(
-        //         mimeType => [mimeType, {
-        //             content: this._defaultModuleLoader
-        //         }]
-        //     )
-        // ));
-        //
-        // /*
-        //  * Automatically register new modules of `moduleLoader` kind in `loadersByMimeTypes` cache
-        //  */
-        // this.ctx.events.on(ModuleManager.Events.NEW_MODULE_REGISTERED_WITH_KIND_ + "MODULELOADER",
-        //     (ctx, manifest) => {
-        //         assert(manifest.kind === "moduleLoader");
-        //         assert(manifest.mimeTypes && manifest.mimeTypes.length, `Missing mimeTypes in module ${manifest.apiVersion}`)
-        //         manifest.mimeTypes.forEach(mimeType => {
-        //             self.loadersByMimeTypes[mimeType] = manifest
-        //         });
-        //     })
-        //
-        // this.ctx.events.emit(ModuleManager.Events.MODULES_BEFORE_PRELOAD);
-        //
-        // /*
-        //  * Preload specific files before any other module
-        //  */
-        // [
-        //     "./loaders/JavascriptModuleLoader.js"
-        // ]
-        //     .map(x => path.join(__dirname, x))
-        //     .map(x => this.loadModule(x));
-        //
-        // this.ctx.events.emit(ModuleManager.Events.MODULES_AFTER_PRELOAD)
-        // this.ctx.events.emit(ModuleManager.Events.MODULES_BEFORE_LOAD)
-        //
-        // /*
-        //  * Load all modules in search paths with dependencies resolution
-        //  */
-        // const searchPaths = this.config.searchPaths || [];
-        // this.loadModules(searchPaths);
-        // this.ctx.events.emit(ModuleManager.Events.MODULES_AFTER_LOAD)
+        // manual bootstrap
+        this.registerLoaderFromInstance(new JavascriptLoader());
+
+        // load all files from search paths using the loader
+        $qw.emitSync(EventNames.MODULES_BEFORE_LOAD)
+        this.loadBeansFromPaths(this.config.searchPaths);
+        $qw.emitSync(EventNames.MODULES_AFTER_LOAD)
     }
 
     /**
@@ -189,5 +152,52 @@ export class ModuleManager extends Base {
         return this.registerBeanFromDescriptor(d);
     }
 
+    registerLoaderFromInstance(loader: Loader) {
+        assert(loader)
+        assert(loader.supportedMimeTypes)
+        loader.supportedMimeTypes.forEach((e: string) => {
+            this.log.debug(`Register loader ${loader.constructor.name} for mimetype ${e}`)
+            if (this.loaders.has(e)) {
+                this.log.warn(`Override loader for mimetype ${e} with loader ${loader.constructor.name}`)
+            }
+            this.loaders.set(e, loader);
+        })
+    }
 
+    loadContentFromPath(path: string, mimetype: string = undefined, loader: Loader = undefined) {
+        assert(path)
+        if (!loader) {
+            mimetype ??= mime.getType(path);
+            if (!this.loaders.has(mimetype)) {
+                this.log.warn(`Loader not found for mimetype ${mimetype}: ${path}`)
+            }
+            loader = this.loaders.get(mimetype);
+        }
+        let content = loader.load(path);
+        // FIXME do things here?
+        return content;
+    }
+
+    private loadBeansFromPaths(searchPaths: Array<string>) : BeanDescriptor[] {
+        assert(searchPaths)
+        let candidateBeans = glob.globSync(this.config.searchPaths, {})
+            .map(p => {
+                if (!path.isAbsolute(p)) {
+                    return path.resolve(p);
+                }
+                return p;
+            })
+            .filter(p => fs.statSync(p).isFile())
+            .map(p => this.loadContentFromPath(p))
+            .flatMap(c => c.getEntries())
+
+        return null;
+        // .map(p => self.loadManifest(p, options))
+        // .filter(manifest => !!manifest)
+        // .filter(options.filter);
+
+        // const searchPaths = this.config.searchPaths || [];
+        // this.loadModules(searchPaths);
+        // this.ctx.events.emit(ModuleManager.Events.MODULES_AFTER_LOAD)
+    }
 }

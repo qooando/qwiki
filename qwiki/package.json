@@ -30,6 +30,9 @@
     "typescript": "^5.4.2"
   },
   "dependencies": {
+    "@types/glob": "^8.1.0",
+    "esm": "^3.2.25",
+    "glob": "^10.3.12",
     "pino": "^8.19.0",
     "pino-pretty": "^11.0.0"
   }
