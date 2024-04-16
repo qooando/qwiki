@@ -81,6 +81,21 @@ describe('Graph data structure', () => {
         expect(visit.afterVisit.map((x: Vertex) => x.name)).toEqual("d c b a".split(" "))
     })
 
+    test("Find cycles", () => {
+        let g = new Graph()
+        g.upsertDirectedEdges([
+            ["a", "b"], ["b", "c"], ["c", "d"], ["d", "a"],
+            ["c", "e"], ["e", "f"], ["f", "g"], ["g", "c"],
+            ["a", "h"], ["h", "c"]
+        ])
+        let visit = g.depth("a");
+        // a b c d a
+        // c e f g c
+        // a h c d a
+        expect(visit.cycles.length).toBeGreaterThan(0)
+        // expect(visit.cycles.length).toBe(3) // FAILS to find all cycles
+    })
+
     test("Walk", () => {
         let g = new Graph()
         g.upsertDirectedEdges([

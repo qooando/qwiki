@@ -1,5 +1,11 @@
 import * as assert from "assert";
 
+export interface VisitContext {
+    cycles: Array<Array<Vertex>> // NOTE: this can be a non-exhaustive list of cycles
+    beforeVisit: Array<Vertex>
+    afterVisit: Array<Vertex>
+}
+
 export class Vertex {
     name: string;
     in: Map<string, DirectedEdge>;
@@ -26,12 +32,6 @@ export class DirectedEdge {
         this.to = to;
         this.data = data;
     }
-}
-
-export interface VisitContext {
-    cycles: Array<Vertex>
-    beforeVisit: Array<Vertex>
-    afterVisit: Array<Vertex>
 }
 
 export class Graph {
@@ -135,7 +135,7 @@ export class Graph {
         // cycle detection
         const cycleStartIndex = ancestors.indexOf(node);
         if (cycleStartIndex >= 0) {
-            context.cycles.push(...ancestors.slice(cycleStartIndex));
+            context.cycles.push(ancestors.slice(cycleStartIndex));
             return context;
         }
 
