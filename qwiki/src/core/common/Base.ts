@@ -14,4 +14,5 @@ export class Base implements Logged, Evented {
         initializeLogged(this)
         initializeEvented(this)
     }
+
 }

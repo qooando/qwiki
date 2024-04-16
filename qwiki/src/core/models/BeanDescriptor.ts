@@ -1,3 +1,5 @@
+import {BeanScope} from "./BeanScope";
+
 export interface BeanDescriptor {
     name: string;
     clazz: any;
@@ -7,7 +9,3 @@ export interface BeanDescriptor {
     instances: Array<any>;
 }
 
-export enum BeanScope {
-    SINGLETON = "SINGLETON",
-    PROTOTYPE = "PROTOTYPE"
-}

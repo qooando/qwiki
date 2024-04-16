@@ -1,9 +1,8 @@
 import {Base} from "./common/Base";
 import {ModulesConfig} from "./models/ApplicationConfig";
 import * as assert from "assert";
-import {BeanDescriptor, BeanScope} from "./models/BeanDescriptor";
+import {BeanDescriptor} from "./models/BeanDescriptor";
 import {Heap} from "./utils/Heap";
-import {Bean} from "./common/Bean";
 import {Loader} from "./common/Loader";
 import {JavascriptLoader} from "./JavascriptLoader";
 import {EventNames} from "./constants/EventNames";
@@ -11,6 +10,7 @@ import * as path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
 import {mime} from "./utils/Mime";
+import {BeanScope} from "./models/BeanScope";
 
 export class ModuleManager extends Base {
     config: ModulesConfig;
@@ -178,9 +178,15 @@ export class ModuleManager extends Base {
         return content;
     }
 
-    private loadBeansFromPaths(searchPaths: Array<string>) : BeanDescriptor[] {
+    private loadBeansFromPaths(searchPaths: Array<string>): BeanDescriptor[] {
         assert(searchPaths)
-        let candidateBeans = glob.globSync(this.config.searchPaths, {})
+        searchPaths = searchPaths.map(x => {
+            if (x.startsWith("/")) {
+                return x
+            }
+            return path.join(__dirname, "..", x);
+        });
+        let candidateBeans = new Map<string, any>(glob.globSync(searchPaths, {})
             .map(p => {
                 if (!path.isAbsolute(p)) {
                     return path.resolve(p);
@@ -189,7 +195,14 @@ export class ModuleManager extends Base {
             })
             .filter(p => fs.statSync(p).isFile())
             .map(p => this.loadContentFromPath(p))
-            .flatMap(c => c.getEntries())
+            .flatMap(c => Object.entries(c))
+            .filter((e: [string, any]) => "__bean__" in e[1])
+        );
+
+        this.log.debug(`Bean candidates: ${Array.from(candidateBeans.keys())}`)
+
+        // FIXME load candidate beans in the correct order
+        // find dependencies directly from constructors
 
         return null;
         // .map(p => self.loadManifest(p, options))

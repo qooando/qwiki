@@ -1,6 +1,4 @@
-import {Bean} from "./Bean";
-
-export interface Loader extends Bean {
+export interface Loader {
     supportedMimeTypes: Array<string>
 
     load(path: string): any;

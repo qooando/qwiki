@@ -1,5 +1,6 @@
 import {ModuleManager} from "../../src/core/ModuleManager";
-import {BeanDescriptor, BeanScope} from "../../src/core/models/BeanDescriptor";
+import {BeanDescriptor} from "../../src/core/models/BeanDescriptor";
+import {BeanScope} from "../../src/core/models/BeanScope";
 
 describe("Module manager", () => {
 
