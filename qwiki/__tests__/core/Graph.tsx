@@ -1,5 +1,12 @@
-import {Graph, makeDependenciesGraph, makeDependenciesOrderedList, Vertex} from "../../src/core/utils/Graph";
+import {
+    Graph,
+    makeDependenciesGraph,
+    makeDependenciesOrderedList,
+    Vertex,
+    VisitContext
+} from "../../src/core/utils/Graph";
 import * as G from "glob";
+import * as assert from "assert";
 
 describe('Graph data structure', () => {
 
@@ -72,5 +79,37 @@ describe('Graph data structure', () => {
         expect(visit.cycles.length).toBe(0)
         expect(visit.beforeVisit.map((x: Vertex) => x.name)).toEqual("a b c d".split(" "))
         expect(visit.afterVisit.map((x: Vertex) => x.name)).toEqual("d c b a".split(" "))
+    })
+
+    test("Walk", () => {
+        let g = new Graph()
+        g.upsertDirectedEdges([
+            ["Alice", "Bob"],
+            ["Alice", "Corinna"],
+            ["Bob", "Elisa"],
+            ["Bob", "Felice"],
+            ["Corinna", "Ginevra"],
+            ["Corinna", "Hellis"],
+        ])
+
+        let picked = new Array<string>();
+        let discarded = new Array<string>();
+
+        g.walk("Alice", (node: Vertex, context: VisitContext) => {
+            if (picked.length === 0) {
+                picked.push(node.name)
+            }
+            let neighbours = Array.from(node.out.keys()).sort()
+            if (neighbours.length === 0) {
+                return null;
+            }
+            let nextName = neighbours.pop();
+            discarded.push(...neighbours);
+            picked.push(nextName);
+            return node.out.get(nextName).to;
+        });
+
+        expect(picked).toEqual("Alice Corinna Hellis".split(" "))
+        expect(discarded).toEqual("Bob Ginevra".split(" "))
     })
 });

@@ -54,6 +54,10 @@ export class Graph {
         return node;
     }
 
+    upsertVertices(defs: Array<string>) {
+        return defs.map((name: string) => this.upsertVertex(name));
+    }
+
     upsertEdge(from: string, to: string, data: any = undefined) {
         return [
             this.upsertDirectedEdge(from, to, data),
@@ -76,6 +80,12 @@ export class Graph {
         toVertex.in.set(fromName, edge);
         edge.data = edgeData;
         return edge
+    }
+
+    upsertDirectedEdges(defs: Array<[string, string]>) {
+        return defs.map((e: [string, string]) => {
+            return this.upsertDirectedEdge(e[0], e[1]);
+        })
     }
 
     order() {
@@ -164,7 +174,7 @@ export class Graph {
         if (typeof node === "string") {
             node = this.getVertex(node);
         }
-        while (node instanceof Node) {
+        while (node instanceof Vertex) {
             node = callback(node, context);
         }
         return node;
