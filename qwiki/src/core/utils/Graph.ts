@@ -43,14 +43,16 @@ export class Graph {
         this.edges = new Map<string, DirectedEdge>;
     }
 
-    upsertVertex(name: string, data: any = undefined) {
+    upsertVertex(vertexName: string, vertexData: any = undefined) {
         let node: Vertex = undefined;
-        if (!this.vertices.has(name)) {
-            node = new Vertex(name);
+        if (!this.vertices.has(vertexName)) {
+            node = new Vertex(vertexName);
             this.vertices.set(node.name, node);
         }
-        node = this.vertices.get(name);
-        node.data = data;
+        node = this.vertices.get(vertexName);
+        if (vertexData) {
+            node.data = vertexData;
+        }
         return node;
     }
 
@@ -78,13 +80,17 @@ export class Graph {
         }
         fromVertex.out.set(toName, edge);
         toVertex.in.set(fromName, edge);
-        edge.data = edgeData;
+        if (edgeData) {
+            edge.data = edgeData;
+        }
         return edge
     }
 
-    upsertDirectedEdges(defs: Array<[string, string]>) {
-        return defs.map((e: [string, string]) => {
-            return this.upsertDirectedEdge(e[0], e[1]);
+    upsertDirectedEdges(defs: Array<[string, ...string[]]>) {
+        return defs.map((e: [string, ...string[]]) => {
+            e.slice(1).forEach(to => {
+                return this.upsertDirectedEdge(e[0], to)
+            });
         })
     }
 
@@ -182,30 +188,29 @@ export class Graph {
 
 }
 
-export interface MakeDependeniesGraphOptions {
-    useItem?(i: any): boolean,
+export interface MakeDependenciesGraphOptions {
+    isVertex?(i: any): boolean, // a filter to tells if the item must be used or not to build the graph
+    getVertexName?(i: any): string,
 
-    getId?(i: any): string,
-
-    getChildrenIds?(i: any): Array<string>,
+    getChildrenNames?(i: any): Array<string>,
 
     isRoot?(i: any): boolean,
 
     rootName?: string
 }
 
-export function makeDependenciesGraph(items: Array<any>, options: MakeDependeniesGraphOptions = {}) {
+export function makeDependenciesGraph(items: Array<any>, options: MakeDependenciesGraphOptions = {}) {
     assert(Array.isArray(items))
-    options = Object.assign(options, {
-        useItem: (i: any) => true,
-        getId: (i: any) => i.id,
-        getChildrenIds: (i: any) => i.children,
+    options = Object.assign({
+        isVertex: (i: any) => true,
+        getVertexName: (i: any) => i.id,
+        getChildrenNames: (i: any) => i.children,
         isRoot: (i: any) => true, // if is a starter item
         rootName: "__root__",
-    });
-    let useItem = options.useItem,
-        getId = options.getId,
-        getChildrenIds = options.getChildrenIds,
+    }, options);
+    let isVertex = options.isVertex,
+        getVertexName = options.getVertexName,
+        getChildrenNames = options.getChildrenNames,
         rootName = options.rootName,
         isRoot = options.isRoot;
 
@@ -213,35 +218,38 @@ export function makeDependenciesGraph(items: Array<any>, options: MakeDependenie
     items
         .flatMap(x => Array.isArray(x) ? x : [x])
         .forEach(x => {
-            if (!useItem(x)) {
+            if (!isVertex(x)) {
                 return;
             }
-            const name = getId(x);
+            const name = getVertexName(x);
             if (!name) {
-                throw new Error(`getId function does not return a name`);
+                throw new Error(`getVertexName function does not return a name`);
             }
             // add x as value to the vertex
-            g.upsertVertex(name, {value: x});
+            let v = g.upsertVertex(name, x);
+            //FIXME data is not set in g ??
             // if node is a root, add special root dependence
             if (isRoot(x)) {
                 g.upsertDirectedEdge(rootName, name);
             }
             // add vertexes
-            getChildrenIds(x).forEach(otherName => g.upsertDirectedEdge(name, otherName));
+            getChildrenNames(x).forEach(otherName => g.upsertDirectedEdge(name, otherName));
         });
     return g;
 }
 
 
-export function makeDependenciesOrderedList(items: Array<any>, options: MakeDependeniesGraphOptions = {}) {
+export function sortDependenciesByLoadOrder(items: Array<any>, options: MakeDependenciesGraphOptions = {}) {
     assert(Array.isArray(items))
     options = Object.assign({
         rootName: "__root__",
     }, options)
     const graph = makeDependenciesGraph(items, options);
-    let result = graph.depth(options.rootName).afterVisit;
-    result = result.splice(1);
-    return result;
+    let visitResult = graph.depth(options.rootName);
+    let visitedVertices = visitResult.afterVisit
+    visitedVertices.pop() // remove root node
+    let outputItems = visitedVertices.map(v => v.data);
+    return outputItems;
 }
 
 

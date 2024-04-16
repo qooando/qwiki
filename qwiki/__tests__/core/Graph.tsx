@@ -1,7 +1,7 @@
 import {
     Graph,
     makeDependenciesGraph,
-    makeDependenciesOrderedList,
+    sortDependenciesByLoadOrder,
     Vertex,
     VisitContext
 } from "../../src/core/utils/Graph";
@@ -126,5 +126,49 @@ describe('Graph data structure', () => {
 
         expect(picked).toEqual("Alice Corinna Hellis".split(" "))
         expect(discarded).toEqual("Bob Ginevra".split(" "))
+    })
+});
+
+describe("Dependency management", () => {
+
+    test("Resolve dependencies", () => {
+
+        class Module {
+            name: string;
+            dependencies: Array<string>;
+
+            constructor(name: string, ...dependencies: string[]) {
+                this.name = name;
+                this.dependencies = dependencies;
+            }
+        }
+
+        let m = [
+            new Module("House", "Floor", "Walls", "Roof", "Windows", "Doors", "Furniture"),
+            new Module("Floor", "Tiles", "Wood"),
+            new Module("Walls", "Tiles", "Bricks"),
+            new Module("Roof", "Tiles", "Wood"),
+            new Module("Windows", "Wood", "Glass"),
+            new Module("Doors", "Wood", "Glass"),
+            new Module("Furniture", "Wood", "Glass"),
+            new Module("Tiles"),
+            new Module("Bricks"),
+            new Module("Wood"),
+            new Module("Glass"),
+        ]
+        let loadOrder = sortDependenciesByLoadOrder(m, {
+            getVertexName(i: Module): string {
+                return i.name;
+            },
+            getChildrenNames(i: Module): Array<string> {
+                return i.dependencies;
+            }
+        })
+        let loadNames = loadOrder.map(v => v.name);
+        expect(loadNames.length).toBe(m.length);
+        expect(loadNames).toEqual([
+            "Tiles", "Wood", "Floor", "Bricks", "Walls",
+            "Roof", "Glass", "Windows", "Doors", "Furniture", "House"
+        ]);
     })
 });
