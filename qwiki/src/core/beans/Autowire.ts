@@ -1,3 +1,5 @@
+import * as assert from "assert";
+
 export class AutowiredField<T> {
     beanName: string;
     asList: boolean;
@@ -15,16 +17,21 @@ export class AutowiredField<T> {
 
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
                             optional: boolean = false): AutowiredField<T> {
+    assert(definition)
+    assert(optional !== undefined)
+    let placeholder: AutowiredField<T> = null;
     if (typeof definition === "string") {
-        return new AutowiredField(definition, optional, false);
+        placeholder = new AutowiredField(definition, optional, false);
     } else if (Array.isArray(definition)) {
+        assert(definition.length == 1);
         definition = definition[0];
         if (typeof definition === "string") {
-            return new AutowiredField<T>(definition, optional, true);
+            placeholder = new AutowiredField<T>(definition, optional, true);
         } else {
-            return new AutowiredField(`class:${definition.constructor.name}`, optional, true);
+            placeholder = new AutowiredField(`class:${definition.name}`, optional, true);
         }
     } else {
-        return new AutowiredField(`class:${definition.constructor.name}`, optional, false);
+        placeholder = new AutowiredField(`class:${definition.name}`, optional, false);
     }
+    return placeholder;
 }

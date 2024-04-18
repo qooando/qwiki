@@ -11,19 +11,28 @@ export class MyBean {
 
 ```
 
-Define its constructor or any other function for autoconstruct/autowire
+Bean SHOULD have a constructor without arguments. Instead you can define Autowire fields that will be resolved
+after constructor. Then postConstruct function is called.
 
 ```typescript
 import {__Bean__} from "./__Bean__";
+import {Autowire} from "./Autowire";
 
 export class MyBean {
     static __bean__: __Bean__ = {}
 
-    construct(arg1, arg2) {
+    foo = Autowire(MyBean2)
+    foos = Autowire([MyBean2])
+    bar = Autowire("MyBean2")
+    bars = Autowire(["MyBean2"])
 
+    constructor() {
+        
     }
 
-    MyBean.constructor.args = ["myFoo", "myBar"];
-    
+    postConstruct() {
+        // use foo, foos, bar, bars
+    }
+
 }
 ```

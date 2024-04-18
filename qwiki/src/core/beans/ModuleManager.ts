@@ -41,7 +41,7 @@ export class ModuleManager extends Base {
         const self = this;
 
         // manual bootstrap
-        this.registerLoaderFromInstance(new JavascriptLoader());
+        this.addLoader(new JavascriptLoader());
 
         // load all files from search paths using the loader
         $qw.emitSync(EventNames.MODULES_BEFORE_LOAD)
@@ -114,14 +114,15 @@ export class ModuleManager extends Base {
      *
      * @param descriptor
      */
-    registerBeanFromDescriptor(descriptor: BeanDescriptor) {
+    addBean(descriptor: BeanDescriptor) {
         assert(descriptor);
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
         [
-            "class:" + descriptor.clazz.name,
-            descriptor.name,
+            // "class:" + descriptor.clazz.name, // common to different beans ?,
+            ...descriptor.groups,
+            descriptor.name, // should be unique
         ].forEach(
             (key: string) => {
                 if (!this.beans.has(key)) {
@@ -134,61 +135,61 @@ export class ModuleManager extends Base {
         return descriptor;
     }
 
-    /**
-     * Register a bean from its instance
-     *
-     * @param instance
-     * @param priority
-     */
-    registerBeanFromInstance(
-        instance: object,
-        priority: number = 0
-    ) {
-        assert(instance)
-        let d: BeanDescriptor = {
-            clazz: instance.constructor,
-            name: instance.constructor.name.at(0).toLowerCase() + instance.constructor.name.slice(1),
-            priority: priority,
-            scope: BeanScope.SINGLETON,
-            lazy: false,
-            instances: [instance]
-        }
-        return this.registerBeanFromDescriptor(d);
-    }
+    // /**
+    //  * Register a bean from its instance
+    //  *
+    //  * @param instance
+    //  * @param priority
+    //  */
+    // registerBeanFromInstance(
+    //     instance: object,
+    //     priority: number = 0
+    // ) {
+    //     assert(instance)
+    //     let d: BeanDescriptor = {
+    //         clazz: instance.constructor,
+    //         name: instance.constructor.name.at(0).toLowerCase() + instance.constructor.name.slice(1),
+    //         priority: priority,
+    //         scope: BeanScope.SINGLETON,
+    //         lazy: false,
+    //         instances: [instance]
+    //     }
+    //     return this.registerBeanFromDescriptor(d);
+    // }
 
-    /**
-     * Register a bean from a class, note it doesn't initialize it
-     *
-     * @param clazz
-     * @param scope
-     * @param priority
-     */
-    registerBeanFromClass<T>(
-        clazz: new () => T,
-        scope: BeanScope = BeanScope.SINGLETON,
-        // lazy: boolean = false,
-        priority: number = 0
-    ) {
-        assert(clazz);
-        let d: BeanDescriptor = {
-            clazz: clazz,
-            name: clazz.name.at(0).toLowerCase() + clazz.name.slice(1),
-            priority: priority,
-            scope: scope,
-            instances: new Array<any>()
-        }
-        // if (!lazy && scope === BeanScope.SINGLETON) {
-        //     d.instances.push(this.autoconstruct(clazz))
-        // }
-        return this.registerBeanFromDescriptor(d);
-    }
+    // /**
+    //  * Register a bean from a class, note it doesn't initialize it
+    //  *
+    //  * @param clazz
+    //  * @param scope
+    //  * @param priority
+    //  */
+    // registerBeanFromClass<T>(
+    //     clazz: new () => T,
+    //     scope: BeanScope = BeanScope.SINGLETON,
+    //     // lazy: boolean = false,
+    //     priority: number = 0
+    // ) {
+    //     assert(clazz);
+    //     let d: BeanDescriptor = {
+    //         clazz: clazz,
+    //         name: clazz.name.at(0).toLowerCase() + clazz.name.slice(1),
+    //         priority: priority,
+    //         scope: scope,
+    //         instances: new Array<any>()
+    //     }
+    //     // if (!lazy && scope === BeanScope.SINGLETON) {
+    //     //     d.instances.push(this.autoconstruct(clazz))
+    //     // }
+    //     return this.registerBeanFromDescriptor(d);
+    // }
 
     /**
      * Register a new loader
      *
      * @param loader
      */
-    registerLoaderFromInstance(loader: Loader) {
+    addLoader(loader: Loader) {
         assert(loader)
         assert(loader.supportedMimeTypes)
         loader.supportedMimeTypes.forEach((e: string) => {
@@ -256,6 +257,8 @@ export class ModuleManager extends Base {
                     }
                 });
 
+        // FIXME force relationship between groups and single beans, groups depends on all items of the group
+        // FIXME define groups
         let beansInLoadOrder = sortDependenciesByLoadOrder(
             beans,
             {
@@ -273,7 +276,7 @@ export class ModuleManager extends Base {
         beansInLoadOrder
             .filter(e => e.scope === BeanScope.SINGLETON)
             .forEach(e => {
-                this.registerBeanFromDescriptor(e);
+                this.addBean(e);
                 this.requireFromDescriptor(e);
             })
 
@@ -298,7 +301,7 @@ export class ModuleManager extends Base {
         Object.entries(instance)
             .filter((e: [string, any]) => e[1] instanceof AutowiredField)
             .forEach((e: [string, AutowiredField<any>]) => {
-                Object.assign(instance, Object.fromEntries([e[0], e[1].resolve()]));
+                instance[e[0]] = e[1].resolve();
             })
 
         // call postConstruct if defined
