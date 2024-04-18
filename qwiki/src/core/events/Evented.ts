@@ -1,4 +1,4 @@
-import {EventCallback, EventContext, EventManager} from "../EventManager";
+import {EventCallback, EventContext, EventManager} from "./EventManager";
 import {Heap} from "../utils/Heap";
 
 export interface LoggerConfig {

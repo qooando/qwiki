@@ -6,6 +6,7 @@ export interface BeanDescriptor {
     priority?: number;
     scope: BeanScope;
     lazy?: boolean;
-    instances: Array<any>;
+    instances?: Array<any>;
+    dependsOn?: Array<string>;
 }
 

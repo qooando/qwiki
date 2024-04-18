@@ -191,11 +191,8 @@ export class Graph {
 export interface MakeDependenciesGraphOptions {
     isVertex?(i: any): boolean, // a filter to tells if the item must be used or not to build the graph
     getVertexName?(i: any): string,
-
     getChildrenNames?(i: any): Array<string>,
-
     isRoot?(i: any): boolean,
-
     rootName?: string
 }
 
@@ -248,7 +245,18 @@ export function sortDependenciesByLoadOrder(items: Array<any>, options: MakeDepe
     let visitResult = graph.depth(options.rootName);
     let visitedVertices = visitResult.afterVisit
     visitedVertices.pop() // remove root node
-    let outputItems = visitedVertices.map(v => v.data);
+
+    let missing = visitedVertices
+        .filter(v => !v.data)
+
+    if (missing.length > 0) {
+        $qw.log.error(`Missing dependencies: ${missing.map(v => v.name).join(" ")}`);
+    }
+
+    let outputItems = visitedVertices
+        .map(v => v.data)
+        .filter(v => !!v);
+
     return outputItems;
 }
 

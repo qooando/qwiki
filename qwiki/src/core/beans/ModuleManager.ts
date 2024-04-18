@@ -1,17 +1,24 @@
-import {Base} from "./common/Base";
-import {ModulesConfig} from "./models/ApplicationConfig";
+import {Base} from "../base/Base";
+import {ModulesConfig} from "../config/ApplicationConfig";
 import * as assert from "assert";
-import {BeanDescriptor} from "./models/BeanDescriptor";
-import {Heap} from "./utils/Heap";
-import {Loader} from "./common/Loader";
-import {JavascriptLoader} from "./JavascriptLoader";
-import {EventNames} from "./constants/EventNames";
+import {BeanDescriptor} from "./BeanDescriptor";
+import {Heap} from "../utils/Heap";
+import {Loader} from "../loaders/Loader";
+import {JavascriptLoader} from "../loaders/JavascriptLoader";
+import {EventNames} from "../events/EventNames";
 import * as path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
-import {mime} from "./utils/Mime";
-import {BeanScope} from "./models/BeanScope";
+import {mime} from "../utils/Mime";
+import {BeanScope} from "./BeanScope";
+import {sortDependenciesByLoadOrder} from "../utils/Graph";
+import {Strings} from "../utils/Strings";
+import ConstructorArgsType = jest.ConstructorArgsType;
+import {AutowiredField} from "./Autowire";
 
+/**
+ * Load files and manage beans
+ */
 export class ModuleManager extends Base {
     config: ModulesConfig;
     beans: Map<string, Heap<BeanDescriptor>>;
@@ -24,6 +31,11 @@ export class ModuleManager extends Base {
         this.loaders = new Map<string, Loader>;
     }
 
+    /**
+     * Initialize module manager from a configuration object
+     *
+     * @param config
+     */
     initialize(config: ModulesConfig) {
         this.config = config;
         const self = this;
@@ -45,9 +57,9 @@ export class ModuleManager extends Base {
      * @param isOptional
      * @param asList
      */
-    require(identifier: string, isOptional: boolean = true, asList: boolean = false): any {
+    require(identifier: string, isOptional: boolean = false, asList: boolean = false): any {
         assert(identifier)
-        assert(isOptional)
+        assert(isOptional !== undefined)
         if (!this.beans.has(identifier)) {
             if (!isOptional) {
                 throw new Error(`Bean not found: ${identifier}`)
@@ -64,20 +76,31 @@ export class ModuleManager extends Base {
         }
     }
 
+    /**
+     * Load bean instance from a descriptor
+     * @param descriptor
+     */
     requireFromDescriptor(descriptor: BeanDescriptor) {
         assert(descriptor)
+        descriptor.instances ??= []
         switch (descriptor.scope) {
             case BeanScope.PROTOTYPE:
                 assert(descriptor.clazz);
                 assert(descriptor.instances);
                 let instance = this.autoconstruct(descriptor.clazz);
+                descriptor.instances ??= new Array<any>();
                 descriptor.instances.push(instance);
+                $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, descriptor.name), descriptor, instance);
+                this.log.debug(`New instance of bean ${descriptor.name}`)
                 return instance;
             case BeanScope.SINGLETON:
                 assert(descriptor.instances);
                 if (descriptor.instances.length == 0) {
                     let instance = this.autoconstruct(descriptor.clazz);
+                    descriptor.instances ??= new Array<any>();
                     descriptor.instances.push(instance);
+                    $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, descriptor.name), descriptor, instance);
+                    this.log.debug(`New instance of bean ${descriptor.name}`)
                 }
                 return descriptor.instances.at(0);
             default:
@@ -86,16 +109,11 @@ export class ModuleManager extends Base {
     }
 
     /**
-     * construct a class instance, autoresolve all constructor arguments from other beans
+     * Register a bean from its descriptor,
+     * this class DOESN'T initialize it!
      *
-     * @param clazz
+     * @param descriptor
      */
-    autoconstruct<T>(clazz: new () => T) {
-        assert(clazz);
-        // FIXME autowire arguments, find bean descriptor for clazz ?
-        return new clazz();
-    }
-
     registerBeanFromDescriptor(descriptor: BeanDescriptor) {
         assert(descriptor);
         assert(this.beans);
@@ -110,11 +128,18 @@ export class ModuleManager extends Base {
                     this.beans.set(key, new Heap<BeanDescriptor>(Heap.Comparators.priority))
                 }
                 this.beans.get(key).push(descriptor)
+                $qw.emitSync(Strings.format(EventNames.BEAN_REGISTERED_NAME, key), descriptor);
             }
         );
         return descriptor;
     }
 
+    /**
+     * Register a bean from its instance
+     *
+     * @param instance
+     * @param priority
+     */
     registerBeanFromInstance(
         instance: object,
         priority: number = 0
@@ -131,10 +156,17 @@ export class ModuleManager extends Base {
         return this.registerBeanFromDescriptor(d);
     }
 
+    /**
+     * Register a bean from a class, note it doesn't initialize it
+     *
+     * @param clazz
+     * @param scope
+     * @param priority
+     */
     registerBeanFromClass<T>(
         clazz: new () => T,
         scope: BeanScope = BeanScope.SINGLETON,
-        lazy: boolean = false,
+        // lazy: boolean = false,
         priority: number = 0
     ) {
         assert(clazz);
@@ -143,15 +175,19 @@ export class ModuleManager extends Base {
             name: clazz.name.at(0).toLowerCase() + clazz.name.slice(1),
             priority: priority,
             scope: scope,
-            lazy: lazy,
             instances: new Array<any>()
         }
-        if (!lazy && scope === BeanScope.SINGLETON) {
-            d.instances.push(this.autoconstruct(clazz))
-        }
+        // if (!lazy && scope === BeanScope.SINGLETON) {
+        //     d.instances.push(this.autoconstruct(clazz))
+        // }
         return this.registerBeanFromDescriptor(d);
     }
 
+    /**
+     * Register a new loader
+     *
+     * @param loader
+     */
     registerLoaderFromInstance(loader: Loader) {
         assert(loader)
         assert(loader.supportedMimeTypes)
@@ -164,6 +200,13 @@ export class ModuleManager extends Base {
         })
     }
 
+    /**
+     * Load content from a file leveraging a registered loader
+     *
+     * @param path
+     * @param mimetype
+     * @param loader
+     */
     loadContentFromPath(path: string, mimetype: string = undefined, loader: Loader = undefined) {
         assert(path)
         if (!loader) {
@@ -174,43 +217,102 @@ export class ModuleManager extends Base {
             loader = this.loaders.get(mimetype);
         }
         let content = loader.load(path);
-        // FIXME do things here?
         return content;
     }
 
+    /**
+     * Load beans from specified glob paths
+     *
+     * @param searchPaths
+     * @private
+     */
     private loadBeansFromPaths(searchPaths: Array<string>): BeanDescriptor[] {
         assert(searchPaths)
         searchPaths = searchPaths.map(x => {
             if (x.startsWith("/")) {
                 return x
             }
-            return path.join(__dirname, "..", x);
+            return path.join(__dirname, "..", "..", x);
         });
-        let candidateBeans = new Map<string, any>(glob.globSync(searchPaths, {})
-            .map(p => {
-                if (!path.isAbsolute(p)) {
-                    return path.resolve(p);
+
+        let beans: Array<BeanDescriptor> =
+            glob.globSync(searchPaths, {})
+                .map(p => {
+                    if (!path.isAbsolute(p)) {
+                        return path.resolve(p);
+                    }
+                    return p;
+                })
+                .filter(p => fs.statSync(p).isFile())
+                .map(p => this.loadContentFromPath(p))
+                .flatMap(c => Object.entries(c))
+                .filter((e: [string, any]) => "__bean__" in e[1])
+                .map((e: [string, any]): BeanDescriptor => {
+                    return {
+                        name: e[0],
+                        clazz: e[1],
+                        scope: e[1].__bean__.scope ?? BeanScope.SINGLETON,
+                        dependsOn: e[1].__bean__.dependsOn ?? []
+                    }
+                });
+
+        let beansInLoadOrder = sortDependenciesByLoadOrder(
+            beans,
+            {
+                getVertexName(e: BeanDescriptor): string {
+                    return e.name;
+                },
+                getChildrenNames(e: BeanDescriptor): Array<string> {
+                    return e.dependsOn ?? []
                 }
-                return p;
-            })
-            .filter(p => fs.statSync(p).isFile())
-            .map(p => this.loadContentFromPath(p))
-            .flatMap(c => Object.entries(c))
-            .filter((e: [string, any]) => "__bean__" in e[1])
+            }
         );
 
-        this.log.debug(`Bean candidates: ${Array.from(candidateBeans.keys())}`)
+        this.log.debug(`Beans: ${beansInLoadOrder.map(x => x.name)}`);
 
-        // FIXME load candidate beans in the correct order
-        // find dependencies directly from constructors
+        beansInLoadOrder
+            .filter(e => e.scope === BeanScope.SINGLETON)
+            .forEach(e => {
+                this.registerBeanFromDescriptor(e);
+                this.requireFromDescriptor(e);
+            })
 
-        return null;
-        // .map(p => self.loadManifest(p, options))
-        // .filter(manifest => !!manifest)
-        // .filter(options.filter);
-
-        // const searchPaths = this.config.searchPaths || [];
-        // this.loadModules(searchPaths);
-        // this.ctx.events.emit(ModuleManager.Events.MODULES_AFTER_LOAD)
+        return beansInLoadOrder;
     }
+
+    /**
+     * construct a class instance, autoresolve all constructor arguments from other beans
+     *
+     * @param clazz
+     */
+    autoconstruct<T>(clazz: new () => T) {
+        assert(clazz);
+        // FIXME autowire arguments, find bean descriptor for clazz ?
+        // FIXME assume the construtor has parameters or the class define some parameters? mmmm
+        var args: [] = []
+        var instance: any = new clazz(...args);
+        // var instance = Object.create(clazz.prototype);
+        // instance.constructor.apply(instance, args);
+
+        // find autowired fields and resolve them
+        Object.entries(instance)
+            .filter((e: [string, any]) => e[1] instanceof AutowiredField)
+            .forEach((e: [string, AutowiredField<any>]) => {
+                Object.assign(instance, Object.fromEntries([e[0], e[1].resolve()]));
+            })
+
+        // call postConstruct if defined
+        if ("postConstruct" in instance) {
+            instance.postConstruct();
+        }
+
+        return instance;
+    }
+
+    // autowire(func: Function) {
+    //     var args: any[] = []
+    //     var func
+    // instance.apply(instance, args);
+    // }
+
 }

@@ -1,8 +1,11 @@
-import {Loader} from "./common/Loader";
-import {BeanScope} from "./models/BeanScope";
+import {Loader} from "./Loader";
+import {BeanScope} from "../beans/BeanScope";
+import {__Bean__} from "../beans/__Bean__";
 
 export class JavascriptLoader implements Loader {
-    static __bean__ = {}
+    static __bean__: __Bean__ = {
+        dependsOn: []
+    }
 
     supportedMimeTypes: Array<string> = [
         "text/javascript",

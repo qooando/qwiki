@@ -1,8 +1,10 @@
 import {BeanScope} from "./BeanScope";
 
-export interface BeanConfig {
+export interface __Bean__ {
+    name?: string;
     priority?: number;
     scope?: BeanScope;
     lazy?: boolean;
+    dependsOn?: Array<string>
 }
 

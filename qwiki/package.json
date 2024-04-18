@@ -33,6 +33,7 @@
     "@types/glob": "^8.1.0",
     "esm": "^3.2.25",
     "glob": "^10.3.12",
+    "localized-strings": "^0.2.4",
     "pino": "^8.19.0",
     "pino-pretty": "^11.0.0"
   }

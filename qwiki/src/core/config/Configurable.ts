@@ -1,4 +1,4 @@
-import {ApplicationConfig} from "../models/ApplicationConfig";
+import {ApplicationConfig} from "./ApplicationConfig";
 import * as yaml from 'js-yaml';
 import * as fs from "fs";
 

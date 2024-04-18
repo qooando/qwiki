@@ -1,5 +1,5 @@
 import {Evented, initializeEvented} from "../../src/core/common/Evented";
-import {EventContext, EventManager} from "../../src/core/EventManager";
+import {EventContext, EventManager} from "../../src/core/events/EventManager";
 
 
 describe('Class implementing Evented', () => {

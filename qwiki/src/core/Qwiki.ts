@@ -1,12 +1,12 @@
-import {Base} from "./common/Base";
-import {Configurable, initializeConfigurable} from "./common/Configurable";
-import {ApplicationConfig} from "./models/ApplicationConfig";
+import {Base} from "./base/Base";
+import {Configurable, initializeConfigurable} from "./config/Configurable";
+import {ApplicationConfig} from "./config/ApplicationConfig";
 import * as fs from "fs";
 import * as process from "process";
 import * as path from "path";
 import pino from "pino";
-import {ModuleManager} from "./ModuleManager";
-import {EventNames} from "./constants/EventNames";
+import {ModuleManager} from "./beans/ModuleManager";
+import {EventNames} from "./events/EventNames";
 
 declare global {
     var $qw: Qwiki;
@@ -68,8 +68,8 @@ export class Qwiki extends Base implements Configurable {
         this.emitSync(EventNames.STARTUP)
     }
 
-    require(identifier: string, optional: boolean = false) {
-        return this._moduleManager.require(identifier, optional)
+    require(identifier: string, optional: boolean = false, asList: boolean = false) {
+        return this._moduleManager.require(identifier, optional, asList)
     }
 
 }

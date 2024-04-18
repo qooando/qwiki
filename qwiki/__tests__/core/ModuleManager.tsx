@@ -1,6 +1,6 @@
-import {ModuleManager} from "../../src/core/ModuleManager";
-import {BeanDescriptor} from "../../src/core/models/BeanDescriptor";
-import {BeanScope} from "../../src/core/models/BeanScope";
+import {ModuleManager} from "../../src/core/beans/ModuleManager";
+import {BeanDescriptor} from "../../src/core/beans/BeanDescriptor";
+import {BeanScope} from "../../src/core/beans/BeanScope";
 
 describe("Module manager", () => {
 
@@ -48,5 +48,8 @@ describe("Module manager", () => {
         expect(d.instances.length).toEqual(1);
         expect(d.instances.at(0)).toBeInstanceOf(Foo);
     })
+
+
+
 
 })
