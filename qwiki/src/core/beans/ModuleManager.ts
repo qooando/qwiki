@@ -156,6 +156,18 @@ export class ModuleManager extends Base {
             return path.join(__dirname, "..", "..", x);
         });
 
+        let dependencyGraph = new Graph();
+        const ROOT_NODE = "__root__";
+        dependencyGraph.upsertVertex(ROOT_NODE);
+        Array.from(this.beans.values())
+            .flatMap(beans => beans.toSortedArray())
+            .forEach(bean => {
+                dependencyGraph.upsertVertex(bean.name, bean);
+                bean.getAllIdentifiers()
+                    .filter((i: string) => i !== bean.name)
+                    .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
+            });
+
         let newBeans: Array<Bean> =
             glob.globSync(searchPaths, {})
                 .map(p => {
@@ -173,34 +185,18 @@ export class ModuleManager extends Base {
                             bean.path = p;
                             return bean;
                         })
-                        .map(x => this.addBean(x));
+                        .map(bean => this.addBean(bean))
+                        .map(bean => {
+                            dependencyGraph.upsertDirectedEdge(ROOT_NODE, bean.name)
+                            dependencyGraph.upsertVertex(bean.name, bean);
+                            bean.getAllIdentifiers()
+                                .filter((i: string) => i !== bean.name)
+                                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
+                            return bean;
+                        })
                 })
 
-
-        /*
-         dependencies resolution
-         1. add all beans to graph
-         2. add dependency edges for new beans
-         3. find cycles
-         4. initialize singletons
-         */
-        let graph = new Graph();
-        const ROOT_NODE = "__root__";
-        graph.upsertVertex(ROOT_NODE);
-
-        newBeans.forEach(bean => {
-            graph.upsertVertex(bean.name, bean);
-            graph.upsertDirectedEdge("class:" + bean.clazz.name, bean.name);
-            bean.groups.forEach(group => {
-                graph.upsertDirectedEdge(group, bean.name)
-            })
-            bean.dependsOn.forEach(dep => {
-                graph.upsertDirectedEdge(bean.name, dep)
-            })
-            graph.upsertDirectedEdge(ROOT_NODE, bean.name)
-        })
-
-        let visitResult = graph.depth(ROOT_NODE);
+        let visitResult = dependencyGraph.depth(ROOT_NODE);
 
         if (visitResult.cycles.length > 0) {
             visitResult.cycles.forEach(c => {

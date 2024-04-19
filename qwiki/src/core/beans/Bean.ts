@@ -44,6 +44,14 @@ export class Bean {
         )
     }
 
+    getAllIdentifiers() {
+        return [
+            this.name,
+            "class:" + this.clazz.name,
+            ...this.groups
+        ]
+    }
+
     getInstance() {
         if (this.scope === BeanScope.SINGLETON &&
             this.instances.length >= 1) {
