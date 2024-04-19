@@ -17,18 +17,15 @@ after constructor. Then postConstruct function is called.
 ```typescript
 import {__Bean__} from "./__Bean__";
 import {Autowire} from "./Autowire";
+import {Base} from "./Base";
 
-export class MyBean {
+export class MyBean extends Base {
     static __bean__: __Bean__ = {}
 
     foo = Autowire(MyBean2)
     foos = Autowire([MyBean2])
     bar = Autowire("MyBean2")
     bars = Autowire(["MyBean2"])
-
-    constructor() {
-        
-    }
 
     postConstruct() {
         // use foo, foos, bar, bars

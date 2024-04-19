@@ -5,7 +5,6 @@ export interface __Bean__ {
     groups?: Array<string>;
     priority?: number;
     scope?: BeanScope;
-    lazy?: boolean;
     dependsOn?: Array<string>
 }
 
