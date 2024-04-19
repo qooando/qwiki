@@ -5,16 +5,31 @@ import {Autowire} from "../beans/Autowire";
 
 export class Foo extends Base {
     static __bean__: __Bean__ = {}
-
-    loader = Autowire(JavascriptLoader);
-    loaders = Autowire([JavascriptLoader]);
+    //
+    // loader = Autowire(JavascriptLoader);
+    // loaders = Autowire([JavascriptLoader]);
+    bar = Autowire(Bar);
 
     constructor() {
         super();
     }
 
     postConstruct() {
-        this.log.debug(`New Foo with loader: ${this.loader.constructor.name}`)
+        this.log.debug(`New Foo`)
     }
 
+}
+
+export class Bar extends Base {
+    static __bean__ = {}
+
+    foo = Autowire(Foo);
+
+    constructor() {
+        super();
+    }
+
+    postConstruct() {
+        this.log.debug(`New Bar`)
+    }
 }

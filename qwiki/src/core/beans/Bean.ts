@@ -13,6 +13,7 @@ export class Bean {
     lazy: boolean;
     instances: Array<any>;
     dependsOn: Array<string>;
+    path: string;
 
     constructor(
         clazz: any,
@@ -20,7 +21,8 @@ export class Bean {
         groups: string[] = undefined,
         scope: BeanScope = BeanScope.SINGLETON,
         priority: number = undefined,
-        dependsOn: string[] = undefined
+        dependsOn: string[] = undefined,
+        path: string = undefined
     ) {
         assert(clazz);
         const BEAN_FIELD_NAME = BeanConstants.BEAN_FIELD_NAME;
@@ -33,10 +35,11 @@ export class Bean {
         this.priority = priority ?? beanConfig.priority ?? 0;
         this.dependsOn = dependsOn ?? beanConfig.dependsOn ?? [];
         this.instances = []
+        this.path = path;
 
         // search autowired fields in clazz and add bean names as dependencies
         this.dependsOn.push(...
-            getAutowiredFields(clazz)
+            getAutowiredFields(new clazz())
                 .map(x => x[1].beanName)
         )
     }

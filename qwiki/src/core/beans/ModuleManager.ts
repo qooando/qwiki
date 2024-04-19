@@ -165,13 +165,17 @@ export class ModuleManager extends Base {
                     return p;
                 })
                 .filter(p => fs.statSync(p).isFile())
-                .map(p => this.loadContentFromPath(p))
-                .flatMap(c => Object.entries(c))
-                .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
-                .map((e: [string, any]): Bean => {
-                    return new Bean(e[1]);
+                .flatMap(p => {
+                    return Object.entries(this.loadContentFromPath(p))
+                        .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+                        .map((e: [string, any]): Bean => {
+                            let bean = new Bean(e[1]);
+                            bean.path = p;
+                            return bean;
+                        })
+                        .map(x => this.addBean(x));
                 })
-                .map(x => this.addBean(x));
+
 
         /*
          dependencies resolution
@@ -186,6 +190,7 @@ export class ModuleManager extends Base {
 
         newBeans.forEach(bean => {
             graph.upsertVertex(bean.name, bean);
+            graph.upsertDirectedEdge("class:" + bean.clazz.name, bean.name);
             bean.groups.forEach(group => {
                 graph.upsertDirectedEdge(group, bean.name)
             })
@@ -200,19 +205,17 @@ export class ModuleManager extends Base {
         if (visitResult.cycles.length > 0) {
             visitResult.cycles.forEach(c => {
                 c.push(c[0]);
-                this.log.error(`Circular dependency found: ${c.map(x => x.name).join("->")}`)
+                this.log.error(`Circular dependency found: ${c.map(x => x.name).join(" -> ")}`)
             })
             throw new Error(`Circular dependencies`)
         }
 
         let newBeansInLoadOrder: Bean[] = visitResult.afterVisit.map(x => x.data).filter(x => !!x);
 
-        this.log.debug(`Beans: ${newBeansInLoadOrder.map(x => x.name)}`);
-
         newBeansInLoadOrder
             .filter(e => e.scope === BeanScope.SINGLETON)
-            .filter(e => !e.lazy)
             .forEach(e => {
+                this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
                 e.getInstance();
             })
 
