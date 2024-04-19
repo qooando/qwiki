@@ -1,4 +1,4 @@
-import {BeanScope} from "./BeanScope";
+import {BeanScope} from "./BeanConstants";
 
 export interface __Bean__ {
     name?: string;

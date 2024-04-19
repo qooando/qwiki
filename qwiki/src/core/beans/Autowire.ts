@@ -35,3 +35,11 @@ export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string
     }
     return placeholder;
 }
+
+export function getAutowiredFields(obj: any) {
+    var entries = Object.entries(obj)
+        .filter((x: [string, any]) => x[1] instanceof AutowiredField)
+        .map((x: [string, AutowiredField<any>]) => x)
+    return entries;
+    // return Object.fromEntries(entries);
+}

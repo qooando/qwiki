@@ -1,6 +1,7 @@
 import {ModuleManager} from "../../src/core/beans/ModuleManager";
-import {BeanDescriptor} from "../../src/core/beans/BeanDescriptor";
-import {BeanScope} from "../../src/core/beans/BeanScope";
+import {Bean} from "../../src/core/beans/Bean";
+
+import {BeanScope} from "../../src/core/beans/BeanConstants";
 
 describe("Module manager", () => {
 
@@ -11,7 +12,7 @@ describe("Module manager", () => {
 
     test("Register bean by descriptor", () => {
         let m = new ModuleManager();
-        let d: BeanDescriptor = {
+        let d: Bean = {
             clazz: Foo,
             name: "myFoo",
             priority: 0,

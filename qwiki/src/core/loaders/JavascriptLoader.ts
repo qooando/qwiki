@@ -1,6 +1,6 @@
 import {Loader} from "./Loader";
-import {BeanScope} from "../beans/BeanScope";
 import {__Bean__} from "../beans/__Bean__";
+import {BeanScope} from "../beans/BeanConstants";
 
 export class JavascriptLoader implements Loader {
     static __bean__: __Bean__ = {

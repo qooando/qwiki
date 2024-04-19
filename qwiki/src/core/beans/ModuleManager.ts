@@ -1,7 +1,7 @@
 import {Base} from "../base/Base";
 import {ModulesConfig} from "../config/ApplicationConfig";
 import * as assert from "assert";
-import {BeanDescriptor} from "./BeanDescriptor";
+import {Bean} from "./Bean";
 import {Heap} from "../utils/Heap";
 import {Loader} from "../loaders/Loader";
 import {JavascriptLoader} from "../loaders/JavascriptLoader";
@@ -10,24 +10,24 @@ import * as path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
 import {mime} from "../utils/Mime";
-import {BeanScope} from "./BeanScope";
-import {sortDependenciesByLoadOrder} from "../utils/Graph";
+import {Graph, sortDependenciesByLoadOrder} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
 import ConstructorArgsType = jest.ConstructorArgsType;
 import {AutowiredField} from "./Autowire";
+import {BeanConstants, BeanScope} from "./BeanConstants";
 
 /**
  * Load files and manage beans
  */
 export class ModuleManager extends Base {
     config: ModulesConfig;
-    beans: Map<string, Heap<BeanDescriptor>>;
+    beans: Map<string, Heap<Bean>>;
     loaders: Map<string, Loader>;
 
     constructor() {
         super();
         this.config = undefined;
-        this.beans = new Map<string, Heap<BeanDescriptor>>();
+        this.beans = new Map<string, Heap<Bean>>();
         this.loaders = new Map<string, Loader>;
     }
 
@@ -59,7 +59,8 @@ export class ModuleManager extends Base {
      */
     require(identifier: string, isOptional: boolean = false, asList: boolean = false): any {
         assert(identifier)
-        assert(isOptional !== undefined)
+        assert(typeof isOptional === "boolean")
+        assert(typeof asList === "boolean")
         if (!this.beans.has(identifier)) {
             if (!isOptional) {
                 throw new Error(`Bean not found: ${identifier}`)
@@ -70,41 +71,9 @@ export class ModuleManager extends Base {
         const heap = this.beans.get(identifier);
         if (asList) {
             let descriptors = heap.toSortedArray();
-            return descriptors.map(this.requireFromDescriptor);
+            return descriptors.map(x => x.getInstance());
         } else {
-            return this.requireFromDescriptor(heap.top());
-        }
-    }
-
-    /**
-     * Load bean instance from a descriptor
-     * @param descriptor
-     */
-    requireFromDescriptor(descriptor: BeanDescriptor) {
-        assert(descriptor)
-        descriptor.instances ??= []
-        switch (descriptor.scope) {
-            case BeanScope.PROTOTYPE:
-                assert(descriptor.clazz);
-                assert(descriptor.instances);
-                let instance = this.autoconstruct(descriptor.clazz);
-                descriptor.instances ??= new Array<any>();
-                descriptor.instances.push(instance);
-                $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, descriptor.name), descriptor, instance);
-                this.log.debug(`New instance of bean ${descriptor.name}`)
-                return instance;
-            case BeanScope.SINGLETON:
-                assert(descriptor.instances);
-                if (descriptor.instances.length == 0) {
-                    let instance = this.autoconstruct(descriptor.clazz);
-                    descriptor.instances ??= new Array<any>();
-                    descriptor.instances.push(instance);
-                    $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, descriptor.name), descriptor, instance);
-                    this.log.debug(`New instance of bean ${descriptor.name}`)
-                }
-                return descriptor.instances.at(0);
-            default:
-                throw new Error(`Not implemented bean scope: ${descriptor.scope}`)
+            return heap.top().getInstance();
         }
     }
 
@@ -114,19 +83,19 @@ export class ModuleManager extends Base {
      *
      * @param descriptor
      */
-    addBean(descriptor: BeanDescriptor) {
+    addBean(descriptor: Bean) {
         assert(descriptor);
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
         [
             // "class:" + descriptor.clazz.name, // common to different beans ?,
-            ...descriptor.groups,
+            ...(descriptor.groups ?? []),
             descriptor.name, // should be unique
         ].forEach(
             (key: string) => {
                 if (!this.beans.has(key)) {
-                    this.beans.set(key, new Heap<BeanDescriptor>(Heap.Comparators.priority))
+                    this.beans.set(key, new Heap<Bean>(Heap.Comparators.priority))
                 }
                 this.beans.get(key).push(descriptor)
                 $qw.emitSync(Strings.format(EventNames.BEAN_REGISTERED_NAME, key), descriptor);
@@ -134,55 +103,6 @@ export class ModuleManager extends Base {
         );
         return descriptor;
     }
-
-    // /**
-    //  * Register a bean from its instance
-    //  *
-    //  * @param instance
-    //  * @param priority
-    //  */
-    // registerBeanFromInstance(
-    //     instance: object,
-    //     priority: number = 0
-    // ) {
-    //     assert(instance)
-    //     let d: BeanDescriptor = {
-    //         clazz: instance.constructor,
-    //         name: instance.constructor.name.at(0).toLowerCase() + instance.constructor.name.slice(1),
-    //         priority: priority,
-    //         scope: BeanScope.SINGLETON,
-    //         lazy: false,
-    //         instances: [instance]
-    //     }
-    //     return this.registerBeanFromDescriptor(d);
-    // }
-
-    // /**
-    //  * Register a bean from a class, note it doesn't initialize it
-    //  *
-    //  * @param clazz
-    //  * @param scope
-    //  * @param priority
-    //  */
-    // registerBeanFromClass<T>(
-    //     clazz: new () => T,
-    //     scope: BeanScope = BeanScope.SINGLETON,
-    //     // lazy: boolean = false,
-    //     priority: number = 0
-    // ) {
-    //     assert(clazz);
-    //     let d: BeanDescriptor = {
-    //         clazz: clazz,
-    //         name: clazz.name.at(0).toLowerCase() + clazz.name.slice(1),
-    //         priority: priority,
-    //         scope: scope,
-    //         instances: new Array<any>()
-    //     }
-    //     // if (!lazy && scope === BeanScope.SINGLETON) {
-    //     //     d.instances.push(this.autoconstruct(clazz))
-    //     // }
-    //     return this.registerBeanFromDescriptor(d);
-    // }
 
     /**
      * Register a new loader
@@ -227,7 +147,7 @@ export class ModuleManager extends Base {
      * @param searchPaths
      * @private
      */
-    private loadBeansFromPaths(searchPaths: Array<string>): BeanDescriptor[] {
+    loadBeansFromPaths(searchPaths: Array<string>): Bean[] {
         assert(searchPaths)
         searchPaths = searchPaths.map(x => {
             if (x.startsWith("/")) {
@@ -236,7 +156,7 @@ export class ModuleManager extends Base {
             return path.join(__dirname, "..", "..", x);
         });
 
-        let beans: Array<BeanDescriptor> =
+        let newBeans: Array<Bean> =
             glob.globSync(searchPaths, {})
                 .map(p => {
                     if (!path.isAbsolute(p)) {
@@ -247,75 +167,56 @@ export class ModuleManager extends Base {
                 .filter(p => fs.statSync(p).isFile())
                 .map(p => this.loadContentFromPath(p))
                 .flatMap(c => Object.entries(c))
-                .filter((e: [string, any]) => "__bean__" in e[1])
-                .map((e: [string, any]): BeanDescriptor => {
-                    return {
-                        name: e[0],
-                        clazz: e[1],
-                        scope: e[1].__bean__.scope ?? BeanScope.SINGLETON,
-                        dependsOn: e[1].__bean__.dependsOn ?? []
-                    }
-                });
+                .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+                .map((e: [string, any]): Bean => {
+                    return new Bean(e[1]);
+                })
+                .map(this.addBean);
 
-        // FIXME force relationship between groups and single beans, groups depends on all items of the group
-        // FIXME define groups
-        let beansInLoadOrder = sortDependenciesByLoadOrder(
-            beans,
-            {
-                getVertexName(e: BeanDescriptor): string {
-                    return e.name;
-                },
-                getChildrenNames(e: BeanDescriptor): Array<string> {
-                    return e.dependsOn ?? []
-                }
-            }
-        );
+        /*
+         dependencies resolution
+         1. add all beans to graph
+         2. add dependency edges for new beans
+         3. find cycles
+         4. initialize singletons
+         */
+        let graph = new Graph();
+        const ROOT_NODE = "__root__";
+        graph.upsertVertex(ROOT_NODE);
 
-        this.log.debug(`Beans: ${beansInLoadOrder.map(x => x.name)}`);
-
-        beansInLoadOrder
-            .filter(e => e.scope === BeanScope.SINGLETON)
-            .forEach(e => {
-                this.addBean(e);
-                this.requireFromDescriptor(e);
+        newBeans.forEach(bean => {
+            graph.upsertVertex(bean.name, bean);
+            bean.groups.forEach(group => {
+                graph.upsertDirectedEdge(group, bean.name)
             })
-
-        return beansInLoadOrder;
-    }
-
-    /**
-     * construct a class instance, autoresolve all constructor arguments from other beans
-     *
-     * @param clazz
-     */
-    autoconstruct<T>(clazz: new () => T) {
-        assert(clazz);
-        // FIXME autowire arguments, find bean descriptor for clazz ?
-        // FIXME assume the construtor has parameters or the class define some parameters? mmmm
-        var args: [] = []
-        var instance: any = new clazz(...args);
-        // var instance = Object.create(clazz.prototype);
-        // instance.constructor.apply(instance, args);
-
-        // find autowired fields and resolve them
-        Object.entries(instance)
-            .filter((e: [string, any]) => e[1] instanceof AutowiredField)
-            .forEach((e: [string, AutowiredField<any>]) => {
-                instance[e[0]] = e[1].resolve();
+            bean.dependsOn.forEach(dep => {
+                graph.upsertDirectedEdge(bean.name, dep)
             })
+            graph.upsertDirectedEdge(ROOT_NODE, bean.name)
+        })
 
-        // call postConstruct if defined
-        if ("postConstruct" in instance) {
-            instance.postConstruct();
+        let visitResult = graph.depth(ROOT_NODE);
+
+        if (visitResult.cycles.length > 0) {
+            visitResult.cycles.forEach(c => {
+                c.push(c[0]);
+                this.log.error(`Circular dependency found: ${c.map(x=>x.name).join("->")}`)
+            })
+            throw new Error(`Circular dependencies`)
         }
 
-        return instance;
-    }
+        let newBeansInLoadOrder: Bean[] = visitResult.afterVisit.map(x => x.data).filter(x => !!x);
 
-    // autowire(func: Function) {
-    //     var args: any[] = []
-    //     var func
-    // instance.apply(instance, args);
-    // }
+        this.log.debug(`Beans: ${newBeansInLoadOrder.map(x => x.name)}`);
+
+        newBeansInLoadOrder
+            .filter(e => e.scope === BeanScope.SINGLETON)
+            .filter(e => !e.lazy)
+            .forEach(e => {
+                e.getInstance();
+            })
+
+        return newBeansInLoadOrder;
+    }
 
 }
