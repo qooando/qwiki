@@ -89,7 +89,7 @@ export class ModuleManager extends Base {
         assert(descriptor.clazz);
         assert(descriptor.name);
         [
-            // "class:" + descriptor.clazz.name, // common to different beans ?,
+            "class:" + descriptor.clazz.name, // common to different beans ?,
             ...(descriptor.groups ?? []),
             descriptor.name, // should be unique
         ].forEach(
@@ -171,7 +171,7 @@ export class ModuleManager extends Base {
                 .map((e: [string, any]): Bean => {
                     return new Bean(e[1]);
                 })
-                .map(this.addBean);
+                .map(x => this.addBean(x));
 
         /*
          dependencies resolution
@@ -200,7 +200,7 @@ export class ModuleManager extends Base {
         if (visitResult.cycles.length > 0) {
             visitResult.cycles.forEach(c => {
                 c.push(c[0]);
-                this.log.error(`Circular dependency found: ${c.map(x=>x.name).join("->")}`)
+                this.log.error(`Circular dependency found: ${c.map(x => x.name).join("->")}`)
             })
             throw new Error(`Circular dependencies`)
         }

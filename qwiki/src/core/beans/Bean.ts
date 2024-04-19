@@ -52,7 +52,7 @@ export class Bean {
         let instance: any = new this.clazz(...defaultConstructorArguments);
 
         // find autowired fields and resolve them
-        getAutowiredFields(this.clazz)
+        getAutowiredFields(instance)
             .forEach((x: [string, AutowiredField<any>]) => {
                 instance[x[0]] = x[1].resolve();
             })
