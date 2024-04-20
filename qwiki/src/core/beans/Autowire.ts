@@ -2,7 +2,7 @@ import * as assert from "assert";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 
-export class AutowiredField<T> {
+export class AutowiredPlaceholder<T> {
     beanIdentifier: string;
     asList: boolean;
     mapKeyFun: (x: T) => string;
@@ -28,8 +28,8 @@ export class AutowiredField<T> {
 
 export function getAutowiredFields(obj: any) {
     return Object.entries(obj)
-        .filter((x: [string, any]) => x[1] instanceof AutowiredField)
-        .map((x: [string, AutowiredField<any>]) => x);
+        .filter((x: [string, any]) => x[1] instanceof AutowiredPlaceholder)
+        .map((x: [string, AutowiredPlaceholder<any>]) => x);
     // return Object.fromEntries(entries);
 }
 
@@ -70,10 +70,10 @@ export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string
         definition = definition[0]
     }
     if (asList && keyFun) {
-        return new AutowiredField(definition, optional, false, keyFun) as unknown as Map<string, T>;
+        return new AutowiredPlaceholder(definition, optional, false, keyFun) as unknown as Map<string, T>;
     }
     if (asList && !keyFun) {
-        return new AutowiredField(definition, optional, true) as unknown as T[];
+        return new AutowiredPlaceholder(definition, optional, true) as unknown as T[];
     }
-    return new AutowiredField(definition, optional) as T;
+    return new AutowiredPlaceholder(definition, optional) as T;
 }

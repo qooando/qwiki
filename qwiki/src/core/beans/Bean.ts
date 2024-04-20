@@ -1,5 +1,5 @@
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
-import {AutowiredField, getAutowiredFields} from "./Autowire";
+import {AutowiredPlaceholder, getAutowiredFields} from "./Autowire";
 import * as assert from "assert";
 import {Strings} from "../utils/Strings";
 import {EventNames} from "../events/EventNames";
@@ -48,7 +48,7 @@ export class Bean {
     getAllIdentifiers() {
         return [
             this.name,
-            ...this.groups,
+            ...this.groups.map(x => BeanUtils.getBeanIdentifierFromGroup(x)),
             BeanUtils.getBeanIdentifierFromClass(this.clazz),
             ...Objects.getParentClasses(this.clazz).map(x => BeanUtils.getBeanIdentifierFromClass(x))
         ]
@@ -66,7 +66,7 @@ export class Bean {
 
         // find autowired fields and resolve them
         getAutowiredFields(instance)
-            .forEach((x: [string, AutowiredField<any>]) => {
+            .forEach((x: [string, AutowiredPlaceholder<any>]) => {
                 instance[x[0]] = x[1].resolve();
             })
 

@@ -69,7 +69,7 @@ export class Qwiki extends Base implements Configurable {
     }
 
     require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string = undefined) {
-        return this._moduleManager.require(identifier, optional, asList, keyFun)
+        return this._moduleManager.getBeanInstance(identifier, optional, asList, keyFun)
     }
 
 }

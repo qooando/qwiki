@@ -12,8 +12,6 @@ import {glob} from "glob";
 import {mime} from "../utils/Mime";
 import {Graph, sortDependenciesByLoadOrder} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
-import ConstructorArgsType = jest.ConstructorArgsType;
-import {AutowiredField} from "./Autowire";
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 
 /**
@@ -58,15 +56,15 @@ export class ModuleManager extends Base {
      * @param asList if true, returns a list
      * @param keyFun if valorized returns a map
      */
-    require(identifier: (new() => any) | string,
-            isOptional: boolean = false,
-            asList: boolean = false,
-            keyFun: (x: any) => string = undefined): any {
+    getBeanInstance(identifier: (new() => any) | string,
+                    isOptional: boolean = false,
+                    asList: boolean = false,
+                    keyFun: (x: any) => string = undefined): any {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")
 
-        asList = asList || typeof keyFun !== undefined;
+        asList = asList || keyFun !== undefined;
 
         if (typeof identifier !== "string") {
             identifier = BeanUtils.getBeanIdentifierFromClass(identifier);
