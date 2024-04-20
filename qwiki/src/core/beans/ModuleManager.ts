@@ -3,7 +3,7 @@ import {ModulesConfig} from "../config/ApplicationConfig";
 import * as assert from "assert";
 import {Bean} from "./Bean";
 import {Heap} from "../utils/Heap";
-import {Loader} from "../loaders/Loader";
+import {ILoader} from "../loaders/ILoader";
 import {JavascriptLoader} from "../loaders/JavascriptLoader";
 import {EventNames} from "../events/EventNames";
 import * as path from "path";
@@ -22,13 +22,14 @@ import {BeanConstants, BeanScope} from "./BeanConstants";
 export class ModuleManager extends Base {
     config: ModulesConfig;
     beans: Map<string, Heap<Bean>>;
-    loaders: Map<string, Loader>;
+    modules: Map<string, any>;
+    loaders: Map<string, ILoader>;
 
     constructor() {
         super();
         this.config = undefined;
         this.beans = new Map<string, Heap<Bean>>();
-        this.loaders = new Map<string, Loader>;
+        this.loaders = new Map<string, ILoader>;
     }
 
     /**
@@ -50,17 +51,27 @@ export class ModuleManager extends Base {
     }
 
     /**
-     * get the content of a bean given its identifier
-     * if a kind is provided, it returns a list of all beans of the specified kind -> ordered or not?
-     * if a name is provided, it returns only the specified name, if multiple beans have the same name -> use "primary" or an order?
+     * get the content of a bean given its string identifier
+     *
      * @param identifier
      * @param isOptional
-     * @param asList
+     * @param asList if true, returns a list
+     * @param keyFun if valorized returns a map
      */
-    require(identifier: string, isOptional: boolean = false, asList: boolean = false): any {
+    require(identifier: (new() => any) | string,
+            isOptional: boolean = false,
+            asList: boolean = false,
+            keyFun: (x: any) => string = undefined): any {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")
+
+        asList = asList || typeof keyFun !== undefined;
+
+        if (typeof identifier !== "string") {
+            identifier = `class:${identifier.name}`;
+        }
+
         if (!this.beans.has(identifier)) {
             if (!isOptional) {
                 throw new Error(`Bean not found: ${identifier}`)
@@ -71,7 +82,13 @@ export class ModuleManager extends Base {
         const heap = this.beans.get(identifier);
         if (asList) {
             let descriptors = heap.toSortedArray();
-            return descriptors.map(x => x.getInstance());
+            if (keyFun) {
+                return new Map<string, any>(descriptors
+                    .map(x => x.getInstance())
+                    .map(x => [keyFun(x), x]));
+            } else {
+                return descriptors.map(x => x.getInstance());
+            }
         } else {
             return heap.top().getInstance();
         }
@@ -88,11 +105,7 @@ export class ModuleManager extends Base {
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
-        [
-            "class:" + descriptor.clazz.name, // common to different beans ?,
-            ...(descriptor.groups ?? []),
-            descriptor.name, // should be unique
-        ].forEach(
+        descriptor.getAllIdentifiers().forEach(
             (key: string) => {
                 if (!this.beans.has(key)) {
                     this.beans.set(key, new Heap<Bean>(Heap.Comparators.priority))
@@ -109,7 +122,7 @@ export class ModuleManager extends Base {
      *
      * @param loader
      */
-    addLoader(loader: Loader) {
+    addLoader(loader: ILoader) {
         assert(loader)
         assert(loader.supportedMimeTypes)
         loader.supportedMimeTypes.forEach((e: string) => {
@@ -128,7 +141,7 @@ export class ModuleManager extends Base {
      * @param mimetype
      * @param loader
      */
-    loadContentFromPath(path: string, mimetype: string = undefined, loader: Loader = undefined) {
+    loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
         assert(path)
         if (!loader) {
             mimetype ??= mime.getType(path);

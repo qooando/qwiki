@@ -3,6 +3,7 @@ import {AutowiredField, getAutowiredFields} from "./Autowire";
 import * as assert from "assert";
 import {Strings} from "../utils/Strings";
 import {EventNames} from "../events/EventNames";
+import {Objects} from "../utils/Objects";
 
 export class Bean {
     name: string;
@@ -40,15 +41,16 @@ export class Bean {
         // search autowired fields in clazz and add bean names as dependencies
         this.dependsOn.push(...
             getAutowiredFields(new clazz())
-                .map(x => x[1].beanName)
+                .map(x => x[1].beanIdentifier)
         )
     }
 
     getAllIdentifiers() {
         return [
             this.name,
+            ...this.groups,
             "class:" + this.clazz.name,
-            ...this.groups
+            ...Objects.getParentClasses(this.clazz).map(x => "class:" + x.name)
         ]
     }
 

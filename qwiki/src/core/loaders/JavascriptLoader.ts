@@ -1,8 +1,7 @@
-import {Loader} from "./Loader";
 import {__Bean__} from "../beans/__Bean__";
-import {BeanScope} from "../beans/BeanConstants";
+import {Loader} from "./Loader";
 
-export class JavascriptLoader implements Loader {
+export class JavascriptLoader extends Loader {
     static __bean__: __Bean__ = {
         dependsOn: []
     }
@@ -11,10 +10,6 @@ export class JavascriptLoader implements Loader {
         "text/javascript",
         "application/javascript"
     ]
-
-    constructor() {
-
-    }
 
     load(path: string): any {
         let content = require(path);

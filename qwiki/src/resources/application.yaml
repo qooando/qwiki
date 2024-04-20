@@ -3,6 +3,7 @@ qwiki:
     searchPaths:
       # search paths where search for modules
       - "./core/**/*.js"
+      - "./modules/**/*.js"
     policies:
       # specify default missing provider policy
       # FIXME used?

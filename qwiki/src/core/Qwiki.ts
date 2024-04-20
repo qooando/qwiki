@@ -68,8 +68,8 @@ export class Qwiki extends Base implements Configurable {
         this.emitSync(EventNames.STARTUP)
     }
 
-    require(identifier: string, optional: boolean = false, asList: boolean = false) {
-        return this._moduleManager.require(identifier, optional, asList)
+    require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string = undefined) {
+        return this._moduleManager.require(identifier, optional, asList, keyFun)
     }
 
 }
