@@ -1,4 +1,6 @@
 import * as assert from "assert";
+import {Strings} from "@qwiki/core/utils/Strings";
+import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 
 export class AutowiredField<T> {
     beanIdentifier: string;
@@ -10,7 +12,7 @@ export class AutowiredField<T> {
                 asList: boolean = false,
                 mapKeyFun: ((x: T) => string) = undefined) {
         if (typeof beanIdentifier !== "string") {
-            beanIdentifier = beanIdentifier.name;
+            beanIdentifier = BeanUtils.getBeanIdentifierFromClass(beanIdentifier);
         }
         this.beanIdentifier = beanIdentifier;
         this.asList = asList;

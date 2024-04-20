@@ -1,4 +1,4 @@
-import {BeanConstants, BeanScope} from "./BeanConstants";
+import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 import {AutowiredField, getAutowiredFields} from "./Autowire";
 import * as assert from "assert";
 import {Strings} from "../utils/Strings";
@@ -49,8 +49,8 @@ export class Bean {
         return [
             this.name,
             ...this.groups,
-            "class:" + this.clazz.name,
-            ...Objects.getParentClasses(this.clazz).map(x => "class:" + x.name)
+            BeanUtils.getBeanIdentifierFromClass(this.clazz),
+            ...Objects.getParentClasses(this.clazz).map(x => BeanUtils.getBeanIdentifierFromClass(x))
         ]
     }
 

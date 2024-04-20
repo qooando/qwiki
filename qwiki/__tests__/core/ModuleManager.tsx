@@ -1,7 +1,7 @@
 import {ModuleManager} from "../../src/core/beans/ModuleManager";
 import {Bean} from "../../src/core/beans/Bean";
 
-import {BeanScope} from "../../src/core/beans/BeanConstants";
+import {BeanScope} from "../../src/core/beans/BeanUtils";
 
 describe("Module manager", () => {
 

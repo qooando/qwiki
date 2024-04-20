@@ -14,7 +14,7 @@ import {Graph, sortDependenciesByLoadOrder} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
 import ConstructorArgsType = jest.ConstructorArgsType;
 import {AutowiredField} from "./Autowire";
-import {BeanConstants, BeanScope} from "./BeanConstants";
+import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 
 /**
  * Load files and manage beans
@@ -69,7 +69,7 @@ export class ModuleManager extends Base {
         asList = asList || typeof keyFun !== undefined;
 
         if (typeof identifier !== "string") {
-            identifier = `class:${identifier.name}`;
+            identifier = BeanUtils.getBeanIdentifierFromClass(identifier);
         }
 
         if (!this.beans.has(identifier)) {
