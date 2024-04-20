@@ -8,7 +8,8 @@ export class AutowiredField<T> {
     mapKeyFun: (x: T) => string;
     optional: boolean;
 
-    constructor(beanIdentifier: (new () => T) | string, optional: boolean = false,
+    constructor(beanIdentifier: (new () => T) | string,
+                optional: boolean = false,
                 asList: boolean = false,
                 mapKeyFun: ((x: T) => string) = undefined) {
         if (typeof beanIdentifier !== "string") {
@@ -16,6 +17,7 @@ export class AutowiredField<T> {
         }
         this.beanIdentifier = beanIdentifier;
         this.asList = asList;
+        this.optional = optional;
         this.mapKeyFun = mapKeyFun;
     }
 
@@ -24,31 +26,42 @@ export class AutowiredField<T> {
     }
 }
 
-export function AutowireList<T>(definition: (new () => T) | string,
-                                optional: boolean = false): T[] {
-    assert(definition)
-    assert(typeof optional === "boolean")
-    return new AutowiredField(definition, optional, true) as unknown as T[];
+export function getAutowiredFields(obj: any) {
+    return Object.entries(obj)
+        .filter((x: [string, any]) => x[1] instanceof AutowiredField)
+        .map((x: [string, AutowiredField<any>]) => x);
+    // return Object.fromEntries(entries);
 }
 
-export function AutowireMap<T>(definition: (new () => T) | string,
-                               keyFun: (x: T) => string,
-                               optional: boolean = false): Map<string, T> {
-    assert(definition)
-    assert(typeof optional === "boolean")
-    return new AutowiredField(definition, optional, false, keyFun) as unknown as Map<string, T>;
-}
+// export function AutowireList<T>(definition: (new () => T) | string,
+//                                 optional: boolean = false): T[] {
+//     assert(definition)
+//     assert(typeof optional === "boolean")
+//     return new AutowiredField(definition, optional, true) as unknown as T[];
+// }
+//
+// export function AutowireMap<T>(definition: (new () => T) | string,
+//                                keyFun: (x: T) => string,
+//                                optional: boolean = false): Map<string, T> {
+//     assert(definition)
+//     assert(typeof optional === "boolean")
+//     return new AutowiredField(definition, optional, false, keyFun) as unknown as Map<string, T>;
+// }
+//
+// export function AutowireValue<T>(definition: (new () => T) | string,
+//                                  optional: boolean = false): T {
+//     assert(definition)
+//     assert(optional !== undefined)
+//     return new AutowiredField(definition, optional) as T;
+// }
 
-export function AutowireValue<T>(definition: (new () => T) | string,
-                                 optional: boolean = false): T {
-    assert(definition)
-    assert(optional !== undefined)
-    return new AutowiredField(definition, optional) as T;
-}
 
-export function Autowire<R, T>(definition: (new () => T) | (new () => T)[] | string | string[],
+export function Autowire<T>(definition: (new () => T) | string): T;
+export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
+export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[], keyFun: (x: T) => string): Map<string, T>;
+export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
                             keyFun: (x: T) => string = undefined,
-                            optional: boolean = false): R {
+                            optional: boolean = false): T | T[] | Map<string, T> {
     assert(definition)
     assert(optional !== undefined)
     let asList = Array.isArray(definition) || !!keyFun;
@@ -57,17 +70,10 @@ export function Autowire<R, T>(definition: (new () => T) | (new () => T)[] | str
         definition = definition[0]
     }
     if (asList && keyFun) {
-        return AutowireMap<T>(definition, keyFun, optional) as unknown as R;
+        return new AutowiredField(definition, optional, false, keyFun) as unknown as Map<string, T>;
     }
     if (asList && !keyFun) {
-        return AutowireList<T>(definition, optional) as unknown as R;
+        return new AutowiredField(definition, optional, true) as unknown as T[];
     }
-    return AutowireValue<T>(definition, optional) as unknown as R;
-}
-
-export function getAutowiredFields(obj: any) {
-    return Object.entries(obj)
-        .filter((x: [string, any]) => x[1] instanceof AutowiredField)
-        .map((x: [string, AutowiredField<any>]) => x);
-    // return Object.fromEntries(entries);
+    return new AutowiredField(definition, optional) as T;
 }
