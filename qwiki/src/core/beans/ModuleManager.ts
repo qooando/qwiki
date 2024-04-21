@@ -13,6 +13,8 @@ import {mime} from "../utils/Mime";
 import {Graph, sortDependenciesByLoadOrder} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
+import {Loader} from "@qwiki/core/loaders/Loader";
+import {EventContext} from "@qwiki/core/events/EventManager";
 
 /**
  * Load files and manage beans
@@ -40,7 +42,13 @@ export class ModuleManager extends Base {
         const self = this;
 
         // manual bootstrap
-        this.addLoader(new JavascriptLoader());
+        let jsLoader = this.addLoader(new JavascriptLoader());
+
+        // register new loaders automatically
+        $qw.on(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(Loader)),
+            (ctx: EventContext, bean: Bean, instance: Loader) => {
+                self.addLoader(instance);
+            })
 
         // load all files from search paths using the loader
         $qw.emitSync(EventNames.MODULES_BEFORE_LOAD)
@@ -56,10 +64,10 @@ export class ModuleManager extends Base {
      * @param asList if true, returns a list
      * @param keyFun if valorized returns a map
      */
-    getBeanInstance(identifier: (new() => any) | string,
-                    isOptional: boolean = false,
-                    asList: boolean = false,
-                    keyFun: (x: any) => string = undefined): any {
+    require(identifier: (new() => any) | string,
+            isOptional: boolean = false,
+            asList: boolean = false,
+            keyFun: (x: any) => string = undefined): any {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")
@@ -124,12 +132,16 @@ export class ModuleManager extends Base {
         assert(loader)
         assert(loader.supportedMimeTypes)
         loader.supportedMimeTypes.forEach((e: string) => {
-            this.log.debug(`Register loader ${loader.constructor.name} for mimetype ${e}`)
+            this.log.debug(`Register loader: ${e} → ${loader.constructor.name}`)
             if (this.loaders.has(e)) {
-                this.log.warn(`Override loader for mimetype ${e} with loader ${loader.constructor.name}`)
+                let current = this.loaders.get(e);
+                if (current.constructor.name !== loader.constructor.name) {
+                    this.log.warn(`Override loader: ${e} → ${current.constructor.name} with ${loader.constructor.name}`)
+                }
             }
             this.loaders.set(e, loader);
         })
+        return loader;
     }
 
     /**

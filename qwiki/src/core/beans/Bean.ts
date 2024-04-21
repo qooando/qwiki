@@ -75,7 +75,9 @@ export class Bean {
             instance.postConstruct();
         }
 
-        $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, this.name), this, instance);
+        this.getAllIdentifiers().forEach(identifier =>
+            $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, identifier), this, instance)
+        );
 
         this.instances.push(instance);
         return instance;

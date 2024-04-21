@@ -6,4 +6,8 @@ export class Strings {
         }
         return text;
     }
+
+    // static strikethrough(value: string) {
+    //     return value.replace(/./g, "$&\u0336");
+    // }
 }
