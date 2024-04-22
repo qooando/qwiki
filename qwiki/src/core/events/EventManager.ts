@@ -2,6 +2,8 @@ import {Heap} from "../utils/Heap";
 import * as assert from "assert";
 
 export interface EventCallback extends Function {
+    (ctx: EventContext, ...args: any[]): Promise<void>;
+
     priority?: number;
 }
 
@@ -19,9 +21,9 @@ export class EventManager {
     _callbacks: Map<string, Heap<EventCallback>>;
     _comparingFun: Function;
 
-    constructor(comparingfun: Function = undefined) {
+    constructor(comparingFun: Function = undefined) {
         this._callbacks = new Map<string, Heap<EventCallback>>();
-        this._comparingFun = comparingfun ?? ((a: EventCallback, b: EventCallback) => (a.priority ?? 0) - (b.priority ?? 0));
+        this._comparingFun = comparingFun ?? ((a: EventCallback, b: EventCallback) => (a.priority ?? 0) - (b.priority ?? 0));
     }
 
     on(event: string, callback: EventCallback, priority: number = undefined) {
@@ -36,13 +38,11 @@ export class EventManager {
     }
 
     async emit(ctx: string | EventContext, ...args: any[]) {
-        this.emitSync(ctx, ...args)
-    }
-
-    emitSync(ctx: string | EventContext, ...args: any[]) {
+        // this.emitSync(ctx, ...args)
         if (typeof ctx === "string") {
             ctx = {
-                event: ctx
+                event: ctx,
+                parallel: false
             }
         }
         assert(ctx.event, `event cannot be ${ctx.event}`)
@@ -51,15 +51,39 @@ export class EventManager {
             return
         }
         if (ctx.parallel ?? false) {
-            // parallel execution, ignoring priority
-            this._callbacks.get(ctx.event).forEach(
-                (cb: EventCallback) => (async () => cb(ctx, ...args))()
-            )
+            await Promise.all(
+                this._callbacks.get(ctx.event).map(
+                    (cb: EventCallback) => cb(ctx, ...args)
+                )
+            );
         } else {
-            this._callbacks.get(ctx.event).forEach(
-                (cb: EventCallback) => cb(ctx, ...args)
-            )
+            for (let cb of this._callbacks.get(ctx.event).toSortedArray()) {
+                await cb(ctx, ...args);
+            }
         }
     }
+
+    // emitSync(ctx: string | EventContext, ...args: any[]) {
+    //     if (typeof ctx === "string") {
+    //         ctx = {
+    //             event: ctx
+    //         }
+    //     }
+    //     assert(ctx.event, `event cannot be ${ctx.event}`)
+    //     // no defined event, exit
+    //     if (!this._callbacks.has(ctx.event)) {
+    //         return
+    //     }
+    //     if (ctx.parallel ?? false) {
+    //         // parallel execution, ignoring priority
+    //         this._callbacks.get(ctx.event).forEach(
+    //             (cb: EventCallback) => (async () => cb(ctx, ...args))()
+    //         )
+    //     } else {
+    //         this._callbacks.get(ctx.event).forEach(
+    //             (cb: EventCallback) => cb(ctx, ...args)
+    //         )
+    //     }
+    // }
 
 }

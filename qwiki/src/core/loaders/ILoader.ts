@@ -1,4 +1,4 @@
 export interface ILoader {
     supportedMimeTypes: Array<string>
-    load(path: string): any;
+    load(path: string): Promise<any>;
 }

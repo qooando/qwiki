@@ -1,20 +1,17 @@
 import {__Bean__} from "../beans/__Bean__";
 import {Loader} from "./Loader";
 
-export class JavascriptLoader extends Loader {
+export class TypescriptLoader extends Loader {
     static __bean__: __Bean__ = {
         dependsOn: []
     }
 
     supportedMimeTypes: Array<string> = [
-        "text/javascript",
-        "application/javascript"
+        "video/mp2t", // .ts
     ]
 
     async load(path: string) {
-        let content = require(path);
-        // FIXME parse content for beans ?
-        return content;
+        return await import(path);
     }
 
 }

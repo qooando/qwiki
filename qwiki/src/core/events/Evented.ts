@@ -9,12 +9,10 @@ export interface Evented {
     _eventManager: EventManager
     on: Function
     emit: Function
-    emitSync: Function
 }
 
 export function initializeEvented(self: Evented) {
     self._eventManager = new EventManager()
     self.on = self._eventManager.on.bind(self._eventManager)
     self.emit = self._eventManager.emit.bind(self._eventManager)
-    self.emitSync = self._eventManager.emitSync.bind(self._eventManager)
 }

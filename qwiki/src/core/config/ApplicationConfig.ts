@@ -9,5 +9,5 @@ export interface QwikiConfig {
 
 export interface ModulesConfig {
     searchPaths: Array<string>
-    policies: Map<string, string>
+    policies?: Map<string, string>
 }

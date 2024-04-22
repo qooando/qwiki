@@ -10,7 +10,7 @@
     "paths": {
       "@qwiki/*": [
         "./src/*"
-      ],
+      ]
     }
   },
   "include": [

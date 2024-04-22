@@ -10,11 +10,12 @@ import * as path from "path";
 import * as fs from "fs";
 import {glob} from "glob";
 import {mime} from "../utils/Mime";
-import {Graph, sortDependenciesByLoadOrder} from "../utils/Graph";
+import {Graph} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 import {Loader} from "@qwiki/core/loaders/Loader";
 import {EventContext} from "@qwiki/core/events/EventManager";
+import {TypescriptLoader} from "@qwiki/core/loaders/TypescriptLoader";
 
 /**
  * Load files and manage beans
@@ -37,23 +38,26 @@ export class ModuleManager extends Base {
      *
      * @param config
      */
-    initialize(config: ModulesConfig) {
+    async initialize(config: ModulesConfig) {
         this.config = config;
         const self = this;
 
         // manual bootstrap
-        let jsLoader = this.addLoader(new JavascriptLoader());
+        await this.addLoader(new JavascriptLoader());
+        await this.addLoader(new TypescriptLoader());
 
         // register new loaders automatically
-        $qw.on(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(Loader)),
-            (ctx: EventContext, bean: Bean, instance: Loader) => {
-                self.addLoader(instance);
-            })
+        $qw.on(
+            Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(Loader)),
+            async (ctx: EventContext, bean: Bean, instance: Loader) => {
+                await self.addLoader(instance);
+            }
+        )
 
         // load all files from search paths using the loader
-        $qw.emitSync(EventNames.MODULES_BEFORE_LOAD)
-        this.loadBeansFromPaths(this.config.searchPaths);
-        $qw.emitSync(EventNames.MODULES_AFTER_LOAD)
+        await $qw.emit(EventNames.MODULES_BEFORE_LOAD)
+        await this.loadBeansFromPaths(this.config.searchPaths);
+        await $qw.emit(EventNames.MODULES_AFTER_LOAD)
     }
 
     /**
@@ -64,10 +68,10 @@ export class ModuleManager extends Base {
      * @param asList if true, returns a list
      * @param keyFun if valorized returns a map
      */
-    require(identifier: (new() => any) | string,
-            isOptional: boolean = false,
-            asList: boolean = false,
-            keyFun: (x: any) => string = undefined): any {
+    async require(identifier: (new() => any) | string,
+                  isOptional: boolean = false,
+                  asList: boolean = false,
+                  keyFun: (x: any) => string = undefined): Promise<any> {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")
@@ -89,14 +93,15 @@ export class ModuleManager extends Base {
         if (asList) {
             let descriptors = heap.toSortedArray();
             if (keyFun) {
-                return new Map<string, any>(descriptors
-                    .map(x => x.getInstance())
-                    .map(x => [keyFun(x), x]));
+                return new Map<string, any>(
+                    (await Promise.all(descriptors.map(x => x.getInstance())))
+                        .map(x => [keyFun(x), x])
+                );
             } else {
-                return descriptors.map(x => x.getInstance());
+                return await Promise.all(descriptors.map(x => x.getInstance()));
             }
         } else {
-            return heap.top().getInstance();
+            return await heap.top().getInstance();
         }
     }
 
@@ -106,29 +111,29 @@ export class ModuleManager extends Base {
      *
      * @param descriptor
      */
-    addBean(descriptor: Bean) {
+    async addBean(descriptor: Bean) {
         assert(descriptor);
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
-        descriptor.getAllIdentifiers().forEach(
-            (key: string) => {
-                if (!this.beans.has(key)) {
-                    this.beans.set(key, new Heap<Bean>(Heap.Comparators.priority))
+        await Promise.all(
+            descriptor.getAllIdentifiers().map(
+                async (key: string) => {
+                    if (!this.beans.has(key)) {
+                        this.beans.set(key, new Heap<Bean>(Heap.Comparators.priority))
+                    }
+                    this.beans.get(key).push(descriptor)
+                    await $qw.emit(Strings.format(EventNames.BEAN_REGISTERED_NAME, key), descriptor);
+                    return key;
                 }
-                this.beans.get(key).push(descriptor)
-                $qw.emitSync(Strings.format(EventNames.BEAN_REGISTERED_NAME, key), descriptor);
-            }
-        );
+            ));
         return descriptor;
     }
 
     /**
-     * Register a new loader
-     *
-     * @param loader
+     * @param loaders
      */
-    addLoader(loader: ILoader) {
+    async addLoader(loader: ILoader): Promise<ILoader> {
         assert(loader)
         assert(loader.supportedMimeTypes)
         loader.supportedMimeTypes.forEach((e: string) => {
@@ -151,17 +156,16 @@ export class ModuleManager extends Base {
      * @param mimetype
      * @param loader
      */
-    loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
+    async loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
         assert(path)
         if (!loader) {
             mimetype ??= mime.getType(path);
             if (!this.loaders.has(mimetype)) {
-                this.log.warn(`Loader not found for mimetype ${mimetype}: ${path}`)
+                throw new Error(`Loader is undefined for mimetype ${mimetype}: ${path}`)
             }
             loader = this.loaders.get(mimetype);
         }
-        let content = loader.load(path);
-        return content;
+        return await loader.load(path);
     }
 
     /**
@@ -170,8 +174,12 @@ export class ModuleManager extends Base {
      * @param searchPaths
      * @private
      */
-    loadBeansFromPaths(searchPaths: Array<string>): Bean[] {
+    async loadBeansFromPaths(searchPaths: Array<string>): Promise<Bean[]> {
         assert(searchPaths)
+
+        let currentBeans = Array.from(this.beans.values())
+            .flatMap(beans => beans.toSortedArray())
+
         searchPaths = searchPaths.map(x => {
             if (x.startsWith("/")) {
                 return x
@@ -179,45 +187,45 @@ export class ModuleManager extends Base {
             return path.join(__dirname, "..", "..", x);
         });
 
+        let files = await glob.glob(searchPaths, {})
+            .then(files => files
+                .map(p => path.isAbsolute(p) ? p : path.resolve(p))
+                .filter(p => fs.statSync(p).isFile())
+            );
+
+        let newBeans = (await Promise.all(
+            files.flatMap(file =>
+                this.loadContentFromPath(file)
+                    .then(content =>
+                        Object.entries(content)
+                            .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+                            .map((e: [string, any]): Bean => {
+                                let bean = new Bean(e[1]);
+                                bean.path = file;
+                                return bean;
+                            })
+                    )
+            )
+        )).flatMap(x => x);
+
         let dependencyGraph = new Graph();
+
         const ROOT_NODE = "__root__";
         dependencyGraph.upsertVertex(ROOT_NODE);
-        Array.from(this.beans.values())
-            .flatMap(beans => beans.toSortedArray())
-            .forEach(bean => {
-                dependencyGraph.upsertVertex(bean.name, bean);
-                bean.getAllIdentifiers()
-                    .filter((i: string) => i !== bean.name)
-                    .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
-            });
 
-        let newBeans: Array<Bean> =
-            glob.globSync(searchPaths, {})
-                .map(p => {
-                    if (!path.isAbsolute(p)) {
-                        return path.resolve(p);
-                    }
-                    return p;
-                })
-                .filter(p => fs.statSync(p).isFile())
-                .flatMap(p => {
-                    return Object.entries(this.loadContentFromPath(p))
-                        .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
-                        .map((e: [string, any]): Bean => {
-                            let bean = new Bean(e[1]);
-                            bean.path = p;
-                            return bean;
-                        })
-                        .map(bean => this.addBean(bean))
-                        .map(bean => {
-                            dependencyGraph.upsertDirectedEdge(ROOT_NODE, bean.name)
-                            dependencyGraph.upsertVertex(bean.name, bean);
-                            bean.getAllIdentifiers()
-                                .filter((i: string) => i !== bean.name)
-                                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
-                            return bean;
-                        })
-                })
+        currentBeans.forEach(bean => {
+            dependencyGraph.upsertVertex(bean.name, bean);
+            bean.getAllIdentifiers().filter((i: string) => i !== bean.name)
+                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
+        });
+
+        newBeans.forEach((bean: Bean) => {
+            dependencyGraph.upsertDirectedEdge(ROOT_NODE, bean.name)
+            dependencyGraph.upsertVertex(bean.name, bean);
+            bean.getAllIdentifiers()
+                .filter((i: string) => i !== bean.name)
+                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
+        });
 
         let visitResult = dependencyGraph.depth(ROOT_NODE);
 
@@ -231,12 +239,14 @@ export class ModuleManager extends Base {
 
         let newBeansInLoadOrder: Bean[] = visitResult.afterVisit.map(x => x.data).filter(x => !!x);
 
-        newBeansInLoadOrder
-            .filter(e => e.scope === BeanScope.SINGLETON)
-            .forEach(e => {
-                this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
-                e.getInstance();
-            })
+        await Promise.all(
+            newBeansInLoadOrder
+                .filter(e => e.scope === BeanScope.SINGLETON)
+                .map(e => {
+                    this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
+                    return e.getInstance();
+                })
+        );
 
         return newBeansInLoadOrder;
     }

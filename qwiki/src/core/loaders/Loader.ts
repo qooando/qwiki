@@ -6,7 +6,7 @@ export class Loader implements ILoader {
 
     supportedMimeTypes: Array<string> = []
 
-    load(path: string): any {
+    async load(path: string) {
         throw new Error(`Not implemented`)
     }
 

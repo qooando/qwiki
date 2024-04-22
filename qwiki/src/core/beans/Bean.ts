@@ -11,7 +11,6 @@ export class Bean {
     groups: Array<string>;
     priority: number;
     scope: BeanScope;
-    lazy: boolean;
     instances: Array<any>;
     dependsOn: Array<string>;
     path: string;
@@ -54,7 +53,7 @@ export class Bean {
         ]
     }
 
-    getInstance() {
+    async getInstance() {
         if (this.scope === BeanScope.SINGLETON &&
             this.instances.length >= 1) {
             return this.instances[0];
@@ -75,9 +74,11 @@ export class Bean {
             instance.postConstruct();
         }
 
-        this.getAllIdentifiers().forEach(identifier =>
-            $qw.emitSync(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, identifier), this, instance)
-        );
+        await Promise.all(
+            this.getAllIdentifiers()
+                .map(async identifier =>
+                    await $qw.emit(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, identifier), this, instance)
+                ));
 
         this.instances.push(instance);
         return instance;

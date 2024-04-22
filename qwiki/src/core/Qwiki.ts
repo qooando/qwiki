@@ -24,23 +24,27 @@ export class Qwiki extends Base implements Configurable {
         super();
     }
 
-    async boot(configPath: string = undefined) {
+    async boot(configPath: string | ApplicationConfig = undefined) {
         this.log.info("Boot qwiki")
         global["$qw"] = this;
         global["$log"] = this.log
-        this.loadConfiguration(configPath)
-        this.loadModules()
+        await this.loadConfiguration(configPath)
+        await this.loadModules()
     }
 
-    loadConfiguration(configPath: string = undefined) {
+    async loadConfiguration(configPath: string | ApplicationConfig = undefined) {
+        if (configPath && typeof configPath !== "string") {
+            this.config = configPath;
+            return
+        }
         let configPathCandidates = [
             configPath,
             process.env["QWIKICONFIG"],
             "../resources/application.yaml"
         ]
-            .filter(x => !!x)
-            .map(x => path.join(__dirname, x))
-            .map(x => {
+            .filter((x: string) => !!x)
+            .map((x: string) => path.join(__dirname, x))
+            .map((x: string) => {
                 try {
                     var result = fs.realpathSync(x)
                     this.log.debug(`Config file found: ${result}`)
@@ -60,16 +64,16 @@ export class Qwiki extends Base implements Configurable {
         }
     }
 
-    loadModules() {
-        this.emitSync(EventNames.CORE_BEFORE_INIT)
+    async loadModules() {
+        await this.emit(EventNames.CORE_BEFORE_INIT)
         this._moduleManager = new ModuleManager();
-        this._moduleManager.initialize(this.config.qwiki.modules)
-        this.emitSync(EventNames.CORE_AFTER_INIT)
-        this.emitSync(EventNames.STARTUP)
+        await this._moduleManager.initialize(this.config.qwiki.modules)
+        await this.emit(EventNames.CORE_AFTER_INIT)
+        await this.emit(EventNames.STARTUP)
     }
 
-    require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string = undefined) {
-        return this._moduleManager.require(identifier, optional, asList, keyFun)
+    async require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string = undefined) {
+        return await this._moduleManager.require(identifier, optional, asList, keyFun)
     }
 
 }
