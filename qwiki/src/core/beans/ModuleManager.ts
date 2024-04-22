@@ -208,6 +208,10 @@ export class ModuleManager extends Base {
             )
         )).flatMap(x => x);
 
+        await Promise.all(
+            newBeans.map(bean => this.addBean(bean))
+        );
+
         let dependencyGraph = new Graph();
 
         const ROOT_NODE = "__root__";
@@ -238,6 +242,8 @@ export class ModuleManager extends Base {
         }
 
         let newBeansInLoadOrder: Bean[] = visitResult.afterVisit.map(x => x.data).filter(x => !!x);
+
+        this.log.debug(`Load beans: ${newBeansInLoadOrder.map(x => x.name).join(" ")}`)
 
         await Promise.all(
             newBeansInLoadOrder

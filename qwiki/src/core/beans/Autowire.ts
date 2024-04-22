@@ -58,7 +58,11 @@ export function getAutowiredFields(obj: any) {
 
 export function Autowire<T>(definition: (new () => T) | string): T;
 export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
-export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[], keyFun: (x: T) => string): Map<string, T>;
+export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
+                            keyFun: (x: T) => string): Map<string, T>;
+export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
+                            keyFun: (x: T) => string,
+                            optional: boolean): Map<string, T>;
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
                             keyFun: (x: T) => string = undefined,
                             optional: boolean = false): T | T[] | Map<string, T> {

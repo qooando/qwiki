@@ -5,7 +5,7 @@ import {Converter} from "@qwiki/modules/conversion/Converter";
 export class ConversionService {
     static __bean__: __Bean__ = {}
 
-    converters = Autowire([`class:Converter`], (x: Converter) => x.name());
+    converters: Map<string, Converter> = Autowire([`class:Converter`], (x: Converter) => x.name(), true);
 
     convert<From, To>(source: From, toClazz: new () => To): To {
         let converterName = `${source.constructor.name}->${toClazz.name}`;
