@@ -1,4 +1,4 @@
-import {Evented, initializeEvented} from "../../src/core/common/Evented";
+import {Evented, initializeEvented} from "../../src/core/events/Evented";
 import {EventContext, EventManager} from "../../src/core/events/EventManager";
 
 
@@ -7,7 +7,6 @@ describe('Class implementing Evented', () => {
         _eventManager: EventManager
         on: Function
         emit: Function
-        emitSync: Function
 
         constructor() {
             initializeEvented(this)
@@ -19,7 +18,6 @@ describe('Class implementing Evented', () => {
         expect(h._eventManager).toBeDefined();
         expect(h.on).toBeDefined();
         expect(h.emit).toBeDefined();
-        expect(h.emitSync).toBeDefined();
     });
 
     test('Register a callback', () => {
@@ -49,7 +47,7 @@ describe('Class implementing Evented', () => {
         expect(cbs[1].priority).toBe(15)
     });
 
-    test('Emit sync event', () => {
+    test('Emit sync event', async () => {
         let h = new Instrumented();
         let result = new class {
             foo: any
@@ -57,11 +55,11 @@ describe('Class implementing Evented', () => {
         h.on("Foo", (ctx: EventContext, value: any) => {
             result.foo = value;
         })
-        h.emitSync("Foo", true)
+        await h.emit("Foo", true)
         expect(result.foo).toBe(true);
-        h.emitSync("Foo", false)
+        await h.emit("Foo", false)
         expect(result.foo).toBe(false);
-        h.emitSync("Foo", 14)
+        await h.emit("Foo", 14)
         expect(result.foo).toBe(14);
     });
 
