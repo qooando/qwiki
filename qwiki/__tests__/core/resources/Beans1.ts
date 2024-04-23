@@ -1,8 +1,12 @@
-export class Foo {
+export class Parent {
+
+}
+
+export class Foo extends Parent {
     static __bean__ = {}
 }
 
-export class Bar {
+export class Bar extends Parent {
     static __bean__ = {
         name: "myBar",
     }

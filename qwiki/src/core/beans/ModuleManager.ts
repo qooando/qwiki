@@ -68,10 +68,10 @@ export class ModuleManager extends Base {
      * @param asList if true, returns a list
      * @param keyFun if valorized returns a map
      */
-    async require(identifier: (new() => any) | string,
-                  isOptional: boolean = false,
-                  asList: boolean = false,
-                  keyFun: (x: any) => string = undefined): Promise<any> {
+    async getBeanInstance(identifier: (new() => any) | string,
+                          isOptional: boolean = false,
+                          asList: boolean = false,
+                          keyFun: (x: any) => string = undefined): Promise<any> {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")

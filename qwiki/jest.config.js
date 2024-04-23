@@ -8,16 +8,12 @@ module.exports = {
     testEnvironment: 'node',
     verbose: true,
     testPathIgnorePatterns: [
-        "/node_modules/"
+        "/node_modules/",
+        ".*/resources/.*"
     ],
     roots: [
         "<rootDir>",
     ],
-    moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {prefix: '<rootDir>'})
-    // moduleNameMapper: {
-    //     "^@qwiki/(.*)$": [
-    //         "<rootDir>/dist/$1.js",
-    //         "<rootDir>/src/$1.ts"
-    //     ]
-    // }
+    moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {prefix: '<rootDir>'}),
+    moduleFileExtensions: ["tsx", "jsx", "js", "ts"]
 };

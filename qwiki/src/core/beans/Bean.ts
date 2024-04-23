@@ -64,10 +64,12 @@ export class Bean {
         let instance: any = new this.clazz(...defaultConstructorArguments);
 
         // find autowired fields and resolve them
-        getAutowiredFields(instance)
-            .forEach((x: [string, AutowiredPlaceholder<any>]) => {
-                instance[x[0]] = x[1].resolve();
-            })
+        await Promise.all(
+            getAutowiredFields(instance)
+                .map(async (x: [string, AutowiredPlaceholder<any>]) => {
+                    instance[x[0]] = await x[1].resolve();
+                })
+        );
 
         // call postConstruct if defined
         if ("postConstruct" in instance) {

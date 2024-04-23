@@ -21,8 +21,8 @@ export class AutowiredPlaceholder<T> {
         this.mapKeyFun = mapKeyFun;
     }
 
-    resolve(): any {
-        return $qw.require(this.beanIdentifier, this.optional, this.asList, this.mapKeyFun);
+    async resolve(): Promise<any> {
+        return await $qw.require(this.beanIdentifier, this.optional, this.asList, this.mapKeyFun);
     }
 }
 
@@ -32,29 +32,6 @@ export function getAutowiredFields(obj: any) {
         .map((x: [string, AutowiredPlaceholder<any>]) => x);
     // return Object.fromEntries(entries);
 }
-
-// export function AutowireList<T>(definition: (new () => T) | string,
-//                                 optional: boolean = false): T[] {
-//     assert(definition)
-//     assert(typeof optional === "boolean")
-//     return new AutowiredField(definition, optional, true) as unknown as T[];
-// }
-//
-// export function AutowireMap<T>(definition: (new () => T) | string,
-//                                keyFun: (x: T) => string,
-//                                optional: boolean = false): Map<string, T> {
-//     assert(definition)
-//     assert(typeof optional === "boolean")
-//     return new AutowiredField(definition, optional, false, keyFun) as unknown as Map<string, T>;
-// }
-//
-// export function AutowireValue<T>(definition: (new () => T) | string,
-//                                  optional: boolean = false): T {
-//     assert(definition)
-//     assert(optional !== undefined)
-//     return new AutowiredField(definition, optional) as T;
-// }
-
 
 export function Autowire<T>(definition: (new () => T) | string): T;
 export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
