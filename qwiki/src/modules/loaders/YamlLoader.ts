@@ -13,10 +13,10 @@ export class YamlLoader extends Loader {
         "application/yaml",
     ]
 
-    load(path: string): any {
-        assert(typeof path === "string");
-        // @ts-ignore
-        return yaml.parse(fs.readFileSync(path))
-    }
+    // load(path: string): any {
+    //     assert(typeof path === "string");
+    //     // @ts-ignore
+    //     return yaml.parse(fs.readFileSync(path))
+    // }
 
 }

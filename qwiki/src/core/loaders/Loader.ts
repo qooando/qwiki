@@ -6,7 +6,7 @@ export class Loader implements ILoader {
 
     supportedMimeTypes: Array<string> = []
 
-    async load(path: string) {
+    async loadCandidateBeans(path: string): Promise<[string, any][]> {
         throw new Error(`Not implemented`)
     }
 

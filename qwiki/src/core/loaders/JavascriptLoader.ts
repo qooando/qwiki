@@ -1,5 +1,6 @@
 import {__Bean__} from "../beans/__Bean__";
 import {Loader} from "./Loader";
+import {BeanConstants} from "@qwiki/core/beans/BeanUtils";
 
 export class JavascriptLoader extends Loader {
     static __bean__: __Bean__ = {
@@ -11,10 +12,10 @@ export class JavascriptLoader extends Loader {
         "application/javascript"
     ]
 
-    async load(path: string) {
+    async loadCandidateBeans(path: string): Promise<[string, any][]> {
         let content = require(path);
-        // FIXME parse content for beans ?
-        return content;
+        return Object.entries(content)
+            .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
     }
 
 }

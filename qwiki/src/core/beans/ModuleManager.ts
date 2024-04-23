@@ -149,6 +149,24 @@ export class ModuleManager extends Base {
         return loader;
     }
 
+    // /**
+    //  * Load content from a file leveraging a registered loader
+    //  *
+    //  * @param path
+    //  * @param mimetype
+    //  * @param loader
+    //  */
+    // async loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
+    //     assert(path)
+    //     if (!loader) {
+    //         mimetype ??= mime.getType(path);
+    //         if (!this.loaders.has(mimetype)) {
+    //             throw new Error(`Loader is undefined for mimetype ${mimetype}: ${path}`)
+    //         }
+    //         loader = this.loaders.get(mimetype);
+    //     }
+    //     return await loader.load(path);
+    // }
     /**
      * Load content from a file leveraging a registered loader
      *
@@ -156,7 +174,7 @@ export class ModuleManager extends Base {
      * @param mimetype
      * @param loader
      */
-    async loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
+    async loadBeansFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
         assert(path)
         if (!loader) {
             mimetype ??= mime.getType(path);
@@ -165,7 +183,7 @@ export class ModuleManager extends Base {
             }
             loader = this.loaders.get(mimetype);
         }
-        return await loader.load(path);
+        return await loader.loadCandidateBeans(path);
     }
 
     /**
@@ -194,20 +212,23 @@ export class ModuleManager extends Base {
             );
 
         let newBeans = (await Promise.all(
-            files.flatMap(file =>
-                this.loadContentFromPath(file)
-                    .then(content =>
-                        // FIXME this work only for javascript/typescript
-                        // find a valid method to export beans from other files (e.g. json)
-                        // maybe move this function directly to loaders ?
-                        Object.entries(content)
-                            .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
-                            .map((e: [string, any]): Bean => {
+            files.flatMap(async file =>
+                    this.loadBeansFromPath(file)
+                        .then((beans: [string, any][]) => {
+                            // this.loadContentFromPath(file)
+                            //     .then(content =>
+                            //         // FIXME this work only for javascript/typescript
+                            //         // find a valid method to export beans from other files (e.g. json)
+                            //         // maybe move this function directly to loaders ?
+                            //         Object.entries(content)
+                            // .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+                            return beans.map((e: [string, any]): Bean => {
                                 let bean = new Bean(e[1]);
                                 bean.path = file;
                                 return bean;
                             })
-                    )
+                        })
+                // )
             )
         )).flatMap(x => x);
 

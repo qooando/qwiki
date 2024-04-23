@@ -1,4 +1,5 @@
 export interface ILoader {
     supportedMimeTypes: Array<string>
-    load(path: string): Promise<any>;
+
+    loadCandidateBeans(path: string): Promise<[string, any][]>;
 }

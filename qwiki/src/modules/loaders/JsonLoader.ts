@@ -10,9 +10,9 @@ export class JsonLoader extends Loader {
         "application/json",
     ]
 
-    load(path: string): any {
-        assert(typeof path === "string");
-        return fs.readFileSync(path).toJSON();
-    }
+    // load(path: string): any {
+    //     assert(typeof path === "string");
+    //     return fs.readFileSync(path).toJSON();
+    // }
 
 }
