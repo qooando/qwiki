@@ -3,7 +3,7 @@ import {Bean} from "../../src/core/beans/Bean";
 
 import * as path from "node:path";
 import {Qwiki} from "../../src/core/Qwiki";
-import {EventCallback} from "../../src/core/events/EventManager";
+import {EventCallback, EventContext} from "../../src/core/events/EventManager";
 import {Parking} from "./resources/Beans2";
 import {Car} from "./resources/Beans3";
 import {EventNames} from "../../src/core/events/EventNames";
@@ -140,7 +140,7 @@ describe("Module manager", () => {
         }
 
         q.on(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, "Car"),
-            async (ctx, bean: Bean, instance: Car) => {
+            async (ctx: EventContext, bean: Bean, instance: Car) => {
                 content.carModel = instance.model;
             })
 

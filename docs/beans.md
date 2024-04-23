@@ -1,5 +1,18 @@
 # Beans
 
+ModuleManager reads all files in the search path and
+automatically load all beans it founds resolving
+them in dependencies order.
+
+You can define search paths in the global configuration
+```yaml
+qwiki:
+  modules:
+    searchPaths:
+      - "./core/**/*.js"
+      - "./modules/**/*.js"
+```
+
 ## Define a bean
 
 Define a bean adding a static `__bean__` field to the class. You can assign the `__Bean__` interface for type checking.
@@ -21,7 +34,7 @@ Bean SHOULD have a constructor without arguments.
 You can use `Autowire` object to define autocompleting fields. These fields are substitute with the correct value
 after object constructor and before postConstruct optional method.
 
-Fields can be single items, lists and maps, by class and by bean name.
+Fields can be single items, lists, and maps, by class and by bean name.
 
 ```typescript
 import {__Bean__} from "./__Bean__";

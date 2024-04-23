@@ -6,7 +6,7 @@ import {EventCallback, EventManager} from "../events/EventManager";
 export class Base implements Logged, Evented {
     log: pino.Logger;
     _eventManager: EventManager;
-    on: (event: string, cb: EventCallback) => void;
+    on: Function;
     emit: Function;
 
     constructor() {

@@ -197,6 +197,9 @@ export class ModuleManager extends Base {
             files.flatMap(file =>
                 this.loadContentFromPath(file)
                     .then(content =>
+                        // FIXME this work only for javascript/typescript
+                        // find a valid method to export beans from other files (e.g. json)
+                        // maybe move this function directly to loaders ?
                         Object.entries(content)
                             .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
                             .map((e: [string, any]): Bean => {
