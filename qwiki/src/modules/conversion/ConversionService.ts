@@ -5,9 +5,14 @@ import {Converter} from "@qwiki/modules/conversion/Converter";
 export class ConversionService {
     static __bean__: __Bean__ = {}
 
-    converters: Map<string, Converter> = Autowire([`class:Converter`], (x: Converter) => x.name(), true);
+    converters: Map<string, Converter<any, any>> =
+        Autowire(
+            [`class:Converter`],
+            (x: Converter<any, any>) => x.name(),
+            true
+        );
 
-    convert<From, To>(source: From, toClazz: new () => To): To {
+    convert<From, To>(source: From, toClazz: new (...args: any[]) => To): To {
         let converterName = `${source.constructor.name}->${toClazz.name}`;
         if (!this.converters.has(converterName)) {
             throw new Error(`Converter not found: ${converterName}`);

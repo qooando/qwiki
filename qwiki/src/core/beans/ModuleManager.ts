@@ -145,6 +145,10 @@ export class ModuleManager extends Base {
         return descriptor;
     }
 
+    hasBean(identifier: string) {
+        return this.beans.has(identifier) && this.beans.get(identifier).size() > 0;
+    }
+
     /**
      * @param scanner
      */

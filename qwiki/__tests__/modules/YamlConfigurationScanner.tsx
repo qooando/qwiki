@@ -7,7 +7,7 @@ import {EventNames} from "../../src/core/events/EventNames";
 import {Strings} from "../../src/core/utils/Strings";
 import * as fs from "node:fs";
 
-describe("Load configuration beans from files", () => {
+describe("Configuration beans", () => {
 
     afterEach(() => {
         global["$qw"] = null
