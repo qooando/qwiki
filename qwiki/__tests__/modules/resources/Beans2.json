@@ -1,0 +1,14 @@
+[
+  {
+    "__bean__": {
+      "name": "Foo"
+    },
+    "foo": "Hello world!"
+  },
+  {
+    "__bean__": {
+      "name": "Bar"
+    },
+    "foo": "Hello Bob!"
+  }
+]

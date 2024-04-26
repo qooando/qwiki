@@ -5,7 +5,7 @@ Loaders permit to load beans from files.
 Default loaders are:
 
 - JavascriptLoader
-- TypescriptLoader
+- TypescriptScanner
 
 More loaders are available in modules
 
@@ -20,7 +20,7 @@ Write down your bean as subclass of `Loader` class.
 import {__Bean__} from "../beans/__Bean__";
 import {Loader} from "./Loader";
 
-export class TypescriptLoader extends Loader {
+export class TypescriptScanner extends Loader {
     static __bean__: __Bean__ = {
         dependsOn: []
     }

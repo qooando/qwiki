@@ -3,19 +3,17 @@ import {ModulesConfig} from "../config/ApplicationConfig";
 import * as assert from "assert";
 import {Bean} from "./Bean";
 import {Heap} from "../utils/Heap";
-import {ILoader} from "../loaders/ILoader";
-import {JavascriptLoader} from "../loaders/JavascriptLoader";
 import {EventNames} from "../events/EventNames";
 import * as path from "path";
-import * as fs from "fs";
-import {glob} from "glob";
-import {mime} from "../utils/Mime";
-import {Graph} from "../utils/Graph";
 import {Strings} from "../utils/Strings";
-import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
-import {Loader} from "@qwiki/core/loaders/Loader";
+import {BeanScope, BeanUtils} from "./BeanUtils";
 import {EventContext} from "@qwiki/core/events/EventManager";
-import {TypescriptLoader} from "@qwiki/core/loaders/TypescriptLoader";
+import {ModuleScanner} from "@qwiki/core/beans/ModuleScanner";
+import {JavascriptScanner} from "@qwiki/core/scanners/JavascriptScanner";
+import {TypescriptScanner} from "@qwiki/core/scanners/TypescriptScanner";
+import {BeanDependencyGraph} from "@qwiki/core/beans/BeanDependencyGraph";
+import {Arrays} from "@qwiki/core/utils/Arrays";
+import * as fs from "node:fs";
 
 /**
  * Load files and manage beans
@@ -24,13 +22,13 @@ export class ModuleManager extends Base {
     config: ModulesConfig;
     beans: Map<string, Heap<Bean>>;
     modules: Map<string, any>;
-    loaders: Map<string, ILoader>;
+    scanners: Map<string, ModuleScanner>;
 
     constructor() {
         super();
         this.config = undefined;
         this.beans = new Map<string, Heap<Bean>>();
-        this.loaders = new Map<string, ILoader>;
+        this.scanners = new Map<string, ModuleScanner>;
     }
 
     /**
@@ -42,16 +40,21 @@ export class ModuleManager extends Base {
         this.config = config;
         const self = this;
 
-        // manual bootstrap
-        await this.addLoader(new JavascriptLoader());
-        await this.addLoader(new TypescriptLoader());
-
         // register new loaders automatically
         $qw.on(
-            Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(Loader)),
-            async (ctx: EventContext, bean: Bean, instance: Loader) => {
-                await self.addLoader(instance);
+            Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(ModuleScanner)),
+            async (ctx: EventContext, bean: Bean, instance: ModuleScanner) => {
+                await self.addScanner(instance);
             }
+        );
+
+        // manual bootstrap
+        await this.addBeans(
+            [
+                new Bean(JavascriptScanner),
+                new Bean(TypescriptScanner),
+            ],
+            true
         )
 
         // load all files from search paths using the loader
@@ -105,17 +108,26 @@ export class ModuleManager extends Base {
         }
     }
 
+    async addBeans(descriptors: Bean[], initialize: boolean = false) {
+        return Promise.all(descriptors.map(bean => this.addBean(bean, initialize)));
+    }
+
     /**
      * Register a bean from its descriptor,
      * this class DOESN'T initialize it!
      *
      * @param descriptor
+     * @param initialize
      */
-    async addBean(descriptor: Bean) {
+    async addBean(descriptor: Bean, initialize: boolean = false) {
         assert(descriptor);
         assert(this.beans);
         assert(descriptor.clazz);
         assert(descriptor.name);
+        this.log.debug(`Add bean: ${descriptor.name.padEnd(40)} ${descriptor.path ? "from " + path.relative(process.cwd(), descriptor.path) : ""}`)
+        if (this.beans.has(descriptor.name)) {
+            throw new Error(`Bean class ${descriptor.clazz.name} already registered`)
+        }
         await Promise.all(
             descriptor.getAllIdentifiers().map(
                 async (key: string) => {
@@ -127,153 +139,89 @@ export class ModuleManager extends Base {
                     return key;
                 }
             ));
+        if (initialize && descriptor.scope === BeanScope.SINGLETON) {
+            await descriptor.getInstance();
+        }
         return descriptor;
     }
 
     /**
-     * @param loaders
+     * @param scanner
      */
-    async addLoader(loader: ILoader): Promise<ILoader> {
-        assert(loader)
-        assert(loader.supportedMimeTypes)
-        loader.supportedMimeTypes.forEach((e: string) => {
-            this.log.debug(`Register loader: ${e} → ${loader.constructor.name}`)
-            if (this.loaders.has(e)) {
-                let current = this.loaders.get(e);
-                if (current.constructor.name !== loader.constructor.name) {
-                    this.log.warn(`Override loader: ${e} → ${current.constructor.name} with ${loader.constructor.name}`)
+    async addScanner(scanner: ModuleScanner): Promise<ModuleScanner> {
+        assert(scanner)
+        scanner.supportedExtensions.forEach((extension: string) => {
+            this.log.debug(`Add scanner: ${extension} → ${scanner.constructor.name}`);
+            if (this.scanners.has(extension)) {
+                let current = this.scanners.get(extension);
+                if (current.constructor.name !== scanner.constructor.name) {
+                    this.log.warn(`Override scanner: ${extension} → ${current.constructor.name} with ${scanner.constructor.name}`)
                 }
             }
-            this.loaders.set(e, loader);
+            this.scanners.set(extension, scanner);
         })
-        return loader;
-    }
-
-    // /**
-    //  * Load content from a file leveraging a registered loader
-    //  *
-    //  * @param path
-    //  * @param mimetype
-    //  * @param loader
-    //  */
-    // async loadContentFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
-    //     assert(path)
-    //     if (!loader) {
-    //         mimetype ??= mime.getType(path);
-    //         if (!this.loaders.has(mimetype)) {
-    //             throw new Error(`Loader is undefined for mimetype ${mimetype}: ${path}`)
-    //         }
-    //         loader = this.loaders.get(mimetype);
-    //     }
-    //     return await loader.load(path);
-    // }
-    /**
-     * Load content from a file leveraging a registered loader
-     *
-     * @param path
-     * @param mimetype
-     * @param loader
-     */
-    async loadBeansFromPath(path: string, mimetype: string = undefined, loader: ILoader = undefined) {
-        assert(path)
-        if (!loader) {
-            mimetype ??= mime.getType(path);
-            if (!this.loaders.has(mimetype)) {
-                throw new Error(`Loader is undefined for mimetype ${mimetype}: ${path}`)
-            }
-            loader = this.loaders.get(mimetype);
-        }
-        return await loader.loadCandidateBeans(path);
+        return scanner;
     }
 
     /**
      * Load beans from specified glob paths
      *
      * @param searchPaths
+     * @param scanners
      * @private
      */
-    async loadBeansFromPaths(searchPaths: Array<string>): Promise<Bean[]> {
-        assert(searchPaths)
+    async loadBeansFromPaths(searchPaths: string[] = undefined, scanners: ModuleScanner[] = undefined): Promise<Bean[]> {
+        searchPaths ??= this.config.searchPaths;
+        scanners ??= Array.from(this.scanners.values());
+        searchPaths = searchPaths.map(x => x.startsWith("/") ? x : path.join(__dirname, "..", "..", x));
 
-        let currentBeans = Array.from(this.beans.values())
-            .flatMap(beans => beans.toSortedArray())
+        let depGraph = new BeanDependencyGraph();
 
-        searchPaths = searchPaths.map(x => {
-            if (x.startsWith("/")) {
-                return x
-            }
-            return path.join(__dirname, "..", "..", x);
-        });
+        // @ts-ignore
+        let currentBeans = Arrays.distincts(
+            Array.from(this.beans.values())
+                .flatMap(x => x._items),
+            BeanUtils.compareName
+        );
+        depGraph.addBeans(currentBeans);
 
-        let files = await glob.glob(searchPaths, {})
-            .then(files => files
-                .map(p => path.isAbsolute(p) ? p : path.resolve(p))
-                .filter(p => fs.statSync(p).isFile())
+        // use scanners to find new candidate beans
+        let scannersToVisit: ModuleScanner[][] = [scanners];
+        let candidateBeans: Bean[] = [];
+        while (scannersToVisit.length > 0) {
+            let newCandidateBeans = await Promise.all(scannersToVisit.pop()
+                .map(scanner => scanner.findBeansByPaths(...searchPaths))
+            )
+                .then(b => b.flatMap(x => x))
+                .then(b => b.filter(x => !this.beans.has(x.name)))
+                .then(b => Arrays.distincts(b, BeanUtils.compareName))
+                .then(b => this.addBeans(b)); // NOTE, from here on beans are available to others for autowiring
+            depGraph.addBeans(newCandidateBeans, true);
+            candidateBeans.push(...newCandidateBeans);
+
+            let newScanners = await Promise.all(
+                newCandidateBeans
+                    .filter(b => b.instances.length === 0)
+                    .filter(b => b.clazz.prototype instanceof ModuleScanner)
+                    .map(b => b.getInstance()) // scanners should depends only on already available beans
+                // FIXME if a scanner depends on another one? (e.g. explicitly set in dependsOn? will it works?)
             );
 
-        let newBeans = (await Promise.all(
-            files.flatMap(async file =>
-                    this.loadBeansFromPath(file)
-                        .then((beans: [string, any][]) => {
-                            // this.loadContentFromPath(file)
-                            //     .then(content =>
-                            //         // FIXME this work only for javascript/typescript
-                            //         // find a valid method to export beans from other files (e.g. json)
-                            //         // maybe move this function directly to loaders ?
-                            //         Object.entries(content)
-                            // .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
-                            return beans.map((e: [string, any]): Bean => {
-                                let bean = new Bean(e[1]);
-                                bean.path = file;
-                                return bean;
-                            })
-                        })
-                // )
-            )
-        )).flatMap(x => x);
-
-        await Promise.all(
-            newBeans.map(bean => this.addBean(bean))
-        );
-
-        let dependencyGraph = new Graph();
-
-        const ROOT_NODE = "__root__";
-        dependencyGraph.upsertVertex(ROOT_NODE);
-
-        currentBeans.forEach(bean => {
-            dependencyGraph.upsertVertex(bean.name, bean);
-            bean.getAllIdentifiers().filter((i: string) => i !== bean.name)
-                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
-        });
-
-        newBeans.forEach((bean: Bean) => {
-            dependencyGraph.upsertDirectedEdge(ROOT_NODE, bean.name)
-            dependencyGraph.upsertVertex(bean.name, bean);
-            bean.getAllIdentifiers()
-                .filter((i: string) => i !== bean.name)
-                .forEach((i: string) => dependencyGraph.upsertDirectedEdge(i, bean.name));
-        });
-
-        let visitResult = dependencyGraph.depth(ROOT_NODE);
-
-        if (visitResult.cycles.length > 0) {
-            visitResult.cycles.forEach(c => {
-                c.push(c[0]);
-                this.log.error(`Circular dependency found: ${c.map(x => x.name).join(" -> ")}`)
-            })
-            throw new Error(`Circular dependencies`)
+            if (newScanners.length > 0) {
+                scannersToVisit.push(newScanners);
+            }
         }
 
-        let newBeansInLoadOrder: Bean[] = visitResult.afterVisit.map(x => x.data).filter(x => !!x);
+        let newBeansInLoadOrder: Bean[] = depGraph.getDependencyOrderedList()
+            .map(x => x.data).filter(x => !!x);
 
-        this.log.debug(`Load beans: ${newBeansInLoadOrder.map(x => x.name).join(" ")}`)
+        // this.log.debug(`Load beans: ${newBeansInLoadOrder.map(x => x.name).join(" ")}`)
 
         await Promise.all(
             newBeansInLoadOrder
                 .filter(e => e.scope === BeanScope.SINGLETON)
                 .map(e => {
-                    this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
+                    // this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
                     return e.getInstance();
                 })
         );

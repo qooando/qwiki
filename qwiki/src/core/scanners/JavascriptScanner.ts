@@ -1,22 +1,32 @@
 import {__Bean__} from "../beans/__Bean__";
-import {Loader} from "./Loader";
 import {BeanConstants} from "@qwiki/core/beans/BeanUtils";
+import {ModuleScanner} from "@qwiki/core/beans/ModuleScanner";
+import {Bean} from "@qwiki/core/beans/Bean";
 
-export class JavascriptLoader extends Loader {
-    static __bean__: __Bean__ = {
-        dependsOn: []
-    }
+export class JavascriptScanner extends ModuleScanner {
+    static __bean__: __Bean__ = {}
 
-    supportedMimeTypes: Array<string> = [
-        "text/javascript",
-        "application/javascript"
+    supportedExtensions = [
+        ".js"
     ]
 
-    async loadCandidateBeans(path: string): Promise<[string, any][]> {
+    // supportedMimeTypes: Array<string> = [
+    //     "text/javascript",
+    //     "application/javascript"
+    // ]
+
+    async findBeansByPath(path: string): Promise<Bean[]> {
         let content = require(path);
         return Object.entries(content)
             .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+            .map((e: [string, any]) => {
+                let b = new Bean(e[1]);
+                b.path = path;
+                return b;
+            })
     }
+
+    // FIXME missing json yaml loaders???
 
 }
 

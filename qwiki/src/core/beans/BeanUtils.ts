@@ -1,4 +1,5 @@
 import {Strings} from "@qwiki/core/utils/Strings";
+import {Bean} from "@qwiki/core/beans/Bean";
 
 export class BeanConstants {
     static BEAN_FIELD_NAME: string = "__bean__";
@@ -31,6 +32,10 @@ export class BeanUtils {
 
     static getBeanIdentifierFromGroup(group: string) {
         return Strings.format(BeanConstants.BEAN_GROUP_IDENTIFIER, group)
+    }
+
+    static compareName(a: Bean, b: Bean): number {
+        return a.name === b.name ? 0 : (a.name < b.name ? -1 : 1)
     }
 
 }

@@ -1,0 +1,6 @@
+{
+  "__bean__": {
+    "name": "Foo"
+  },
+  "foo": "Hello world!"
+}

@@ -94,6 +94,15 @@ export class Graph {
         })
     }
 
+    upsertDirectedPath(...defs: string[]) {
+        let edges = [];
+        for (let i = 1; i < defs.length; i++) {
+            edges.push(this.upsertDirectedEdge(defs[i - 1], defs[i]));
+        }
+        return edges;
+    }
+
+
     order() {
         return this.vertices.size;
     }
@@ -191,8 +200,11 @@ export class Graph {
 export interface MakeDependenciesGraphOptions {
     isVertex?(i: any): boolean, // a filter to tells if the item must be used or not to build the graph
     getVertexName?(i: any): string,
+
     getChildrenNames?(i: any): Array<string>,
+
     isRoot?(i: any): boolean,
+
     rootName?: string
 }
 
