@@ -1,3 +1,20 @@
+# Scanners
+
+Scanners search for beans in files. Defaults are:
+
+- JavascriptScanner
+- TypescriptScanner
+
+More are available in modules.
+
+Those scanners permits to search fo files given file extensions
+and find candidate beans from their content.
+
+## Implement a scanner
+
+Write down your bean as subclass of `ModuleScanner` class.
+
+```ts
 import {BeanConstants} from "@qwiki/core/beans/BeanUtils";
 import {ModuleScanner} from "@qwiki/core/beans/ModuleScanner";
 import {Bean} from "@qwiki/core/beans/Bean";
@@ -28,3 +45,6 @@ export class YamlConfigScanner extends ModuleScanner {
     }
 
 }
+```
+
+
