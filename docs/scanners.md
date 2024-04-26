@@ -24,7 +24,7 @@ import * as fs from "node:fs";
 import * as uuid from "uuid";
 import * as path from "node:path";
 
-export class YamlConfigScanner extends ModuleScanner {
+export class YamlConfigurationScanner extends ModuleScanner {
     static __bean__: __Bean__ = {}
 
     supportedExtensions = [

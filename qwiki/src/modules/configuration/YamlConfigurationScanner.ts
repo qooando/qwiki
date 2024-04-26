@@ -7,7 +7,7 @@ import * as fs from "node:fs";
 import * as uuid from "uuid";
 import * as path from "node:path";
 
-export class YamlConfigScanner extends ModuleScanner {
+export class YamlConfigurationScanner extends ModuleScanner {
     static __bean__: __Bean__ = {}
 
     supportedExtensions = [
@@ -17,12 +17,16 @@ export class YamlConfigScanner extends ModuleScanner {
 
     async findBeansByPath(file: string): Promise<Bean[]> {
         // @ts-ignore
-        let content: any = yaml.parse(fs.readFileSync(file))
+        let content: any = yaml.parse(fs.readFileSync(file, "utf-8"));
         let beanInfo = content[BeanConstants.BEAN_FIELD_NAME] ?? {};
         beanInfo.name = beanInfo.name ?? path.basename(file);
         beanInfo.path = file;
         class InlineClass {
             static __bean__: __Bean__ = beanInfo
+            postConstruct() {
+                Object.assign(this, content);
+                // FIXME make this configuration dynamic, if file changes, then change the config
+            }
         }
         return [new Bean(InlineClass)]
     }

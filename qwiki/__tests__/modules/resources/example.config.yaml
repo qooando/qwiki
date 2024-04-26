@@ -1,0 +1,3 @@
+__bean__:
+  name: Bar
+bar: "Hello Bob!"
