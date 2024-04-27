@@ -23,7 +23,7 @@ export class YamlConfigurationScanner extends ModuleScanner {
         beanInfo.path = file;
         class InlineClass {
             static __bean__: __Bean__ = beanInfo
-            postConstruct() {
+            async postConstruct() {
                 Object.assign(this, content);
                 // FIXME make this configuration dynamic, if file changes, then change the config
             }

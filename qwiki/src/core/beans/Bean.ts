@@ -4,6 +4,7 @@ import * as assert from "assert";
 import {Strings} from "../utils/Strings";
 import {EventNames} from "../events/EventNames";
 import {Objects} from "../utils/Objects";
+import {getValueFields, ValuePlaceholder} from "@qwiki/core/beans/Value";
 
 export class Bean {
     name: string;
@@ -59,7 +60,7 @@ export class Bean {
             return this.instances[0];
         }
 
-        console.log(`New instance ${this.name} from ${this.path}`)
+        // console.log(`New instance ${this.name} from ${this.path}`)
         // assumes constructor is always with no arguments
         let defaultConstructorArguments: [] = []
         let instance: any = new this.clazz(...defaultConstructorArguments);
@@ -72,9 +73,17 @@ export class Bean {
                 })
         );
 
+        // find autowired values and resolve them
+        await Promise.all(
+            getValueFields(instance)
+                .map(async (x: [string, ValuePlaceholder<any>]) => {
+                    instance[x[0]] = await x[1].resolve();
+                })
+        );
+
         // call postConstruct if defined
         if ("postConstruct" in instance) {
-            instance.postConstruct();
+            await instance.postConstruct();
         }
 
         await Promise.all(

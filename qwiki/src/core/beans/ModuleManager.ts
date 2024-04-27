@@ -88,7 +88,7 @@ export class ModuleManager extends Base {
             if (!isOptional) {
                 throw new Error(`Bean not found: ${identifier}`)
             } else {
-                return asList ? [] : null;
+                return asList ? (keyFun ? new Map() : []) : null;
             }
         }
         const heap = this.beans.get(identifier);

@@ -4,23 +4,28 @@ qwiki:
       # search paths where search for modules
       - "./core/**/*.js"
       - "./modules/**/*.js"
-    policies:
-      # specify default missing provider policy
-      # FIXME used?
-      missingProvider: default # error|default
-  wiki:
-    persistences:
-      markdown:
-        module: "$:/core/persistences/markdown"
-        rootPath: "./data"
-  http:
-    #      autoCreate: true # create servers on startup using following configuration
-    #      autoStart: true # start servers on startup, default
-    servers:
-      main:
-        factoryName: express
-        host: 0.0.0.0
-        port: 8080
+  servers:
+    main:
+      kind: Express
+      host: 0.0.0.0
+      port: 8080
+  #    policies:
+  #      # specify default missing provider policy
+  #      # FIXME used?
+  #      missingProvider: default # error|default
+  #  wiki:
+  #    persistences:
+  #      markdown:
+  #        module: "$:/core/persistences/markdown"
+  #        rootPath: "./data"
+  #  http:
+  #    #      autoCreate: true # create servers on startup using following configuration
+  #    #      autoStart: true # start servers on startup, default
+  #    servers:
+  #      main:
+  #        factoryName: express
+  #        host: 0.0.0.0
+  #        port: 8080
   storage:
     storages: { }
 

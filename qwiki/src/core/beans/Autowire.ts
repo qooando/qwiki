@@ -34,24 +34,32 @@ export function getAutowiredFields(obj: any) {
 }
 
 export function Autowire<T>(definition: (new () => T) | string): T;
+export function Autowire<T>(definition: (new () => T) | string,
+                            optional: boolean): T;
 export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
+export function Autowire<T>(definition: (new () => T)[] | string[],
+                            optional: boolean): T[];
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
                             keyFun: (x: T) => string): Map<string, T>;
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
                             keyFun: (x: T) => string,
                             optional: boolean): Map<string, T>;
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: (x: T) => string = undefined,
+                            keyFun: ((x: T) => string) | boolean = undefined,
                             optional: boolean = false): T | T[] | Map<string, T> {
     assert(definition)
     assert(optional !== undefined)
+    if (typeof keyFun === "boolean") {
+        optional = keyFun;
+        keyFun = undefined;
+    }
     let asList = Array.isArray(definition) || !!keyFun;
     if (Array.isArray(definition)) {
         assert(definition.length == 1);
         definition = definition[0]
     }
     if (asList && keyFun) {
-        return new AutowiredPlaceholder(definition, optional, false, keyFun) as unknown as Map<string, T>;
+        return new AutowiredPlaceholder(definition, optional, false, keyFun as ((x: T) => string)) as unknown as Map<string, T>;
     }
     if (asList && !keyFun) {
         return new AutowiredPlaceholder(definition, optional, true) as unknown as T[];

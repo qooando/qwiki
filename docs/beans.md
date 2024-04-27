@@ -56,7 +56,7 @@ export class MyBean extends Base {
     mapOfItems: Map<string, Foo> = Autowire([Foo], (x) => x.id);
     mapOfItems2: Map<string, Foo> = Autowire(["Foo"], (x) => x.id);
 
-    postConstruct() {
+    async postConstruct() {
         this.log.info(`${this.listOfItems}`)
     }
 
