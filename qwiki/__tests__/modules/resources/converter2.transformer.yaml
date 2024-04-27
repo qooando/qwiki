@@ -1,0 +1,5 @@
+from: Foo
+to: Bar
+transform:
+  item:
+    bar: foo

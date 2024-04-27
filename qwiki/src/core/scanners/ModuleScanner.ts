@@ -1,5 +1,5 @@
-import {__Bean__} from "./__Bean__";
-import {BeanScope} from "./BeanUtils";
+import {__Bean__} from "../beans/__Bean__";
+import {BeanScope} from "../beans/BeanUtils";
 import {glob} from "glob";
 import {Bean} from "@qwiki/core/beans/Bean";
 import * as path from "node:path";

@@ -12,6 +12,9 @@ export class ConversionService {
             true
         );
 
+    // FIXME autoregister json transfomers from json/yaml !!!!
+    // FIXME implement a scanner that automatically create converter beans from transformers
+
     convert<From, To>(source: From, toClazz: new (...args: any[]) => To): To {
         let converterName = `${source.constructor.name}->${toClazz.name}`;
         if (!this.converters.has(converterName)) {

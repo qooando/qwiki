@@ -8,12 +8,11 @@ import * as path from "path";
 import {Strings} from "../utils/Strings";
 import {BeanScope, BeanUtils} from "./BeanUtils";
 import {EventContext} from "@qwiki/core/events/EventManager";
-import {ModuleScanner} from "@qwiki/core/beans/ModuleScanner";
+import {ModuleScanner} from "@qwiki/core/scanners/ModuleScanner";
 import {JavascriptScanner} from "@qwiki/core/scanners/JavascriptScanner";
 import {TypescriptScanner} from "@qwiki/core/scanners/TypescriptScanner";
 import {BeanDependencyGraph} from "@qwiki/core/beans/BeanDependencyGraph";
 import {Arrays} from "@qwiki/core/utils/Arrays";
-import * as fs from "node:fs";
 
 /**
  * Load files and manage beans
@@ -97,7 +96,9 @@ export class ModuleManager extends Base {
             let descriptors = heap.toSortedArray();
             if (keyFun) {
                 return new Map<string, any>(
-                    (await Promise.all(descriptors.map(x => x.getInstance())))
+                    (await Promise.all(
+                        descriptors.map(x => x.getInstance()))
+                    )
                         .map(x => [keyFun(x), x])
                 );
             } else {
@@ -213,6 +214,7 @@ export class ModuleManager extends Base {
 
             if (newScanners.length > 0) {
                 scannersToVisit.push(newScanners);
+                scanners.push(...newScanners)
             }
         }
 
@@ -221,14 +223,9 @@ export class ModuleManager extends Base {
 
         // this.log.debug(`Load beans: ${newBeansInLoadOrder.map(x => x.name).join(" ")}`)
 
-        await Promise.all(
-            newBeansInLoadOrder
-                .filter(e => e.scope === BeanScope.SINGLETON)
-                .map(e => {
-                    // this.log.debug(`Init bean: ${e.name.padEnd(40)} from ${e.path}`)
-                    return e.getInstance();
-                })
-        );
+        for (let bean of newBeansInLoadOrder.filter(e => e.scope === BeanScope.SINGLETON)) {
+            await bean.getInstance();
+        }
 
         return newBeansInLoadOrder;
     }

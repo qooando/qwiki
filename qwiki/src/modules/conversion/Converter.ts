@@ -2,8 +2,8 @@ import * as assert from "node:assert";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
 export interface IConverter<From, To> {
-    from: new (...args: any[]) => From
-    to: new (...args: any[]) => To
+    from: (new (...args: any[]) => From) | string
+    to: (new (...args: any[]) => To) | string
     convert: (a: From) => To;
     name: () => string;
 }
@@ -14,12 +14,13 @@ export abstract class Converter<From, To> implements IConverter<From, To> {
     name() {
         assert(this.from)
         assert(this.to)
-        return `${this.from.name}->${this.to.name}`
+        // @ts-ignore
+        return `${this.from.name ?? this.from}->${this.to.name ?? this.to}`
     }
 
     // FIXME: https://typescript-rtti.org/ get from and to classes from generic parameters
-    from: { new(...args: any[]): From };
-    to: { new(...args: any[]): To };
+    from: (new (...args: any[]) => From) | string
+    to: (new (...args: any[]) => To) | string
 }
 
 export function converterFactory<From, To>(

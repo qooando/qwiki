@@ -38,4 +38,28 @@ describe("Conversion service", () => {
         expect(bar.bar).toBe("Hello world!");
     })
 
+    test("Convert foo to bar with transformer", async () => {
+        let config = {
+            qwiki: {
+                modules: {
+                    searchPaths: [
+                        "./core/**/*.ts",
+                        "./modules/**/*.ts",
+                        path.join(__dirname, "resources", "converter2.transformer.yaml")
+                    ]
+                }
+            }
+        }
+        let q = new Qwiki();
+        await q.boot(config)
+        expect($qw._moduleManager.hasBean("ConversionService")).toBeTruthy()
+        expect($qw._moduleManager.hasBean("FooToBarConverter")).toBeTruthy()
+        expect($qw._moduleManager.beans.get("FooToBarConverter").size()).toBe(1)
+        expect($qw._moduleManager.beans.get("FooToBarConverter").top().instances.length).toBe(1)
+
+        let conversionService: ConversionService = await $qw._moduleManager.getBeanInstance("ConversionService");
+        let foo = new Foo("Hello world!");
+        let bar = conversionService.convert(foo, Bar);
+        expect(bar.bar).toBe("Hello world!");
+    })
 })

@@ -59,6 +59,7 @@ export class Bean {
             return this.instances[0];
         }
 
+        console.log(`New instance ${this.name} from ${this.path}`)
         // assumes constructor is always with no arguments
         let defaultConstructorArguments: [] = []
         let instance: any = new this.clazz(...defaultConstructorArguments);

@@ -1,6 +1,6 @@
 import {__Bean__} from "../beans/__Bean__";
 import {BeanConstants} from "@qwiki/core/beans/BeanUtils";
-import {ModuleScanner} from "@qwiki/core/beans/ModuleScanner";
+import {ModuleScanner} from "@qwiki/core/scanners/ModuleScanner";
 import {Bean} from "@qwiki/core/beans/Bean";
 
 export class TypescriptScanner extends ModuleScanner {

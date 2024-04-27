@@ -31,11 +31,13 @@
   },
   "dependencies": {
     "@types/glob": "^8.1.0",
+    "@types/node-json-transform": "^1.0.2",
     "@types/uuid": "^9.0.8",
     "esm": "^3.2.25",
     "glob": "^10.3.12",
     "localized-strings": "^0.2.4",
     "module-alias": "^2.2.3",
+    "node-json-transform": "^1.1.2",
     "pino": "^8.19.0",
     "pino-pretty": "^11.0.0",
     "uuid": "^9.0.1",
