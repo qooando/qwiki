@@ -20,7 +20,7 @@ export class ServerConfig extends Base {
         $qw.on(EventNames.STARTUP, async (ctx: EventContext) => {
             await self.start()
         })
-        $qw.on(EventNames.END, async (ctx: EventContext) => {
+        $qw.on(EventNames.STOP, async (ctx: EventContext) => {
             await self.stop()
         });
         for (let [serverName, serverConfig] of Object.entries(this.configServers) as [string, any]) {
@@ -33,16 +33,20 @@ export class ServerConfig extends Base {
                 continue
             }
             let factory = this.serverFactories.get(factoryName);
-            let bean = factory.getBean(serverConfig);
+            let bean = factory.getBean(serverName, serverConfig);
             await $qw._moduleManager.addBean(bean, true);
+            this.servers.push(await bean.getInstance());
         }
     }
 
     async start() {
+        this.log.debug(`Start servers`)
+        let promises = []
         for (let server of this.servers) {
-            this.log.debug(`Start server: ${server}`)
-            server.start();
+            promises.push(server.start());
         }
+        // $qw._childPromises.push(...promises);
+        return Promise.all(promises);
     }
 
     async stop() {

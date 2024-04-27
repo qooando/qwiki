@@ -7,6 +7,10 @@ export class Strings {
         return text;
     }
 
+    static capitalize(text: string) {
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
     // static strikethrough(value: string) {
     //     return value.replace(/./g, "$&\u0336");
     // }

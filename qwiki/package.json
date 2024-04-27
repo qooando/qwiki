@@ -23,17 +23,19 @@
   },
   "homepage": "https://github.com/qooando/qwiki#readme",
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
+    "@types/glob": "^8.1.0",
+    "@types/node-json-transform": "^1.0.2",
+    "@types/uuid": "^9.0.8",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/node-json-transform": "^1.0.2",
-    "@types/uuid": "^9.0.8",
     "esm": "^3.2.25",
+    "express": "^4.19.2",
     "glob": "^10.3.12",
     "localized-strings": "^0.2.4",
     "module-alias": "^2.2.3",

@@ -7,6 +7,8 @@ import * as path from "path";
 import pino from "pino";
 import {ModuleManager} from "./beans/ModuleManager";
 import {EventNames} from "./events/EventNames";
+import {Promises} from "@qwiki/core/utils/Promises";
+import {AsyncLock} from "@qwiki/core/utils/Concurrence";
 
 declare global {
     var $qw: Qwiki;
@@ -19,17 +21,40 @@ export class Qwiki extends Base implements Configurable {
     _reloadConfig: Function;
     config: ApplicationConfig;
     _moduleManager: ModuleManager
+    _childPromises: Promise<any>[] = [];
 
     constructor() {
         super();
     }
 
     async boot(configPath: string | ApplicationConfig = undefined) {
+        let self = this;
         this.log.info("Boot qwiki")
         global["$qw"] = this;
         global["$log"] = this.log
         await this.loadConfiguration(configPath)
         await this.loadModules()
+
+        await this.emit(EventNames.STARTUP)
+
+        let stop: AsyncLock = new AsyncLock();
+        await stop.lock();
+
+        // graceful shutdown
+        async function asyncExitCallback(signal: NodeJS.Signals) {
+            self.log.debug(`Received ${signal}`)
+            await $qw.emit(EventNames.STOP);
+            await stop.unlock();
+        }
+
+        process.once('SIGINT', asyncExitCallback);
+        process.once('SIGTERM', asyncExitCallback);
+
+        this.log.debug("Wait for SIGINT or SIGTERM");
+        await stop.lock();
+        this.log.debug("Exit")
+        await $qw.emit(EventNames.END)
+        process.exit(0);
     }
 
     async loadConfiguration(configPath: string | ApplicationConfig = undefined) {
@@ -69,7 +94,6 @@ export class Qwiki extends Base implements Configurable {
         this._moduleManager = new ModuleManager();
         await this._moduleManager.initialize(this.config.qwiki.modules)
         await this.emit(EventNames.CORE_AFTER_INIT)
-        await this.emit(EventNames.STARTUP)
     }
 
     async require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string = undefined) {
