@@ -42,7 +42,7 @@ export class Qwiki extends Base implements Configurable {
 
         // graceful shutdown
         async function asyncExitCallback(signal: NodeJS.Signals) {
-            self.log.debug(`Received ${signal}`)
+            // self.log.debug(`Received ${signal}`)
             await $qw.emit(EventNames.STOP);
             await stop.unlock();
         }
@@ -50,7 +50,6 @@ export class Qwiki extends Base implements Configurable {
         process.once('SIGINT', asyncExitCallback);
         process.once('SIGTERM', asyncExitCallback);
 
-        this.log.debug("Wait for SIGINT or SIGTERM");
         await stop.lock();
         this.log.debug("Exit")
         await $qw.emit(EventNames.END)

@@ -15,7 +15,7 @@ export class ExpressServerFactory extends ServerFactory {
         let host: string = config.host ?? "localhost";
         let port: number = config.number ?? 8080;
 
-        class InlineExpressServer extends ExpressServer {
+        class ExpressServerTemplate extends ExpressServer {
             static __bean__: __Bean__ = {
                 name: beanName
             }
@@ -23,7 +23,7 @@ export class ExpressServerFactory extends ServerFactory {
             port = port;
         }
 
-        let bean = new Bean(InlineExpressServer);
+        let bean = new Bean(ExpressServerTemplate);
         return bean;
     }
 
