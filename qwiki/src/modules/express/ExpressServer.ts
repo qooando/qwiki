@@ -2,19 +2,23 @@ import {Base} from "@qwiki/core/base/Base";
 import {Server} from "@qwiki/modules/server/Server";
 import * as express from "express";
 import * as http from "node:http";
+import {Express} from "express";
+import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 
 export class ExpressServer extends Server {
 
     host: string = "localhost";
     port: number = 8080;
+    _express: Express;
     _server: http.Server;
 
     constructor() {
         super();
+        this._express = express();
     }
 
     async start(): Promise<void> {
-        this._server = express().listen(
+        this._server = this._express.listen(
             this.port,
             this.host,
             () => {
@@ -27,5 +31,9 @@ export class ExpressServer extends Server {
 
     async stop(): Promise<void> {
         this._server.close();
+    }
+
+    addRoute(route: ExpressRoute) {
+        return route.applyRoutes(this._express);
     }
 }

@@ -33,7 +33,7 @@ export class ServerConfig extends Base {
                 continue
             }
             let factory = this.serverFactories.get(factoryName);
-            let bean = factory.getBean(serverName, serverConfig);
+            let bean = factory.newBean(serverName, serverConfig);
             await $qw._moduleManager.addBean(bean, true);
             this.servers.push(await bean.getInstance());
         }

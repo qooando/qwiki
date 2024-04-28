@@ -4,6 +4,8 @@ qwiki:
       # search paths where search for modules
       - "./core/**/*.js"
       - "./modules/**/*.js"
+      - "./resources/**/*.json"
+      - "./resources/**/*.yaml"
   servers:
     main:
       kind: Express

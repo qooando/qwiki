@@ -4,11 +4,21 @@ import {Bean} from "@qwiki/core/beans/Bean";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {ExpressServer} from "@qwiki/modules/express/ExpressServer";
 import * as assert from "node:assert";
+import {Autowire} from "@qwiki/core/beans/Autowire";
+import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {EventNames} from "@qwiki/core/events/EventNames";
+import {EventContext} from "@qwiki/core/events/EventManager";
+import {Actuators} from "@qwiki/modules/express/routes/Actuators";
+import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";
 
 export class ExpressServerFactory extends ServerFactory {
-    static __bean__: __Bean__ = {}
+    static __bean__: __Bean__ = {
+        dependsOn: [
+            ExpressConfig.name,
+        ]
+    }
 
-    getBean(name: string, config: any): Bean {
+    newBean(name: string, config: any): Bean {
         assert(name);
         assert(config);
         let beanName = Strings.capitalize(name) + "ExpressServer";

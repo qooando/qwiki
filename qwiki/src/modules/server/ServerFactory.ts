@@ -9,8 +9,8 @@ export class ServerFactory extends Base {
         super();
     }
 
-    getBean(name: string, config: {}): Bean {
+    newBean(name: string, config: {}): Bean {
         throw new Error("Not implemented");
     }
-    
+
 }
