@@ -5,13 +5,13 @@ import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 export class AutowiredPlaceholder<T> {
     beanIdentifier: string;
     asList: boolean;
-    mapKeyFun: (x: T) => string;
+    mapKeyFun: (x: T) => string|string[];
     optional: boolean;
 
     constructor(beanIdentifier: (new () => T) | string,
                 optional: boolean = false,
                 asList: boolean = false,
-                mapKeyFun: ((x: T) => string) = undefined) {
+                mapKeyFun: ((x: T) => string|string[]) = undefined) {
         if (typeof beanIdentifier !== "string") {
             beanIdentifier = BeanUtils.getBeanIdentifierFromClass(beanIdentifier);
         }
@@ -40,12 +40,12 @@ export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
 export function Autowire<T>(definition: (new () => T)[] | string[],
                             optional: boolean): T[];
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: (x: T) => string): Map<string, T>;
+                            keyFun: (x: T) => string | string[]): Map<string, T>;
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: (x: T) => string,
+                            keyFun: (x: T) => string | string[],
                             optional: boolean): Map<string, T>;
 export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: ((x: T) => string) | boolean = undefined,
+                            keyFun: ((x: T) => string | string[]) | boolean = undefined,
                             optional: boolean = false): T | T[] | Map<string, T> {
     assert(definition)
     assert(optional !== undefined)
@@ -59,7 +59,7 @@ export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string
         definition = definition[0]
     }
     if (asList && keyFun) {
-        return new AutowiredPlaceholder(definition, optional, false, keyFun as ((x: T) => string)) as unknown as Map<string, T>;
+        return new AutowiredPlaceholder(definition, optional, false, keyFun as ((x: T) => string|string[])) as unknown as Map<string, T>;
     }
     if (asList && !keyFun) {
         return new AutowiredPlaceholder(definition, optional, true) as unknown as T[];

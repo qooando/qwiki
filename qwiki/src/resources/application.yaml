@@ -7,7 +7,7 @@ qwiki:
       - "./resources/**/*.json"
       - "./resources/**/*.yaml"
   servers:
-    main:
+    wiki:
       kind: Express
       host: 0.0.0.0
       port: 8080

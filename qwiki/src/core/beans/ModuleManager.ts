@@ -73,7 +73,7 @@ export class ModuleManager extends Base {
     async getBeanInstance(identifier: (new() => any) | string,
                           isOptional: boolean = false,
                           asList: boolean = false,
-                          keyFun: (x: any) => string = undefined): Promise<any> {
+                          keyFun: (x: any) => string | string[] = undefined): Promise<any> {
         assert(identifier)
         assert(typeof isOptional === "boolean")
         assert(typeof asList === "boolean")
@@ -97,9 +97,16 @@ export class ModuleManager extends Base {
             if (keyFun) {
                 return new Map<string, any>(
                     (await Promise.all(
-                        descriptors.map(x => x.getInstance()))
+                            descriptors.map(x => x.getInstance()))
                     )
-                        .map(x => [keyFun(x), x])
+                        .flatMap(x => {
+                            let key = keyFun(x);
+                            if (Array.isArray(key)) {
+                                return key.map(k => [k, x]);
+                            } else {
+                                return [[key, x]]
+                            }
+                        })
                 );
             } else {
                 return await Promise.all(descriptors.map(x => x.getInstance()));
