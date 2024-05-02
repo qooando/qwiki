@@ -7,7 +7,7 @@ import {ExpressServer} from "@qwiki/modules/express/ExpressServer";
 import {EventNames} from "@qwiki/core/events/EventNames";
 import {EventContext} from "@qwiki/core/events/EventManager";
 import {Bean} from "@qwiki/core/beans/Bean";
-import {Actuators} from "@qwiki/modules/express/routes/Actuators";
+import {ActuatorsRoutes} from "@qwiki/modules/express/routes/ActuatorsRoutes";
 import {BeanUtils} from "@qwiki/core/beans/BeanUtils";
 
 export class ExpressConfig extends Base {

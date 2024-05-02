@@ -11,6 +11,14 @@ qwiki:
       kind: Express
       host: 0.0.0.0
       port: 8080
+  wiki:
+    server: wiki
+    staticFiles:
+      localPath: "./dist/client"
+    storages:
+      files:
+        localPath: "./dist/data"
+
   #    policies:
   #      # specify default missing provider policy
   #      # FIXME used?

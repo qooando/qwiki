@@ -8,5 +8,9 @@ export interface WikiDocumentMetadata {
 export class WikiDocument {
     metadata: WikiDocumentMetadata
     content: any
+
+    constructor(data: any = {}) {
+        Object.apply(this, data);
+    }
 }
 

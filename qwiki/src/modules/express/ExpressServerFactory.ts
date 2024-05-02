@@ -8,7 +8,7 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {EventNames} from "@qwiki/core/events/EventNames";
 import {EventContext} from "@qwiki/core/events/EventManager";
-import {Actuators} from "@qwiki/modules/express/routes/Actuators";
+import {ActuatorsRoutes} from "@qwiki/modules/express/routes/ActuatorsRoutes";
 import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";
 
 export class ExpressServerFactory extends ServerFactory {
