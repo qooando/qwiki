@@ -25,8 +25,6 @@ export class ExpressServer extends Server {
                 this.log.info(`Listen on ${this.host}:${this.port}`);
             }
         );
-        // FIXME
-        // require('./routers/example')(this._express)
     }
 
     async stop(): Promise<void> {
