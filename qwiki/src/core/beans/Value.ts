@@ -1,7 +1,7 @@
-import {assert} from "@qwiki/core/utils/Asserts";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 import {Objects} from "@qwiki/core/utils/Objects";
+import {assert} from "@qwiki/core/utils/common";
 
 export class ValuePlaceholder<T> {
     valuePath: string;

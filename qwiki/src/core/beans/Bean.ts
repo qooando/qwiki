@@ -1,10 +1,10 @@
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 import {AutowiredPlaceholder, getAutowiredFields} from "./Autowire";
-import {assert} from "@qwiki/core/utils/Asserts";
 import {Strings} from "../utils/Strings";
 import {EventNames} from "../events/EventNames";
 import {Objects} from "../utils/Objects";
 import {getValueFields, ValuePlaceholder} from "@qwiki/core/beans/Value";
+import {assert} from "@qwiki/core/utils/common";
 
 export class Bean {
     name: string;

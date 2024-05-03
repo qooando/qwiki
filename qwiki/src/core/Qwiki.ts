@@ -2,7 +2,6 @@ import {Base} from "@qwiki/core/base/Base";
 import {Configurable, initializeConfigurable} from "@qwiki/core/config/Configurable";
 import {ApplicationConfig} from "@qwiki/core/config/ApplicationConfig";
 import * as fs from "fs";
-import * as process from "process";
 import * as path from "path";
 import pino from "pino";
 import {ModuleManager} from "./beans/ModuleManager";
@@ -49,13 +48,13 @@ export class Qwiki extends Base implements Configurable {
 
         // graceful shutdown
         async function asyncExitCallback(signal: NodeJS.Signals) {
-            // self.log.debug(`Received ${signal}`)
+            self.log.debug(`Received ${signal}`)
             await $qw.emit(EventNames.STOP);
             await stop.unlock();
         }
 
-        process.once('SIGINT', asyncExitCallback);
-        process.once('SIGTERM', asyncExitCallback);
+        process.on('SIGINT', asyncExitCallback);
+        process.on('SIGTERM', asyncExitCallback);
 
         await stop.lock();
         this.log.debug("Exit")

@@ -1,7 +1,7 @@
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
-import * as assert from "node:assert";
+import {assert, require} from "@qwiki/core/utils/common";
 import {OpenApiMiddleware} from "@qwiki/modules/express/middleware/OpenApiMiddleware";
 import {Value} from "@qwiki/core/beans/Value";
 import {Express} from "express";

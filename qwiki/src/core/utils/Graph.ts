@@ -1,4 +1,4 @@
-import {assert} from "@qwiki/core/utils/Asserts";
+import {assert} from "@qwiki/core/utils/common";
 
 export interface VisitContext {
     cycles: Array<Array<Vertex>> // NOTE: this can be a non-exhaustive list of cycles

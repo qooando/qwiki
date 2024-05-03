@@ -1,6 +1,6 @@
-import {assert} from "@qwiki/core/utils/Asserts";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
+import {assert} from "@qwiki/core/utils/common";
 
 export class AutowiredPlaceholder<T> {
     beanIdentifier: string;

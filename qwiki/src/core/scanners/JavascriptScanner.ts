@@ -7,7 +7,8 @@ export class JavascriptScanner extends ModuleScanner {
     static __bean__: __Bean__ = {}
 
     supportedExtensions = [
-        ".js"
+        ".js",
+        ".ts"
     ]
 
     // supportedMimeTypes: Array<string> = [
@@ -16,7 +17,15 @@ export class JavascriptScanner extends ModuleScanner {
     // ]
 
     async findBeansByPath(path: string): Promise<Bean[]> {
-        let content = require(path);
+        // let content = require(path);
+        // return Object.entries(content)
+        //     .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+        //     .map((e: [string, any]) => {
+        //         let b = new Bean(e[1]);
+        //         b.path = path;
+        //         return b;
+        //     })
+        let content = await import(path);
         return Object.entries(content)
             .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
             .map((e: [string, any]) => {

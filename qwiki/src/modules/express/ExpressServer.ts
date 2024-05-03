@@ -1,9 +1,11 @@
 import {Base} from "@qwiki/core/base/Base";
 import {Server} from "@qwiki/modules/server/Server";
-import * as express from "express";
 import * as http from "node:http";
 import {Express} from "express";
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {require} from "@qwiki/core/utils/common";
+
+const express = require("express");
 
 export class ExpressServer extends Server {
 

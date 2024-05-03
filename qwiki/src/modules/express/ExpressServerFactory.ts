@@ -3,13 +3,13 @@ import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {Bean} from "@qwiki/core/beans/Bean";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {ExpressServer} from "@qwiki/modules/express/ExpressServer";
-import * as assert from "node:assert";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {EventNames} from "@qwiki/core/events/EventNames";
 import {EventContext} from "@qwiki/core/events/EventManager";
 import {ActuatorsRoutes} from "@qwiki/modules/express/routes/ActuatorsRoutes";
 import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";
+import {assert} from "@qwiki/core/utils/common";
 
 export class ExpressServerFactory extends ServerFactory {
     static __bean__: __Bean__ = {

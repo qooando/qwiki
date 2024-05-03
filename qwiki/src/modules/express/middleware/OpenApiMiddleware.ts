@@ -1,4 +1,5 @@
 import {Base} from "@qwiki/core/base/Base";
+import {require} from "@qwiki/core/utils/common";
 
 export class OpenApiMiddleware extends Base {
     static __bean__ = {}

@@ -1,6 +1,5 @@
 import {Base} from "../base/Base";
 import {ModulesConfig} from "../config/ApplicationConfig";
-import {assert} from "@qwiki/core/utils/Asserts";
 import {Bean} from "./Bean";
 import {Heap} from "../utils/Heap";
 import {EventNames} from "../events/EventNames";
@@ -10,9 +9,15 @@ import {BeanScope, BeanUtils} from "./BeanUtils";
 import {EventContext} from "@qwiki/core/events/EventManager";
 import {ModuleScanner} from "@qwiki/core/scanners/ModuleScanner";
 import {JavascriptScanner} from "@qwiki/core/scanners/JavascriptScanner";
-import {TypescriptScanner} from "@qwiki/core/scanners/TypescriptScanner";
+// import {TypescriptScanner} from "@qwiki/core/scanners/TypescriptScanner";
 import {BeanDependencyGraph} from "@qwiki/core/beans/BeanDependencyGraph";
 import {Arrays} from "@qwiki/core/utils/Arrays";
+import {fileURLToPath} from "node:url";
+import {dirname} from "node:path";
+import {assert} from "@qwiki/core/utils/common";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Load files and manage beans
@@ -51,7 +56,7 @@ export class ModuleManager extends Base {
         await this.addBeans(
             [
                 new Bean(JavascriptScanner),
-                new Bean(TypescriptScanner),
+                // new Bean(TypescriptScanner),
             ],
             true
         )
