@@ -14,6 +14,9 @@
     "paths": {
       "@qwiki/*": [
         "./src/*"
+      ],
+      "@qlient/*": [
+        "./src/client/js/*"
       ]
     }
   },
