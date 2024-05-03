@@ -1,6 +1,6 @@
 import {Base} from "../base/Base";
 import {ModulesConfig} from "../config/ApplicationConfig";
-import * as assert from "assert";
+import {assert} from "@qwiki/core/utils/Asserts";
 import {Bean} from "./Bean";
 import {Heap} from "../utils/Heap";
 import {EventNames} from "../events/EventNames";

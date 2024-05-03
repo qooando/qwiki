@@ -1,6 +1,6 @@
 import {BeanConstants, BeanScope, BeanUtils} from "./BeanUtils";
 import {AutowiredPlaceholder, getAutowiredFields} from "./Autowire";
-import * as assert from "assert";
+import {assert} from "@qwiki/core/utils/Asserts";
 import {Strings} from "../utils/Strings";
 import {EventNames} from "../events/EventNames";
 import {Objects} from "../utils/Objects";

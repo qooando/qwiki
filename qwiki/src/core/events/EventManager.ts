@@ -1,5 +1,5 @@
 import {Heap} from "../utils/Heap";
-import * as assert from "node:assert";
+import {assert} from "@qwiki/core/utils/Asserts";
 
 export interface EventCallback extends Function {
     (ctx: EventContext, ...args: any[]): Promise<void>;

@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import {assert} from "@qwiki/core/utils/Asserts";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 import {Objects} from "@qwiki/core/utils/Objects";
