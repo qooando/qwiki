@@ -1,6 +1,6 @@
-import {Base} from "./base/Base";
-import {Configurable, initializeConfigurable} from "./config/Configurable";
-import {ApplicationConfig} from "./config/ApplicationConfig";
+import {Base} from "@qwiki/core/base/Base";
+import {Configurable, initializeConfigurable} from "@qwiki/core/config/Configurable";
+import {ApplicationConfig} from "@qwiki/core/config/ApplicationConfig";
 import * as fs from "fs";
 import * as process from "process";
 import * as path from "path";
@@ -9,6 +9,13 @@ import {ModuleManager} from "./beans/ModuleManager";
 import {EventNames} from "./events/EventNames";
 import {Promises} from "@qwiki/core/utils/Promises";
 import {AsyncLock} from "@qwiki/core/utils/Concurrence";
+import {dirname} from "node:path";
+import {fileURLToPath} from "node:url";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// let __dirname = path.resolve();
 
 declare global {
     var $qw: Qwiki;
@@ -64,6 +71,8 @@ export class Qwiki extends Base implements Configurable {
         let configPathCandidates = [
             configPath,
             process.env["QWIKICONFIG"],
+            "./application.yaml",
+            "../application.yaml",
             "../resources/application.yaml"
         ]
             .filter((x: string) => !!x)
@@ -85,6 +94,7 @@ export class Qwiki extends Base implements Configurable {
             initializeConfigurable(this, configPath)
         } catch (e) {
             this.log.warn(`Fail to load configuration`)
+            throw e;
         }
     }
 

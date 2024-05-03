@@ -1,12 +1,16 @@
 {
+  "resolveJsonModule": true,
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "es2020",
+    "target": "es2020",
     "moduleResolution": "Node",
     "noImplicitAny": true,
     "removeComments": true,
     "preserveConstEnums": true,
+    "resolveJsonModule": true,
     "sourceMap": true,
-    "outDir": "dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "paths": {
       "@qwiki/*": [
         "./src/*"

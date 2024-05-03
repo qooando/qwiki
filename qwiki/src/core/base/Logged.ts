@@ -1,7 +1,9 @@
 import pino from "pino";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
+import * as path from "node:path";
 
-var pinoMainLogger = require("pino")({
+
+var pinoMainLogger = pino({
     level: "debug",
     // sync: false, // Asynchronous logging
     formatters: {

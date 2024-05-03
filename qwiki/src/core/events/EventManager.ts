@@ -1,5 +1,5 @@
 import {Heap} from "../utils/Heap";
-import * as assert from "assert";
+import * as assert from "node:assert";
 
 export interface EventCallback extends Function {
     (ctx: EventContext, ...args: any[]): Promise<void>;

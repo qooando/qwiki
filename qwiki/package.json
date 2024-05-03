@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "description": "A lightweight and extendable wiki application",
   "main": "qwiki.js",
+  "type": "module",
   "scripts": {
     "prestart": "npm run tsc --target es2015 ",
-    "copy-statics": "cp -r ./src/resources ./dist/ && cd src && find . -regextype posix-extended -regex '.*\\.(css|html)' -exec cp --parents {} ../dist/ \\;",
-    "build": "npx tsc --target es2015 && npm run copy-statics",
-    "build+trace": "npx tsc --target es2015 --traceResolution && npm run copy-statics",
-    "dev": "node ./dist/app.js --listen",
+    "copy-statics": "sh copy-statics.sh",
+    "build": "npx tsc && npm run copy-statics",
+    "build+trace": "npx tsc --traceResolution && npm run copy-statics",
+    "dev": "node --import ./dist/register.js ./dist/app.js --listen",
     "build+dev": "npm run build && npm run dev",
-    "release": "node ./dist/app.js",
-    "test": "npx jest"
+    "clean+build+dev": "npm run clean & npm run build && npm run dev",
+    "release": "node --import ./dist/register.js ./dist/app.js ",
+    "release-with-loader": "node --loader=./dist/loader.js ./dist/app.js ",
+    "test": "npx jest",
+    "clean": "rm -fr ./dist"
   },
   "repository": {
     "type": "git",
@@ -41,10 +45,9 @@
     "esm": "^3.2.25",
     "express": "^4.19.2",
     "express-actuator": "^1.8.4",
-    "express-requests-logger": "^4.0.0",
     "glob": "^10.3.12",
+    "js-yaml": "^4.1.0",
     "localized-strings": "^0.2.4",
-    "module-alias": "^2.2.3",
     "node-json-transform": "^1.1.2",
     "pino": "^8.19.0",
     "pino-pretty": "^11.0.0",
@@ -53,6 +56,7 @@
     "yaml": "^2.4.1"
   },
   "_moduleAliases": {
-    "@qwiki": "./dist"
+    "@qwiki": "./dist",
+    "@qlient": "./dist/client"
   }
 }

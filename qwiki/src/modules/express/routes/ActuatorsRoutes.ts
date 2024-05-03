@@ -1,6 +1,6 @@
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {Express} from "express";
-import actuator = require("express-actuator");
+import * as actuator from "express-actuator";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import * as assert from "node:assert";
 import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";

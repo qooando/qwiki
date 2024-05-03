@@ -1,8 +1,11 @@
 #!/bin/env node
 
-// https://github.com/aionic-org/aionic-core/tree/master
-// https://dev.to/larswaechter/path-aliases-with-typescript-in-nodejs-4353
-import 'module-alias/register';
-import {Qwiki} from "./core/Qwiki";
+import {dirname} from "node:path";
+import { fileURLToPath } from "node:url";
+
+// var __filename = fileURLToPath(import.meta.url);
+// var __dirname = dirname(__filename);
+
+import {Qwiki} from "@qwiki/core/Qwiki";
 var $qw = new Qwiki();
 $qw.boot();
