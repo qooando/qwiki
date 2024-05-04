@@ -26,10 +26,10 @@ export class ExpressServerFactory extends ServerFactory {
             }
             host = host;
             port = port;
+            name: string = name;
         }
 
-        let bean = new Bean(ExpressServerTemplate);
-        return bean;
+        return new Bean(ExpressServerTemplate);
     }
 
 }

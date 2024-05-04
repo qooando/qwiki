@@ -28,7 +28,15 @@ export class ExpressServer extends Server {
             route.register(this._express);
         }
 
-        // FIXME add error advisors
+        let self = this;
+
+        // @ts-ignore
+        this._express.use((err, req, res, next) => {
+            self.log.error(err.stack);
+            res.status(500).send('Something broke!')
+        })
+
+        // FIXME add error advisors as beans
 
     }
 

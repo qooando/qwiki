@@ -1,5 +1,6 @@
 import {Strings} from "@qwiki/core/utils/Strings";
 import {Bean} from "@qwiki/core/beans/Bean";
+import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
 export class BeanConstants {
     static BEAN_FIELD_NAME: string = "__bean__";
@@ -36,6 +37,11 @@ export class BeanUtils {
 
     static compareName(a: Bean, b: Bean): number {
         return a.name === b.name ? 0 : (a.name < b.name ? -1 : 1)
+    }
+
+    static defineComponent(obj: any, __bean__: __Bean__ = {}) {
+        obj.__bean__ = __bean__;
+        return obj;
     }
 
 }
