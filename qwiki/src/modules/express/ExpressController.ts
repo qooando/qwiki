@@ -1,7 +1,7 @@
 import {Base} from "@qwiki/core/base/Base";
 import {Express} from "express";
 
-export class ExpressRoute extends Base {
+export class ExpressController extends Base {
 
     declare servers: string[];
 

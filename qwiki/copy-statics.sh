@@ -10,5 +10,6 @@ cp -r ./esm/loader.js $OUTDIR/
 (
 cd src || exit 1
 find . -regextype posix-extended -regex '.*\.(css|html)' -exec cp --parents {} ../$OUTDIR/ \;
+find . -regextype posix-extended -regex '.*\.(png|jpg)' -exec cp --parents {} ../$OUTDIR/ \;
 )
 

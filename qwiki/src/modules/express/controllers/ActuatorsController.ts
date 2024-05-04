@@ -1,4 +1,4 @@
-import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {Express} from "express";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {assert, require} from "@qwiki/core/utils/common";
@@ -6,7 +6,7 @@ import {assert, require} from "@qwiki/core/utils/common";
 
 const actuator = require("express-actuator")
 
-export class ActuatorsRoutes extends ExpressRoute {
+export class ActuatorsController extends ExpressController {
     static __bean__: __Bean__ = {}
 
     servers = [

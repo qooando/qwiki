@@ -17,17 +17,18 @@ export class JsonWikiDocumentProvider extends WikiDocumentProvider {
     ];
 
     async read(url: URL): Promise<WikiDocument> {
-        let rawUrl = new URL(`json-file:${this.storageLocalPath}/${url.pathname}`)
+        let rawUrl = new URL(`json-file:${this.storageLocalPath}${url.pathname}`)
         let rawContent = await this.storageProvider.read(rawUrl)
         let jsonContent = JSON.parse(rawContent);
         let doc = new WikiDocument(jsonContent);
+        // FIXME some metadata should be filled here
         return doc;
     }
 
     async write(url: URL, document: WikiDocument): Promise<void> {
         let rawUrl = new URL(`file:${url.pathname.replace(/^(${this.storageLocalPath})/gi, "")}`)
         let rawContent = JSON.stringify({
-            metadata: document.metadata,
+            metadata: document.metadata, // FIXME some metadata should be filled here
             content: document.content
         })
         await this.storageProvider.write(rawUrl, rawContent)

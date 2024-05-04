@@ -1,12 +1,15 @@
-import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {Express} from "express";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {assert, require} from "@qwiki/core/utils/common";
 import {OpenApiMiddleware} from "@qwiki/modules/express/middleware/OpenApiMiddleware";
+import {BeanPriority} from "@qwiki/core/beans/BeanUtils";
 
-export class HealthzRoutes extends ExpressRoute {
-    static __bean__: __Bean__ = {}
+export class HealthzController extends ExpressController {
+    static __bean__: __Bean__ = {
+        priority: BeanPriority.MIN_PRIORITY
+    }
 
     servers = [
         "*"

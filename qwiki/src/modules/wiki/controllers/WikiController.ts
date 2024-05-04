@@ -1,4 +1,4 @@
-import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {assert, require} from "@qwiki/core/utils/common";
@@ -11,7 +11,7 @@ import {WikiService} from "@qwiki/modules/wiki/WikiService";
 
 // var express = require('express')
 
-export class WikiRoutes extends ExpressRoute {
+export class WikiController extends ExpressController {
     static __bean__: __Bean__ = {}
 
     servers = Value("qwiki.wiki.servers", ["wiki"], false);
@@ -32,6 +32,7 @@ export class WikiRoutes extends ExpressRoute {
         this.log.debug(`Serve static files at ${this.urlPrefix} from ${this.staticFilesLocalPath}`)
 
         // FIXME test if they work and openapi
+        // FIXME LOGGING
 
         app.get("/api/documents/:documentId",
             this.openapi.middleware.path({
@@ -52,12 +53,10 @@ export class WikiRoutes extends ExpressRoute {
                 }
             }),
             (request, response, next) => {
-                try {
-                    let internalUrl = new URL(`json-file:/${request.params.documentId}`);
-                    return response.json(this.wikiService.readDocumentByUrl(internalUrl));
-                } catch (e) {
-                    next(e)
-                }
+                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                this.wikiService.readDocumentByUrl(internalUrl)
+                    .then(data => response.json(data))
+                    .catch(err => next(err));
             }
         )
 
@@ -80,13 +79,10 @@ export class WikiRoutes extends ExpressRoute {
                 }
             }),
             (request, response, next) => {
-                try {
-                    let internalUrl = new URL(`json-file:/${request.params.documentId}`);
-                    let content = request.body;
-                    return response.json(this.wikiService.writeDocumentByUrl(internalUrl, content));
-                } catch (e) {
-                    next(e)
-                }
+                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                let content = request.body;
+                this.wikiService.writeDocumentByUrl(internalUrl, content)
+                    .then(data => response.json(data));
             }
         )
 

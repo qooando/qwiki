@@ -4,12 +4,12 @@ import {Bean} from "@qwiki/core/beans/Bean";
 import {Strings} from "@qwiki/core/utils/Strings";
 import {ExpressServer} from "@qwiki/modules/express/ExpressServer";
 import {assert} from "@qwiki/core/utils/common";
-import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {ExpressController} from "@qwiki/modules/express/ExpressController";
 
 export class ExpressServerFactory extends ServerFactory {
     static __bean__: __Bean__ = {
         dependsOn: [
-            ExpressRoute.name,
+            ExpressController.name,
         ]
     }
 

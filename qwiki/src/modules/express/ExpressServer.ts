@@ -1,7 +1,7 @@
 import {Server} from "@qwiki/modules/server/Server";
 import * as http from "node:http";
 import {Express} from "express";
-import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
+import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {require} from "@qwiki/core/utils/common";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 
@@ -17,23 +17,27 @@ export class ExpressServer extends Server {
     _server: http.Server;
 
     routes = Autowire(
-        [ExpressRoute],
+        [ExpressController],
         (x) => x.servers.includes(this.name) || x.servers.includes("*")
     );
 
     async postConstruct() {
         this._express = express();
 
+        this._express.use((req, res, next) => {
+            this.log.debug(`${new Date().toISOString()}: ${req.method.padStart(7)} ${req.path}`);
+            next()
+        });
+
         for (let route of this.routes) {
             route.register(this._express);
         }
 
-        let self = this;
-
         // @ts-ignore
         this._express.use((err, req, res, next) => {
-            self.log.error(err.stack);
-            res.status(500).send('Something broke!')
+            this.log.error(err.stack);
+            // res.status(500).send('Something broke!')
+            next(err)
         })
 
         // FIXME add error advisors as beans

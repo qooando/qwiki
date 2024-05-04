@@ -14,7 +14,7 @@ export enum BeanScope {
 }
 
 export enum BeanPriority {
-    BOTTOM = Number.MAX_SAFE_INTEGER,
+    MIN_PRIORITY = Number.MAX_SAFE_INTEGER,
     LOWEST = 10000,
     LOWER = 1000,
     LOW = 100,
@@ -22,7 +22,7 @@ export enum BeanPriority {
     HIGH = -100,
     HIGHER = -1000,
     HIGHEST = -10000,
-    TOP = Number.MIN_SAFE_INTEGER,
+    MAX_PRIORITY = Number.MIN_SAFE_INTEGER,
 }
 
 export class BeanUtils {

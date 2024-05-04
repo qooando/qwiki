@@ -4,6 +4,12 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {WikiDocumentProvider} from "@qwiki/modules/wiki/WikiDocumentProvider";
 import {WikiDocument} from "@qwiki/modules/wiki/WikiDocument";
 import {Value} from "@qwiki/core/beans/Value";
+import {RuntimeException} from "@qwiki/core/utils/Exceptions";
+import {
+    WikiDocumentException,
+    WikiDocumentIOException,
+    WikiDocumentProcessingException
+} from "@qwiki/modules/wiki/WikiExceptions";
 
 export class WikiService extends Base {
     static __bean__: __Bean__ = {}
@@ -38,11 +44,19 @@ export class WikiService extends Base {
     // }
 
     async readDocumentByUrl(url: URL): Promise<WikiDocument> {
-        return await this._getDocumentProvider(url.protocol.replace(":","")).read(url);
+        try {
+            return await this._getDocumentProvider(url.protocol.replace(":", "")).read(url);
+        } catch (e) {
+            throw new WikiDocumentException(`Cannot read document: ${url}`, e);
+        }
     }
 
     async writeDocumentByUrl(url: URL, document: WikiDocument): Promise<void> {
-        return await this._getDocumentProvider(url.protocol.replace(":","")).write(url, document);
+        try {
+            return await this._getDocumentProvider(url.protocol.replace(":", "")).write(url, document);
+        } catch (e) {
+            throw new WikiDocumentException(`Cannot write document: ${url}`, e);
+        }
     }
 
 }
