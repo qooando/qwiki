@@ -3,9 +3,9 @@ import {Express} from "express";
 
 export class ExpressRoute extends Base {
 
-    server: string; // server name
+    declare servers: string[];
 
-    applyRoutes(app: Express) {
+    register(app: Express) {
         throw new Error(`Not implemented`);
     }
 

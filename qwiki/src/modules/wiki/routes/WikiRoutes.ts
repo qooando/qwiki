@@ -14,7 +14,7 @@ import {WikiService} from "@qwiki/modules/wiki/WikiService";
 export class WikiRoutes extends ExpressRoute {
     static __bean__: __Bean__ = {}
 
-    server = Value("qwiki.wiki.server", "wiki", false);
+    servers = Value("qwiki.wiki.servers", ["wiki"], false);
     staticFilesLocalPath = Value("qwiki.wiki.staticFiles.localPath", "./static", false);
 
     urlPrefix = "/";
@@ -26,7 +26,7 @@ export class WikiRoutes extends ExpressRoute {
         this.staticFilesLocalPath = fs.realpathSync(this.staticFilesLocalPath)
     }
 
-    applyRoutes(app: Express) {
+    register(app: Express) {
         assert(app);
 
         this.log.debug(`Serve static files at ${this.urlPrefix} from ${this.staticFilesLocalPath}`)
@@ -51,9 +51,13 @@ export class WikiRoutes extends ExpressRoute {
                     }
                 }
             }),
-            (request, response) => {
-                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
-                return response.json(this.wikiService.readDocumentByUrl(internalUrl));
+            (request, response, next) => {
+                try {
+                    let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                    return response.json(this.wikiService.readDocumentByUrl(internalUrl));
+                } catch (e) {
+                    next(e)
+                }
             }
         )
 
@@ -75,10 +79,14 @@ export class WikiRoutes extends ExpressRoute {
                     }
                 }
             }),
-            (request, response) => {
-                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
-                let content = request.body;
-                return response.json(this.wikiService.writeDocumentByUrl(internalUrl, content));
+            (request, response, next) => {
+                try {
+                    let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                    let content = request.body;
+                    return response.json(this.wikiService.writeDocumentByUrl(internalUrl, content));
+                } catch (e) {
+                    next(e)
+                }
             }
         )
 

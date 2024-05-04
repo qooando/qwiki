@@ -2,18 +2,17 @@ import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {Express} from "express";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
-import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";
 import {OpenApiMiddleware} from "@qwiki/modules/express/middleware/OpenApiMiddleware";
 import {assert, require} from "@qwiki/core/utils/common";
 
 export class LoggingRoutes extends ExpressRoute {
     static __bean__: __Bean__ = {}
 
-    server = ExpressConfig.FOR_ANY_SERVER_NAME;
+    servers = [
+        "*"
+    ];
 
-    // openapi = Autowire(OpenApiMiddleware);
-
-    applyRoutes(app: Express) {
+    register(app: Express) {
         assert(app);
 
         // var audit = require('express-requests-logger')

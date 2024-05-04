@@ -104,8 +104,9 @@ export class Qwiki extends Base implements Configurable {
         await this.emit(EventNames.CORE_AFTER_INIT)
     }
 
-    async require(identifier: any, optional: boolean = false, asList: boolean = false, keyFun: (x: any) => string|string[] = undefined) {
-        return await this._moduleManager.getBeanInstance(identifier, optional, asList, keyFun)
-    }
+    // async require(...args: any[]) {
+    //     // @ts-ignore
+    //     return await this._moduleManager.getBeanInstance(...args)
+    // }
 
 }

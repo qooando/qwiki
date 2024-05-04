@@ -11,8 +11,14 @@ import {ServerFactory} from "@qwiki/modules/server/ServerFactory";
 export class ServerConfig extends Base {
     static __bean__: __Bean__ = {}
 
-    servers: Server[] = Autowire([Server], true);
-    serverFactories: Map<string, ServerFactory> = Autowire([ServerFactory], (x: ServerFactory) => x.constructor.name, true);
+    servers: Server[] = Autowire([Server]);
+
+    serverFactories: Map<string, ServerFactory> = Autowire(
+        [ServerFactory],
+        undefined,
+        (x: ServerFactory) => x.constructor.name
+    );
+
     configServers: {} = Value("qwiki.servers")
 
     async postConstruct() {

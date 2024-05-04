@@ -3,7 +3,7 @@ import {WikiDocument} from "@qwiki/modules/wiki/WikiDocument";
 
 export class WikiDocumentProvider extends Base {
 
-    supportedProtocols: string[] = [];
+    declare supportedProtocols: string[];
 
     async read(url: URL): Promise<WikiDocument> {
         throw new Error(`Not implemented`);

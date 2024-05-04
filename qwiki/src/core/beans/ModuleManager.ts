@@ -15,9 +15,18 @@ import {Arrays} from "@qwiki/core/utils/Arrays";
 import {fileURLToPath} from "node:url";
 import {dirname} from "node:path";
 import {assert} from "@qwiki/core/utils/common";
+import {ClassConstructor, FilterFunction, KeyFunction} from "@qwiki/core/utils/Types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+export interface BeanInstanceFactoryOptions {
+    isOptional?: boolean,
+    asList?: boolean,
+    asMap?: boolean,
+    filterFun?: FilterFunction<any>,
+    keyFun?: KeyFunction<any>
+}
 
 /**
  * Load files and manage beans
@@ -71,54 +80,78 @@ export class ModuleManager extends Base {
      * get the content of a bean given its string identifier
      *
      * @param identifier
-     * @param isOptional
-     * @param asList if true, returns a list
-     * @param keyFun if valorized returns a map
+     * @param options
      */
-    async getBeanInstance(identifier: (new() => any) | string,
-                          isOptional: boolean = false,
-                          asList: boolean = false,
-                          keyFun: (x: any) => string | string[] = undefined): Promise<any> {
+    async getBeanInstance(identifier: ClassConstructor<any> | string, options: BeanInstanceFactoryOptions = {}): Promise<any> {
         assert(identifier)
-        assert(typeof isOptional === "boolean")
-        assert(typeof asList === "boolean")
 
-        asList = asList || keyFun !== undefined;
+        const isOptional = options.isOptional ?? false;
+        const asList = options.asList ?? !!options.filterFun ?? false;
+        const asMap = options.asMap ?? !!options.keyFun ?? false;
+        const filterFun = options.filterFun ?? ((x: any) => true);
+        const keyFun = options.keyFun;
 
         if (typeof identifier !== "string") {
             identifier = BeanUtils.getBeanIdentifierFromClass(identifier);
         }
 
-        if (!this.beans.has(identifier)) {
+        const beanExists = this.beans.has(identifier);
+
+        if (!beanExists) {
             if (!isOptional) {
                 throw new Error(`Bean not found: ${identifier}`)
+            } else if (asList) {
+                return [];
+            } else if (asMap) {
+                return new Map();
             } else {
-                return asList ? (keyFun ? new Map() : []) : null;
+                return null;
             }
         }
-        const heap = this.beans.get(identifier);
+
+        const beansHeap = this.beans.get(identifier);
+
+        if (!asList && !asMap) {
+            return await beansHeap.top().getInstance();
+        }
+
+        let beans = beansHeap.toSortedArray();
+        // if (filterFun) {
+        //     beans = beans.filter(filterFun);
+        // }
+
+        let instances = await Promise.all(beans.map(x => x.getInstance()));
+        if (filterFun) {
+            instances = instances.filter(filterFun);
+        }
+
         if (asList) {
-            let descriptors = heap.toSortedArray();
-            if (keyFun) {
-                return new Map<string, any>(
-                    (await Promise.all(
-                            descriptors.map(x => x.getInstance()))
-                    )
-                        .flatMap(x => {
-                            let key = keyFun(x);
-                            if (Array.isArray(key)) {
-                                return key.map(k => [k, x]);
-                            } else {
-                                return [[key, x]]
-                            }
-                        })
-                );
-            } else {
-                return await Promise.all(descriptors.map(x => x.getInstance()));
-            }
-        } else {
-            return await heap.top().getInstance();
+            return instances;
         }
+        if (asMap) {
+            if (!keyFun) {
+                throw new Error(`Bean required as map but no key fun is specified: ${identifier}`)
+            }
+            return new Map<string, any>(
+                instances.flatMap(instance => {
+                    let keys = keyFun(instance);
+                    if (!keys) {
+                        throw new Error(`Invalid key function, it returns an invalid value: ${keys}`);
+                    }
+                    if (typeof keys === "string") {
+                        return [[keys, instance]];
+                    } else if (Array.isArray(keys)) {
+                        if (!keys.length) {
+                            throw new Error(`Invalid key function, it returns an empty array: ${keys}`);
+                        }
+                        return keys.map(k => [k, instance]);
+                    } else {
+                        throw new Error(`Invalid key function, keys should be string | string[]: ${keys}`);
+                    }
+                })
+            )
+        }
+        throw new Error(`Invalid branch. This code should never execute.`)
     }
 
     async addBeans(descriptors: Bean[], initialize: boolean = false) {

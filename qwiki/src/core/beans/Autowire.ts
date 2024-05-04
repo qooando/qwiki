@@ -1,28 +1,23 @@
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 import {assert} from "@qwiki/core/utils/common";
+import {BeanInstanceFactoryOptions} from "@qwiki/core/beans/ModuleManager";
+import {ClassConstructor, FilterFunction, KeyFunction} from "@qwiki/core/utils/Types";
 
 export class AutowiredPlaceholder<T> {
     beanIdentifier: string;
-    asList: boolean;
-    mapKeyFun: (x: T) => string|string[];
-    optional: boolean;
+    options: BeanInstanceFactoryOptions;
 
-    constructor(beanIdentifier: (new () => T) | string,
-                optional: boolean = false,
-                asList: boolean = false,
-                mapKeyFun: ((x: T) => string|string[]) = undefined) {
+    constructor(beanIdentifier: (new () => T) | string, options: BeanInstanceFactoryOptions = undefined) {
         if (typeof beanIdentifier !== "string") {
             beanIdentifier = BeanUtils.getBeanIdentifierFromClass(beanIdentifier);
         }
         this.beanIdentifier = beanIdentifier;
-        this.asList = asList;
-        this.optional = optional;
-        this.mapKeyFun = mapKeyFun;
+        this.options = options;
     }
 
     async resolve(): Promise<any> {
-        return await $qw.require(this.beanIdentifier, this.optional, this.asList, this.mapKeyFun);
+        return await $qw._moduleManager.getBeanInstance(this.beanIdentifier, this.options);
     }
 }
 
@@ -33,36 +28,49 @@ export function getAutowiredFields(obj: any) {
     // return Object.fromEntries(entries);
 }
 
-export function Autowire<T>(definition: (new () => T) | string): T;
-export function Autowire<T>(definition: (new () => T) | string,
+export function Autowire<T>(definition: ClassConstructor<T> | string): T;
+export function Autowire<T>(definition: ClassConstructor<T> | string,
                             optional: boolean): T;
-export function Autowire<T>(definition: (new () => T)[] | string[]): T[];
-export function Autowire<T>(definition: (new () => T)[] | string[],
-                            optional: boolean): T[];
-export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: (x: T) => string | string[]): Map<string, T>;
-export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: (x: T) => string | string[],
-                            optional: boolean): Map<string, T>;
-export function Autowire<T>(definition: (new () => T) | (new () => T)[] | string | string[],
-                            keyFun: ((x: T) => string | string[]) | boolean = undefined,
-                            optional: boolean = false): T | T[] | Map<string, T> {
+export function Autowire<T>(definition: ClassConstructor<T>[] | string[]): T[];
+export function Autowire<T>(definition: ClassConstructor<T>[] | string[],
+                            filterFn: FilterFunction<T>): T[];
+export function Autowire<T>(definition: ClassConstructor<T>[] | string[],
+                            filterFn: FilterFunction<T>,
+                            keyFun: KeyFunction<T>): Map<string, T>;
+export function Autowire<T>(definition: ClassConstructor<T> | ClassConstructor<T>[] | string | string[],
+                            arg1: FilterFunction<T> | boolean = undefined,
+                            arg2: KeyFunction<T> = undefined): T | T[] | Map<string, T> {
     assert(definition)
-    assert(optional !== undefined)
-    if (typeof keyFun === "boolean") {
-        optional = keyFun;
-        keyFun = undefined;
+
+    let options: BeanInstanceFactoryOptions = {
+        isOptional: false,
+        asList: false,
+        asMap: false,
+        keyFun: undefined,
+        filterFun: undefined
     }
-    let asList = Array.isArray(definition) || !!keyFun;
+
+    if (arg1) {
+        if (typeof arg1 === "boolean") {
+            options.isOptional = arg1;
+        } else {
+            options.isOptional = true;
+            options.filterFun = arg1;
+        }
+    }
+
+    if (arg2) {
+        options.keyFun = arg2;
+        options.asMap = true;
+        options.isOptional = true;
+    }
+
     if (Array.isArray(definition)) {
         assert(definition.length == 1);
         definition = definition[0]
+        options.asList = !options.asMap;
+        options.isOptional = true;
     }
-    if (asList && keyFun) {
-        return new AutowiredPlaceholder(definition, optional, false, keyFun as ((x: T) => string|string[])) as unknown as Map<string, T>;
-    }
-    if (asList && !keyFun) {
-        return new AutowiredPlaceholder(definition, optional, true) as unknown as T[];
-    }
-    return new AutowiredPlaceholder(definition, optional) as T;
+
+    return new AutowiredPlaceholder(definition, options) as T | T[] | Map<string, T>;
 }

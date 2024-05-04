@@ -13,4 +13,3 @@ export class WikiDocument {
         Object.apply(this, data);
     }
 }
-

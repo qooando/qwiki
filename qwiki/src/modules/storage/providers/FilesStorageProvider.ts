@@ -5,9 +5,11 @@ import * as fs from "node:fs";
 export class FilesStorageProvider extends StorageProvider {
     static __bean__: __Bean__ = {};
 
-    supportedProtocols: [
-        "file"
-    ];
+    get supportedProtocols(): string[] {
+        return [
+            "file"
+        ];
+    }
 
     async read(url: URL): Promise<string> {
         return fs.readFileSync(url.pathname, "utf-8");

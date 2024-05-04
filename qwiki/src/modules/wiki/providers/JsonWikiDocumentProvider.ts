@@ -12,7 +12,7 @@ export class JsonWikiDocumentProvider extends WikiDocumentProvider {
     storageProvider: FilesStorageProvider = Autowire(FilesStorageProvider);
     storageLocalPath = Value("qwiki.wiki.storages.files.localPath", "./data")
 
-    supportedProtocols: [
+    supportedProtocols = [
         "json-file"
     ];
 

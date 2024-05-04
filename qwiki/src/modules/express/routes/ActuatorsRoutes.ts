@@ -1,7 +1,6 @@
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {Express} from "express";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
-import {ExpressConfig} from "@qwiki/modules/express/ExpressConfig";
 import {assert, require} from "@qwiki/core/utils/common";
 // import * as actuator from "express-actuator";
 
@@ -10,9 +9,11 @@ const actuator = require("express-actuator")
 export class ActuatorsRoutes extends ExpressRoute {
     static __bean__: __Bean__ = {}
 
-    server = ExpressConfig.FOR_ANY_SERVER_NAME;
+    servers = [
+        "*"
+    ];
 
-    applyRoutes(app: Express) {
+    register(app: Express) {
         assert(app);
 
         // ACTUATORS endpoints

@@ -5,6 +5,7 @@ import {EventNames} from "../events/EventNames";
 import {Objects} from "../utils/Objects";
 import {getValueFields, ValuePlaceholder} from "@qwiki/core/beans/Value";
 import {assert} from "@qwiki/core/utils/common";
+import {RuntimeException} from "@qwiki/core/utils/Exceptions";
 
 export class Bean {
     name: string;
@@ -55,45 +56,49 @@ export class Bean {
     }
 
     async getInstance() {
-        if (this.scope === BeanScope.SINGLETON &&
-            this.instances.length >= 1) {
-            return this.instances[0];
+        try {
+            if (this.scope === BeanScope.SINGLETON &&
+                this.instances.length >= 1) {
+                return this.instances[0];
+            }
+
+            // console.log(`New instance ${this.name} from ${this.path}`)
+            // assumes constructor is always with no arguments
+            let defaultConstructorArguments: [] = []
+            let instance: any = new this.clazz(...defaultConstructorArguments);
+
+            // find autowired fields and resolve them
+            await Promise.all(
+                getAutowiredFields(instance)
+                    .map(async (x: [string, AutowiredPlaceholder<any>]) => {
+                        instance[x[0]] = await x[1].resolve();
+                    })
+            );
+
+            // find autowired values and resolve them
+            await Promise.all(
+                getValueFields(instance)
+                    .map(async (x: [string, ValuePlaceholder<any>]) => {
+                        instance[x[0]] = await x[1].resolve();
+                    })
+            );
+
+            // call postConstruct if defined
+            if ("postConstruct" in instance) {
+                await instance.postConstruct();
+            }
+
+            await Promise.all(
+                this.getAllIdentifiers()
+                    .map(async identifier =>
+                        await $qw.emit(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, identifier), this, instance)
+                    ));
+
+            this.instances.push(instance);
+            return instance;
+        } catch (e) {
+            throw new RuntimeException(`Cannot create new instance for bean: ${this.name}`, e);
         }
-
-        // console.log(`New instance ${this.name} from ${this.path}`)
-        // assumes constructor is always with no arguments
-        let defaultConstructorArguments: [] = []
-        let instance: any = new this.clazz(...defaultConstructorArguments);
-
-        // find autowired fields and resolve them
-        await Promise.all(
-            getAutowiredFields(instance)
-                .map(async (x: [string, AutowiredPlaceholder<any>]) => {
-                    instance[x[0]] = await x[1].resolve();
-                })
-        );
-
-        // find autowired values and resolve them
-        await Promise.all(
-            getValueFields(instance)
-                .map(async (x: [string, ValuePlaceholder<any>]) => {
-                    instance[x[0]] = await x[1].resolve();
-                })
-        );
-
-        // call postConstruct if defined
-        if ("postConstruct" in instance) {
-            await instance.postConstruct();
-        }
-
-        await Promise.all(
-            this.getAllIdentifiers()
-                .map(async identifier =>
-                    await $qw.emit(Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, identifier), this, instance)
-                ));
-
-        this.instances.push(instance);
-        return instance;
     }
 
 

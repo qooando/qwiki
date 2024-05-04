@@ -10,9 +10,17 @@ export class WikiService extends Base {
 
     documentProviders: Map<string, WikiDocumentProvider> = Autowire(
         [WikiDocumentProvider],
-        (x: WikiDocumentProvider) => x.supportedProtocols,
-        true
+        undefined,
+        (x: WikiDocumentProvider) => {
+            return x.supportedProtocols;
+        }
     );
+
+    async postConstruct() {
+        if (this.documentProviders.size === 0) {
+            this.log.warn(`No WikiDocumentProvider found`);
+        }
+    }
 
     _getDocumentProvider(protocol: string) {
         if (!this.documentProviders.has(protocol)) {
@@ -30,11 +38,11 @@ export class WikiService extends Base {
     // }
 
     async readDocumentByUrl(url: URL): Promise<WikiDocument> {
-        return await this._getDocumentProvider(url.protocol).read(url);
+        return await this._getDocumentProvider(url.protocol.replace(":","")).read(url);
     }
 
     async writeDocumentByUrl(url: URL, document: WikiDocument): Promise<void> {
-        return await this._getDocumentProvider(url.protocol).write(url, document);
+        return await this._getDocumentProvider(url.protocol.replace(":","")).write(url, document);
     }
 
 }

@@ -24,5 +24,5 @@ export class Parking {
     punto: Punto = Autowire("myPunto");
     myOldCars = Autowire(["group:myOldCars"])
     cars = Autowire([Car])
-    carsByName = Autowire([Car], (x:Car) => x.name)
+    carsByName = Autowire([Car], undefined, (x:Car) => x.name)
 }

@@ -8,8 +8,8 @@ export class ConversionService {
     converters: Map<string, Converter<any, any>> =
         Autowire(
             [`class:Converter`],
+            undefined,
             (x: Converter<any, any>) => x.name(),
-            true
         );
 
     // FIXME autoregister json transfomers from json/yaml !!!!

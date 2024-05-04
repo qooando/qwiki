@@ -1,22 +1,35 @@
-import {Base} from "@qwiki/core/base/Base";
 import {Server} from "@qwiki/modules/server/Server";
 import * as http from "node:http";
 import {Express} from "express";
 import {ExpressRoute} from "@qwiki/modules/express/ExpressRoute";
 import {require} from "@qwiki/core/utils/common";
+import {Autowire} from "@qwiki/core/beans/Autowire";
 
 const express = require("express");
 
 export class ExpressServer extends Server {
+
+    declare name: string;
 
     host: string = "localhost";
     port: number = 8080;
     _express: Express;
     _server: http.Server;
 
-    constructor() {
-        super();
+    routes = Autowire(
+        [ExpressRoute],
+        (x) => x.servers.includes(this.name) || x.servers.includes("*")
+    );
+
+    async postConstruct() {
         this._express = express();
+
+        for (let route of this.routes) {
+            route.register(this._express);
+        }
+
+        // FIXME add error advisors
+
     }
 
     async start(): Promise<void> {
@@ -33,7 +46,4 @@ export class ExpressServer extends Server {
         this._server.close();
     }
 
-    addRoute(route: ExpressRoute) {
-        return route.applyRoutes(this._express);
-    }
 }

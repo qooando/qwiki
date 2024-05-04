@@ -12,7 +12,8 @@ qwiki:
       host: 0.0.0.0
       port: 8080
   wiki:
-    server: wiki
+    servers:
+      - wiki
     staticFiles:
       localPath: "./dist/client"
     storages:

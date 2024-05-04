@@ -8,8 +8,8 @@ export class StorageService extends Base {
 
     storages: Map<string, StorageProvider> = Autowire(
         [StorageProvider],
-        (x: StorageProvider) => x.supportedProtocols,
-        true
+        undefined,
+        (x: StorageProvider) => x.supportedProtocols
     );
 
     async postConstruct() {

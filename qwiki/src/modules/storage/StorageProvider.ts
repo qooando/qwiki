@@ -2,7 +2,9 @@ import {Base} from "@qwiki/core/base/Base";
 
 export class StorageProvider extends Base {
 
-    supportedProtocols: string[] = [];
+    get supportedProtocols(): string[] {
+        return [];
+    }
 
     async read(url: URL): Promise<string> {
         throw new Error(`Not implemented`);
