@@ -47,6 +47,9 @@ export class WikiService extends Base {
         try {
             return await this._getDocumentProvider(url.protocol.replace(":", "")).read(url);
         } catch (e) {
+            if (e instanceof WikiDocumentException) {
+                throw e;
+            }
             throw new WikiDocumentException(`Cannot read document: ${url}`, e);
         }
     }
@@ -55,6 +58,9 @@ export class WikiService extends Base {
         try {
             return await this._getDocumentProvider(url.protocol.replace(":", "")).write(url, document);
         } catch (e) {
+            if (e instanceof WikiDocumentException) {
+                throw e;
+            }
             throw new WikiDocumentException(`Cannot write document: ${url}`, e);
         }
     }

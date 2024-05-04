@@ -4,6 +4,7 @@ import {Express} from "express";
 import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {require} from "@qwiki/core/utils/common";
 import {Autowire} from "@qwiki/core/beans/Autowire";
+import {ExpressAdvisor} from "@qwiki/modules/express/ExpressAdvisor";
 
 const express = require("express");
 
@@ -21,6 +22,11 @@ export class ExpressServer extends Server {
         (x) => x.servers.includes(this.name) || x.servers.includes("*")
     );
 
+    advisors = Autowire(
+        [ExpressAdvisor],
+        (x) => x.servers.includes(this.name) || x.servers.includes("*")
+    );
+
     async postConstruct() {
         this._express = express();
 
@@ -33,11 +39,15 @@ export class ExpressServer extends Server {
             route.register(this._express);
         }
 
+        for (let advisor of this.advisors) {
+            advisor.register(this._express);
+        }
+
         // @ts-ignore
         this._express.use((err, req, res, next) => {
             this.log.error(err.stack);
             // res.status(500).send('Something broke!')
-            next(err)
+            // next(err)
         })
 
         // FIXME add error advisors as beans
