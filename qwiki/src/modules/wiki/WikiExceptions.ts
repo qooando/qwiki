@@ -4,6 +4,12 @@ export class WikiException extends RuntimeException {
 }
 
 export class WikiDocumentException extends WikiException {
+    document: string;
+
+    constructor(message: string, document: string, cause: any = undefined) {
+        super(message, cause);
+        this.document = document;
+    }
 }
 
 export class WikiDocumentProcessingException extends WikiDocumentException {

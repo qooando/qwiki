@@ -50,7 +50,7 @@ export class WikiService extends Base {
             if (e instanceof WikiDocumentException) {
                 throw e;
             }
-            throw new WikiDocumentException(`Cannot read document: ${url}`, e);
+            throw new WikiDocumentException(`Cannot read document: ${url}`, url.toString(), e);
         }
     }
 
@@ -61,7 +61,7 @@ export class WikiService extends Base {
             if (e instanceof WikiDocumentException) {
                 throw e;
             }
-            throw new WikiDocumentException(`Cannot write document: ${url}`, e);
+            throw new WikiDocumentException(`Cannot write document: ${url}`, url.toString(), e);
         }
     }
 

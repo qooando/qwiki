@@ -21,7 +21,7 @@ export class JsonWikiDocumentProvider extends WikiDocumentProvider {
     async read(url: URL): Promise<WikiDocument> {
         let filePath = `${this.storageLocalPath}${url.pathname}`;
         if (!fs.existsSync(filePath)) {
-            throw new WikiDocumentNotFoundException(`Document not found: ${url}`);
+            throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());
         }
         let rawUrl = new URL(`file:${filePath}`)
         let rawContent = await this.storageProvider.read(rawUrl)
