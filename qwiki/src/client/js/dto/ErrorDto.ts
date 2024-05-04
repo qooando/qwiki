@@ -8,11 +8,14 @@ export class ErrorDto {
     }
 }
 
-export class WikiDocumentNotFoundErrorDto extends ErrorDto {
+export class WikiDocumentErrorDto extends ErrorDto {
     document: string
 
     constructor(message: string, document: string) {
         super(message)
         this.document = document;
     }
+}
+
+export class WikiDocumentNotFoundErrorDto extends WikiDocumentErrorDto {
 }
