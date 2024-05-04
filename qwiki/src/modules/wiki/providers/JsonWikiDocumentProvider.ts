@@ -23,6 +23,7 @@ export class JsonWikiDocumentProvider extends WikiDocumentProvider {
         if (!fs.existsSync(filePath)) {
             throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());
         }
+        filePath = fs.realpathSync(filePath);
         let rawUrl = new URL(`file:${filePath}`)
         let rawContent = await this.storageProvider.read(rawUrl)
         let jsonContent = JSON.parse(rawContent);
