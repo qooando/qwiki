@@ -15,10 +15,12 @@ qwiki:
     servers:
       - wiki
     staticFiles:
-      localPath: "./dist/client"
+      localPath: "./dist/static"
     storages:
-      files:
-        localPath: "./editions/example"
+      defaultProtocol: file
+      protocols:
+        file:
+          localPath: "./data"
 
   #    policies:
   #      # specify default missing provider policy

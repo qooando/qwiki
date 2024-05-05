@@ -1,5 +1,5 @@
 import {Base} from "@qlient/Base.js";
-import {WikiDocumentDto} from "@qlient/models/WikiDocumentDto.js";
+import {WikiDocumentDto} from "@qlient/dto/WikiDocumentDto.js";
 
 export class Requests extends Base {
 
@@ -29,7 +29,7 @@ export class Requests extends Base {
     }
 
     async readDocument(identifier: string): Promise<WikiDocumentDto> {
-        let url = this.makeURL(`/documents/${identifier}`);
+        let url = this.makeURL(`/wiki/${identifier}`);
         return await this.request(url, {
             method: "GET"
         })
@@ -41,4 +41,12 @@ export class Requests extends Base {
         // FIXME
     }
 
+    async readTemplate(templateName: string, componentPath: string): Promise<WikiDocumentDto> {
+        let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
+        return await this.request(url, {
+            method: "GET"
+        })
+            .then(response => response.json())
+            .then(jsonResponse => new WikiDocumentDto(jsonResponse));
+    }
 }

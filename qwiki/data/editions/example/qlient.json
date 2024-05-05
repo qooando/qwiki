@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "description": "Client configuration"
+  },
+  "content": {
+    "qlient": {
+      "template": {
+        "templateName": "default",
+        "mainContainerId": "main-container"
+      }
+    }
+  }
+}

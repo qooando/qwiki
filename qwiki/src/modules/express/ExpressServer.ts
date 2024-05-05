@@ -30,8 +30,15 @@ export class ExpressServer extends Server {
     async postConstruct() {
         this._express = express();
 
+        // logging middleware
         this._express.use((req, res, next) => {
-            this.log.debug(`${new Date().toISOString()}: ${req.method.padStart(7)} ${req.path}`);
+            // this.log.debug(`${new Date().toISOString()}:     ${req.method.padEnd(7)} ${req.path}`);
+            let self = this;
+            const oldEnd = res.end;
+            res.on('finish', function() {
+                let code = this.statusCode;
+                self.log.debug(`${new Date().toISOString()}: ${code} ${req.method.padEnd(7)} ${req.path}`);
+            })
             next()
         });
 
@@ -44,11 +51,11 @@ export class ExpressServer extends Server {
         }
 
         // @ts-ignore
-        this._express.use((err, req, res, next) => {
-            this.log.error(err.stack);
-            // res.status(500).send('Something broke!')
-            // next(err)
-        })
+        // this._express.use((err, req, res, next) => {
+        //     this.log.error(err.stack);
+        //     // res.status(500).send('Something broke!')
+        //     // next(err)
+        // })
 
         // FIXME add error advisors as beans
 

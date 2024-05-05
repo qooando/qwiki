@@ -7,6 +7,10 @@ export class RuntimeException extends Error {
     }
 }
 
+export class NotImplementedException extends RuntimeException {
+
+}
+
 export function getFullStackTrace(err: any): string {
     let result = err.stack
     err = err.cause;

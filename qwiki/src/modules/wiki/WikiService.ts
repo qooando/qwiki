@@ -1,8 +1,8 @@
 import {Base} from "@qwiki/core/base/Base";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {Autowire} from "@qwiki/core/beans/Autowire";
-import {WikiDocumentProvider} from "@qwiki/modules/wiki/WikiDocumentProvider";
-import {WikiDocument} from "@qwiki/modules/wiki/WikiDocument";
+import {DocumentProvider} from "@qwiki/modules/wiki/DocumentProvider";
+import {WikiDocument} from "@qwiki/modules/wiki/models/WikiDocument";
 import {Value} from "@qwiki/core/beans/Value";
 import {RuntimeException} from "@qwiki/core/utils/Exceptions";
 import {
@@ -14,10 +14,10 @@ import {
 export class WikiService extends Base {
     static __bean__: __Bean__ = {}
 
-    documentProviders: Map<string, WikiDocumentProvider> = Autowire(
-        [WikiDocumentProvider],
+    documentProviders: Map<string, DocumentProvider> = Autowire(
+        [DocumentProvider],
         undefined,
-        (x: WikiDocumentProvider) => {
+        (x: DocumentProvider) => {
             return x.supportedProtocols;
         }
     );

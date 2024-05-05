@@ -31,10 +31,8 @@ export class WikiController extends ExpressController {
 
         this.log.debug(`Serve static files at ${this.urlPrefix} from ${this.staticFilesLocalPath}`)
 
-        // FIXME test if they work and openapi
-        // FIXME LOGGING
-
-        app.get("/api/documents/:documentId",
+        // app.get(/\/api\/wiki\/(\w+)\/(.*)/,
+            app.get("/api/wiki/:wikiName/:wikiPath",
             this.openapi.middleware.path({
                 responses: {
                     200: {
@@ -53,14 +51,15 @@ export class WikiController extends ExpressController {
                 }
             }),
             (request, response, next) => {
-                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                let internalUrl = new URL(`wiki:/${request.params.wikiName}/${request.params.wikiPath}`);
+                // let internalUrl = new URL(`wiki:/${request.params[0]}/${request.params[1]}`);
                 this.wikiService.readDocumentByUrl(internalUrl)
                     .then(data => response.json(data))
                     .catch(err => next(err));
             }
         )
 
-        app.put("/api/documents/:documentId",
+        app.put("/api/wiki/:wikiName/:documentId(.*)",
             this.openapi.middleware.path({
                 responses: {
                     200: {
@@ -79,10 +78,50 @@ export class WikiController extends ExpressController {
                 }
             }),
             (request, response, next) => {
-                let internalUrl = new URL(`json-file:/${request.params.documentId}`);
+                let internalUrl = new URL(`wiki:/${request.params.wikiName}/${request.params.documentId}`);
                 let content = request.body;
                 this.wikiService.writeDocumentByUrl(internalUrl, content)
                     .then(data => response.json(data));
+            }
+        )
+
+        app.get("/api/templates/:templateName/:componentPath(.*)",
+            this.openapi.middleware.path({
+                summary: "Get a template file",
+                parameters: [
+                    {
+                        in: "path",
+                        name: "templateName",
+                        schema: {type: "string"},
+                        required: true,
+                        description: "Template name"
+                    },
+                    {
+                        in: "path",
+                        name: "componentPath",
+                        schema: {type: "string"},
+                        required: true,
+                        description: "Template component"
+                    }
+                ],
+                responses: {
+                    200: {
+                        description: 'Successful response',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object'
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+            (request, response, next) => {
+                let internalUrl = new URL(`template://${request.params.templateName}/${request.params.componentPath}`);
+                this.wikiService.readDocumentByUrl(internalUrl)
+                    .then(data => response.json(data))
+                    .catch(err => next(err));
             }
         )
 

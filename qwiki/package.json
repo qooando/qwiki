@@ -57,6 +57,6 @@
   },
   "_moduleAliases": {
     "@qwiki": "./dist",
-    "@qlient": "./dist/client/js"
+    "@qlient": "./dist/static/js"
   }
 }

@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "description": "Client configuration"
+  },
+  "content": {
+    "title": "Default wiki",
+    "template": {
+      "name": "default",
+      "mainContainerId": "main-container"
+    }
+  }
+}

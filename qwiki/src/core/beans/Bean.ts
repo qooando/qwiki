@@ -67,18 +67,18 @@ export class Bean {
             let defaultConstructorArguments: [] = []
             let instance: any = new this.clazz(...defaultConstructorArguments);
 
-            // find autowired fields and resolve them
-            await Promise.all(
-                getAutowiredFields(instance)
-                    .map(async (x: [string, AutowiredPlaceholder<any>]) => {
-                        instance[x[0]] = await x[1].resolve();
-                    })
-            );
-
             // find autowired values and resolve them
             await Promise.all(
                 getValueFields(instance)
                     .map(async (x: [string, ValuePlaceholder<any>]) => {
+                        instance[x[0]] = await x[1].resolve();
+                    })
+            );
+
+            // find autowired fields and resolve them
+            await Promise.all(
+                getAutowiredFields(instance)
+                    .map(async (x: [string, AutowiredPlaceholder<any>]) => {
                         instance[x[0]] = await x[1].resolve();
                     })
             );
