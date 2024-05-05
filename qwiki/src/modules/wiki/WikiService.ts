@@ -10,6 +10,7 @@ import {
     WikiDocumentIOException,
     WikiDocumentProcessingException
 } from "@qwiki/modules/wiki/WikiExceptions";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 export class WikiService extends Base {
     static __bean__: __Bean__ = {}
@@ -43,9 +44,9 @@ export class WikiService extends Base {
     //     // FIXME
     // }
 
-    async readDocumentByUrl(url: URL): Promise<WikiDocument> {
+    async readDocument(url: PermissiveURL): Promise<WikiDocument> {
         try {
-            return await this._getDocumentProvider(url.protocol.replace(":", "")).read(url);
+            return await this._getDocumentProvider(url.scheme).read(url);
         } catch (e) {
             if (e instanceof WikiDocumentException) {
                 throw e;
@@ -54,9 +55,9 @@ export class WikiService extends Base {
         }
     }
 
-    async writeDocumentByUrl(url: URL, document: WikiDocument): Promise<void> {
+    async writeDocumentByUrl(url: PermissiveURL, document: WikiDocument): Promise<void> {
         try {
-            return await this._getDocumentProvider(url.protocol.replace(":", "")).write(url, document);
+            return await this._getDocumentProvider(url.scheme).write(url, document);
         } catch (e) {
             if (e instanceof WikiDocumentException) {
                 throw e;

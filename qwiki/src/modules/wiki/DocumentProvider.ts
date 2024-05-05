@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 export class DocumentProvider extends Base {
 
@@ -11,28 +12,32 @@ export class DocumentProvider extends Base {
     declare supportedMimetypes: string[];
     storageService = Autowire(StorageService);
 
-    async read(url: URL): Promise<WikiDocument> {
+    async read(url: PermissiveURL): Promise<WikiDocument> {
         throw new Error(`Not implemented`);
     }
 
-    async write(url: URL, document: WikiDocument): Promise<void> {
+    async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
         throw new Error(`Not implemented`);
     }
 
-    _urlToPath(url: URL, basePath: string = ""): string {
-        let candidateFilePaths = [
-            `${url.pathname}`,
-            `.${url.pathname}`,
-            `./${url.pathname}`,
-            `${basePath}${url.pathname}`,
-            `.${basePath}${url.pathname}`,
-            `./${basePath}${url.pathname}`
-        ]
-        let filePaths = candidateFilePaths.filter(x => this.storageService.existsByPath(x));
-        if (!filePaths.length) {
+    _normalizeUrl(url: PermissiveURL, searchPaths: string[] = []): PermissiveURL {
+        let candidateUrls = [
+            url,
+            ...searchPaths.map(x => {
+                let u = new PermissiveURL(url);
+                u.path = x + u.path;
+                return u;
+            })
+        ];
+        let existingUrls = candidateUrls.filter(x => this.storageService.exists(x));
+        if (!existingUrls.length) {
             throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());
         }
-        return fs.realpathSync(filePaths[0]);
+        return this.storageService.realpath(existingUrls[0]);
+    }
+
+    _urlToPath(url: PermissiveURL, basePath: string = ""): string {
+        return this._normalizeUrl(url).path;
     }
 }
 

@@ -12,6 +12,7 @@ import {mime} from "@qwiki/core/utils/Mime";
 import {MediaType} from "@qwiki/core/utils/MediaTypes";
 import {YamlDocumentProvider} from "@qwiki/modules/wiki/providers/YamlDocumentProvider";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 export class WikiDocumentProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
@@ -29,7 +30,7 @@ export class WikiDocumentProvider extends DocumentProvider {
     jsonProvider = Autowire(JsonDocumentProvider);
     yamlProvider = Autowire(YamlDocumentProvider);
 
-    async read(url: URL): Promise<WikiDocument> {
+    async read(url: PermissiveURL): Promise<WikiDocument> {
         let filePath = this._urlToPath(url, "wikis");
         let mimetype = mime.getType(filePath);
         switch (mimetype) {
@@ -46,7 +47,7 @@ export class WikiDocumentProvider extends DocumentProvider {
 
     }
 
-    async write(url: URL, document: WikiDocument): Promise<void> {
+    async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
         // FIXME
         throw new Error(`Not implemented`)
         // let rawUrl = new URL(`file:${url.pathname.replace(/^(${this.storageLocalPath})/gi, "")}`)

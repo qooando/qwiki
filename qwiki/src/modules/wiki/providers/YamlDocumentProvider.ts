@@ -9,6 +9,7 @@ import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import * as yaml from "js-yaml";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 export class YamlDocumentProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
@@ -24,22 +25,22 @@ export class YamlDocumentProvider extends DocumentProvider {
         "application/yaml"
     ]
 
-    async read(url: URL): Promise<WikiDocument> {
+    async read(url: PermissiveURL): Promise<WikiDocument> {
         let contentPath = this._urlToPath(url);
-        let rawContent = await this.storageService.readByPath(contentPath);
+        let rawContent = await this.storageService.read(contentPath);
         let content = yaml.load(rawContent);
         let doc = new WikiDocument(content);
         // FIXME some metadata should be filled here
         return doc;
     }
 
-    async write(url: URL, document: WikiDocument): Promise<void> {
+    async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
         let contentPath = this._urlToPath(url);
         let rawContent = yaml.dump({
             metadata: document.metadata, // FIXME some metadata should be filled here
             content: document.content
         })
-        await this.storageService.writeByPath(contentPath, rawContent)
+        await this.storageService.write(contentPath, rawContent)
     }
 
 }

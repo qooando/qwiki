@@ -8,6 +8,7 @@ import {Express} from "express";
 import * as express from "express";
 import * as fs from "node:fs";
 import {WikiService} from "@qwiki/modules/wiki/WikiService";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 // var express = require('express')
 
@@ -51,9 +52,9 @@ export class WikiController extends ExpressController {
                 }
             }),
             (request, response, next) => {
-                let internalUrl = new URL(`wiki:/${request.params.wikiName}/${request.params.wikiPath}`);
+                let internalUrl = new PermissiveURL(`wiki:/${request.params.wikiName}/${request.params.wikiPath}`);
                 // let internalUrl = new URL(`wiki:/${request.params[0]}/${request.params[1]}`);
-                this.wikiService.readDocumentByUrl(internalUrl)
+                this.wikiService.readDocument(internalUrl)
                     .then(data => response.json(data))
                     .catch(err => next(err));
             }
@@ -78,7 +79,7 @@ export class WikiController extends ExpressController {
                 }
             }),
             (request, response, next) => {
-                let internalUrl = new URL(`wiki:/${request.params.wikiName}/${request.params.documentId}`);
+                let internalUrl = new PermissiveURL(`wiki:/${request.params.wikiName}/${request.params.documentId}`);
                 let content = request.body;
                 this.wikiService.writeDocumentByUrl(internalUrl, content)
                     .then(data => response.json(data));
@@ -118,8 +119,8 @@ export class WikiController extends ExpressController {
                 }
             }),
             (request, response, next) => {
-                let internalUrl = new URL(`template://${request.params.templateName}/${request.params.componentPath}`);
-                this.wikiService.readDocumentByUrl(internalUrl)
+                let internalUrl = new PermissiveURL(`template://${request.params.templateName}/${request.params.componentPath}`);
+                this.wikiService.readDocument(internalUrl)
                     .then(data => response.json(data))
                     .catch(err => next(err));
             }

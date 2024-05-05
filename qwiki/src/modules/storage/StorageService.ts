@@ -3,6 +3,7 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {Base} from "@qwiki/core/base/Base";
 import {StorageProvider} from "@qwiki/modules/storage/StorageProvider";
 import {Value} from "@qwiki/core/beans/Value";
+import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
 export class StorageService extends Base {
     static __bean__: __Bean__ = {};
@@ -22,43 +23,44 @@ export class StorageService extends Base {
         // this.log.debug(this.storages)
     }
 
-    async readByUrl(url: URL): Promise<string> {
-        let protocol = url.protocol.replace(":", "");
+    _normalizeUrl(url: PermissiveURL | string): PermissiveURL {
+        if (typeof url === "string") {
+            url = new PermissiveURL(`${this.defaultProtocol}:${url}`) ;
+        }
+        return url;
+    }
+
+    _getStorageProvider(url: PermissiveURL | string) {
+        url = this._normalizeUrl(url) as PermissiveURL;
+        let protocol = url.scheme;
         if (!this.storages.has(protocol)) {
             throw new Error(`Not implemented protocol: ${protocol}`)
         }
-        let storage = this.storages.get(protocol);
+        return this.storages.get(protocol);
+    }
+
+    async read(url: PermissiveURL | string): Promise<string> {
+        url = this._normalizeUrl(url);
+        let storage = this._getStorageProvider(url);
         return await storage.read(url);
     }
 
-    async writeByUrl(url: URL, content: string): Promise<void> {
-        let protocol = url.protocol.replace(":", "");
-        if (!this.storages.has(protocol)) {
-            throw new Error(`Not implemented protocol: ${protocol}`)
-        }
-        let storage = this.storages.get(protocol);
+    async write(url: PermissiveURL | string, content: string): Promise<void> {
+        url = this._normalizeUrl(url);
+        let storage = this._getStorageProvider(url)
         return await storage.write(url, content);
     }
 
-    async readByPath(p: string): Promise<string> {
-        return await this.readByUrl(new URL(`${this.defaultProtocol}:${p}`));
-    }
-
-    existsByUrl(url: URL): boolean {
-        let protocol = url.protocol.replace(":", "");
-        if (!this.storages.has(protocol)) {
-            throw new Error(`Not implemented protocol: ${protocol}`)
-        }
-        let storage = this.storages.get(protocol);
+    exists(url: PermissiveURL | string): boolean {
+        url = this._normalizeUrl(url);
+        let storage = this._getStorageProvider(url);
         return storage.exists(url);
     }
 
-    async writeByPath(p: string, content: string): Promise<void> {
-        return await this.writeByUrl(new URL(`${this.defaultProtocol}:${p}`), content);
-    }
-
-    existsByPath(p: string): boolean {
-        return this.existsByUrl(new URL(`${this.defaultProtocol}:${p}`));
+    realpath(url: PermissiveURL | string): PermissiveURL {
+        url = this._normalizeUrl(url);
+        let storage = this._getStorageProvider(url)
+        return storage.realpath(url);
     }
 }
 
