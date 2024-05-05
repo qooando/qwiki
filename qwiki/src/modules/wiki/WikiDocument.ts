@@ -10,6 +10,6 @@ export class WikiDocument {
     content: any
 
     constructor(data: any = {}) {
-        Object.apply(this, data);
+        Object.assign(this, data); // FIXME data override not working properly
     }
 }

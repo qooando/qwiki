@@ -11,7 +11,7 @@ export class WikiDocumentDto {
     content: any
 
     constructor(data: any = {}) {
-        Object.apply(this, data);
+        Object.assign(this, data);
     }
 }
 
