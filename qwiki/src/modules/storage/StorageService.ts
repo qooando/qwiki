@@ -32,7 +32,7 @@ export class StorageService extends Base {
 
     _getStorageProvider(url: PermissiveURL | string) {
         url = this._normalizeUrl(url) as PermissiveURL;
-        let protocol = url.scheme;
+        let protocol = url.scheme ?? this.defaultProtocol;
         if (!this.storages.has(protocol)) {
             throw new Error(`Not implemented protocol: ${protocol}`)
         }

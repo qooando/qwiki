@@ -28,7 +28,10 @@ export class DocumentProvider extends Base {
                 u.path = x + u.path;
                 return u;
             })
-        ];
+        ].map(x => {
+            x.scheme = undefined // remove scheme in order to use defaults // FIXME is it correct ?
+            return x;
+        });
         let existingUrls = candidateUrls.filter(x => this.storageService.exists(x));
         if (!existingUrls.length) {
             throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());

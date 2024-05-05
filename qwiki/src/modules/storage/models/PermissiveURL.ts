@@ -2,7 +2,7 @@ import {NotImplementedException, RuntimeException} from "@qwiki/core/utils/Excep
 
 export class PermissiveURL {
 
-    _uriRegExp = /^(?<scheme>\w[\w._+\-]*):(\/\/?<authority>(?<userinfo>[^@]+@)?(?<host>[\w._\-]+)(:(?<port>\d+))?)?(?<path>\/[^?]*)(\?(?<query>[^#]+))?(#(?<fragment>.*))?$/;
+    _uriRegExp = /^(?<scheme>\w[\w._+\-]*)?:(\/\/?<authority>(?<userinfo>[^@]+@)?(?<host>[\w._\-]+)(:(?<port>\d+))?)?(?<path>\/[^?]*)(\?(?<query>[^#]+))?(#(?<fragment>.*))?$/;
     _queryRegExp = /([^&]+)+/
 
     scheme: string;
