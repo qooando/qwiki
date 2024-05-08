@@ -26,7 +26,7 @@ export class YamlDocumentProvider extends DocumentProvider {
     ]
 
     async read(url: PermissiveURL): Promise<WikiDocument> {
-        let contentPath = this._urlToPath(url);
+        let contentPath = url.path;
         let rawContent = await this.storageService.read(contentPath);
         let content = yaml.load(rawContent);
         let doc = new WikiDocument(content);
@@ -35,7 +35,7 @@ export class YamlDocumentProvider extends DocumentProvider {
     }
 
     async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
-        let contentPath = this._urlToPath(url);
+        let contentPath = url.path;
         let rawContent = yaml.dump({
             metadata: document.metadata, // FIXME some metadata should be filled here
             content: document.content

@@ -2,7 +2,7 @@ import {NotImplementedException, RuntimeException} from "@qwiki/core/utils/Excep
 
 export class PermissiveURL {
 
-    _uriRegExp = /^(?<scheme>\w[\w._+\-]*)?:(\/\/?<authority>(?<userinfo>[^@]+@)?(?<host>[\w._\-]+)(:(?<port>\d+))?)?(?<path>\/[^?]*)(\?(?<query>[^#]+))?(#(?<fragment>.*))?$/;
+    _uriRegExp = /^(?<scheme>\w[\w._+\-]*)?:(\/\/?<authority>(?<userinfo>[^@]+@)?(?<host>[\w._\-]+)(:(?<port>\d+))?)?\/(?<path>[^?]*)(\?(?<query>[^#]+))?(#(?<fragment>.*))?$/;
     _queryRegExp = /([^&]+)+/
 
     scheme: string;
@@ -46,5 +46,33 @@ export class PermissiveURL {
 
     toUrl() {
         return new URL(this.toString());
+    }
+
+    get url() {
+        return this.toString();
+    }
+
+    withPathPrefix(prefix: string) {
+        let a = new PermissiveURL(this);
+        a.path = prefix + "/" + a.path;
+        return a;
+    }
+
+    withPathSuffix(suffix: string) {
+        let a = new PermissiveURL(this);
+        a.path = a.path + "/" + suffix
+        return a;
+    }
+
+    withScheme(scheme: string) {
+        let a = new PermissiveURL(this);
+        a.scheme = scheme;
+        return a;
+    }
+
+    withoutScheme() {
+        let a = new PermissiveURL(this);
+        a.scheme = undefined;
+        return a;
     }
 }

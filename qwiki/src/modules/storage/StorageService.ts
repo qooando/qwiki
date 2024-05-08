@@ -25,9 +25,12 @@ export class StorageService extends Base {
 
     _normalizeUrl(url: PermissiveURL | string): PermissiveURL {
         if (typeof url === "string") {
-            url = new PermissiveURL(`${this.defaultProtocol}:${url}`) ;
+            return new PermissiveURL(`${this.defaultProtocol}:/${url}`);
+        } else if (!url.scheme) {
+            return url.withScheme(this.defaultProtocol);
+        } else {
+            return url;
         }
-        return url;
     }
 
     _getStorageProvider(url: PermissiveURL | string) {
@@ -56,11 +59,11 @@ export class StorageService extends Base {
         let storage = this._getStorageProvider(url);
         return storage.exists(url);
     }
-
-    realpath(url: PermissiveURL | string): PermissiveURL {
-        url = this._normalizeUrl(url);
-        let storage = this._getStorageProvider(url)
-        return storage.realpath(url);
-    }
+    //
+    // realpath(url: PermissiveURL | string): PermissiveURL {
+    //     url = this._normalizeUrl(url);
+    //     let storage = this._getStorageProvider(url)
+    //     return storage.realpath(url);
+    // }
 }
 

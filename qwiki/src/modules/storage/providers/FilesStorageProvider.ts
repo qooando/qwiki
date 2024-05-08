@@ -11,10 +11,10 @@ export class FilesStorageProvider extends StorageProvider {
         "file"
     ];
 
-    basePath = Value("qwiki.wiki.storages.protocols.file.localPath", ".");
+    searchPaths = Value("qwiki.wiki.storages.protocols.file.searchPaths", ["."]);
 
-    _urlToPath(url: PermissiveURL) {
-        return `${this.basePath}${url.path}`;
+    protected _urlToPath(url: PermissiveURL, searchPaths: [] = undefined): string {
+        return this._findValidUrl(url, searchPaths ?? this.searchPaths).path
     }
 
     async read(url: PermissiveURL): Promise<string> {
@@ -25,14 +25,12 @@ export class FilesStorageProvider extends StorageProvider {
         fs.writeFileSync(this._urlToPath(url), content, "utf-8");
     }
 
+    _exists(url: PermissiveURL): boolean {
+        return fs.existsSync(url.path);
+    }
+
     exists(url: PermissiveURL): boolean {
         return fs.existsSync(this._urlToPath(url));
     }
 
-    realpath(url: PermissiveURL): PermissiveURL {
-        let p = fs.realpathSync(url.path);
-        let r = new PermissiveURL(url);
-        r.path = p;
-        return r;
-    }
 }

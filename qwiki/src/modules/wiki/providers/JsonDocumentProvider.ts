@@ -22,7 +22,7 @@ export class JsonDocumentProvider extends DocumentProvider {
     ]
 
     async read(url: PermissiveURL): Promise<WikiDocument> {
-        let contentPath = this._urlToPath(url);
+        let contentPath = url.path;
         let rawContent = await this.storageService.read(contentPath);
         let content = JSON.parse(rawContent);
         let doc = new WikiDocument(content);
@@ -31,7 +31,7 @@ export class JsonDocumentProvider extends DocumentProvider {
     }
 
     async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
-        let contentPath = this._urlToPath(url);
+        let contentPath = url.path;
         let rawContent = JSON.stringify({
             metadata: document.metadata, // FIXME some metadata should be filled here
             content: document.content

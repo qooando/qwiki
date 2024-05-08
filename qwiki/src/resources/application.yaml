@@ -20,7 +20,8 @@ qwiki:
       defaultProtocol: file
       protocols:
         file:
-          localPath: "./data"
+          searchPaths:
+            - "./data"
 
   #    policies:
   #      # specify default missing provider policy

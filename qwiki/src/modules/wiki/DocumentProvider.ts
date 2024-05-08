@@ -20,27 +20,21 @@ export class DocumentProvider extends Base {
         throw new Error(`Not implemented`);
     }
 
-    _normalizeUrl(url: PermissiveURL, searchPaths: string[] = []): PermissiveURL {
-        let candidateUrls = [
-            url,
-            ...searchPaths.map(x => {
-                let u = new PermissiveURL(url);
-                u.path = x + u.path;
-                return u;
-            })
-        ].map(x => {
-            x.scheme = undefined // remove scheme in order to use defaults // FIXME is it correct ?
-            return x;
-        });
-        let existingUrls = candidateUrls.filter(x => this.storageService.exists(x));
-        if (!existingUrls.length) {
+    _findValidUrl(url: PermissiveURL, searchPaths: string[] = undefined): PermissiveURL {
+        if (!searchPaths || !searchPaths.length) {
+            if (this.storageService.exists(url)) {
+                return url;
+            }
             throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());
         }
-        return this.storageService.realpath(existingUrls[0]);
+        let validUrl = searchPaths
+            .map(prefix => url.withPathPrefix(prefix))
+            .filter(url => this.storageService.exists(url.withoutScheme()))[0];
+        if (!validUrl) {
+            throw new WikiDocumentNotFoundException(`Document not found: ${url}`, url.toString());
+        }
+        return validUrl;
     }
 
-    _urlToPath(url: PermissiveURL, basePath: string = ""): string {
-        return this._normalizeUrl(url).path;
-    }
 }
 

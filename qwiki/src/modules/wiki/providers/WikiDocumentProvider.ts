@@ -30,17 +30,22 @@ export class WikiDocumentProvider extends DocumentProvider {
     jsonProvider = Autowire(JsonDocumentProvider);
     yamlProvider = Autowire(YamlDocumentProvider);
 
+    defaultSearchPaths = [
+        "wikis",
+    ]
+
     async read(url: PermissiveURL): Promise<WikiDocument> {
-        let filePath = this._urlToPath(url, "wikis");
-        let mimetype = mime.getType(filePath);
+        // NOTE: url path MUST ALWAYS BE relative to storage root
+        let validUrl = this._findValidUrl(url, this.defaultSearchPaths);
+        let mimetype = mime.getType(validUrl.path);
         switch (mimetype) {
             case MediaType.TEXT_MARKDOWN:
                 // FIXME implement this
                 throw new Error("Not implemented");
             case MediaType.APPLICATION_JSON:
-                return await this.jsonProvider.read(url);
+                return await this.jsonProvider.read(validUrl);
             case MediaType.APPLICATION_YAML:
-                return await this.yamlProvider.read(url);
+                return await this.yamlProvider.read(validUrl);
             default:
                 throw new WikiDocumentException(`No document provider found for mimetype ${mimetype}: ${url}`, url.toString());
         }
