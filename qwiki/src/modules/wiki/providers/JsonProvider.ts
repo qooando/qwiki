@@ -10,7 +10,7 @@ import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions"
 import {StorageService} from "@qwiki/modules/storage/StorageService";
 import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
-export class JsonDocumentProvider extends DocumentProvider {
+export class JsonProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
 
     supportedProtocols = [

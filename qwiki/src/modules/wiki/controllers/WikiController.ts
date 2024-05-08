@@ -86,7 +86,7 @@ export class WikiController extends ExpressController {
             }
         )
 
-        app.get("/api/templates/:templateName/:componentPath(.*)",
+        app.get("/api/templates/:templateName/:componentPath",
             this.openapi.middleware.path({
                 summary: "Get a template file",
                 parameters: [

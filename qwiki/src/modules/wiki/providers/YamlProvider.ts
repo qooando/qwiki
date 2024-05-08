@@ -11,7 +11,7 @@ import * as yaml from "js-yaml";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
 import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 
-export class YamlDocumentProvider extends DocumentProvider {
+export class YamlProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
 
     storageProvider: FilesStorageProvider = Autowire(FilesStorageProvider);

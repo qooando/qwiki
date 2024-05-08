@@ -1,9 +1,11 @@
 import {Base} from "@qlient/Base.js";
 import {Requests} from "@qlient/Requests.js";
+import {TemplateEngine} from "@qlient/TemplateEngine.js";
 
 export class Qlient extends Base {
 
     requests = new Requests();
+    templateEngine = new TemplateEngine();
     config: any;
 
     async boot() {
@@ -22,7 +24,7 @@ export class Qlient extends Base {
         let wikiname = "default"
         let doc = await this.requests.readDocument(`${wikiname}/wiki.json`);
         if (doc)
-        return doc.content;
+            return doc.content;
     }
 
     async getRawTemplate() {
@@ -37,12 +39,20 @@ export class Qlient extends Base {
             pass content to template engine
             render as... html
          */
-        let templateDoc = await this.requests.readTemplate(
+        this.templateEngine.renderTemplateComponentToElement(
             this.config.template.name,
-            "main.html"
-        )
-        let mainContainer = document.getElementById(this.config.qlient.template.mainContainerId);
-        mainContainer.innerHTML = templateDoc.content;
+            "main.html",
+            this.config.qlient.template.mainContainerId);
+
+        // let templateDoc = await this.requests.readTemplate(
+        //     this.config.template.name,
+        //     "main.html"
+        // )
+        // let mainContainer = document.getElementById(this.config.qlient.template.mainContainerId);
+        // // FIXME use template client-side template engine ?
+        // // FIXME need a lot of caching to avoid too much requests ?
+        // // FIXME avoid to send restricted data if user has no permissions
+        // mainContainer.innerHTML = templateDoc.content;
 
 
         // let document = await fetch(this.config.qlient.template.urlPath)

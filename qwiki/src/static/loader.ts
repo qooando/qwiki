@@ -2,7 +2,12 @@ import {Qlient} from "@qlient/Qlient.js";
 
 console.log("Load client-side qwiki")
 
-var q = new Qlient();
-q.boot();
+declare global {
+    var $ql: Qlient
+}
+
+$ql = new Qlient();
+$ql.boot();
+
 
 
