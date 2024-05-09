@@ -6,11 +6,8 @@ export class TemplateEngine extends Base {
     requests = new Requests();
 
     async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
-        let templateDoc = await this.requests.readTemplate(
-            $ql.config.template.name,
-            "main.html"
-        )
-        let container = document.getElementById($ql.config.qlient.template.mainContainerId);
+        let templateDoc = await this.requests.readTemplate(templateName, templateComponent);
+        let container = document.getElementById(elementId);
         // FIXME use template client-side template engine ?
         // FIXME need a lot of caching to avoid too much requests ?
         // FIXME avoid to send restricted data if user has no permissions

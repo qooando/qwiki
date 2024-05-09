@@ -42,7 +42,7 @@ export class Qlient extends Base {
         this.templateEngine.renderTemplateComponentToElement(
             this.config.template.name,
             "main.html",
-            this.config.qlient.template.mainContainerId);
+            this.config.template.mainContainerId);
 
         // let templateDoc = await this.requests.readTemplate(
         //     this.config.template.name,

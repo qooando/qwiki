@@ -6,7 +6,7 @@ declare global {
     var $ql: Qlient
 }
 
-$ql = new Qlient();
+var $ql = new Qlient();
 $ql.boot();
 
 
