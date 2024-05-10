@@ -10,6 +10,10 @@ export class WikiDocument {
     content: any
 
     constructor(data: any = {}) {
-        Object.assign(this, data); // FIXME data override not working properly
+        if (typeof data === "string") {
+            this.content = data;
+        } else {
+            Object.assign(this, data);
+        }
     }
 }

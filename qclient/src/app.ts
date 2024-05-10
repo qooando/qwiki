@@ -1,4 +1,4 @@
-import {Qlient} from "@qlient/Qlient.js";
+import {Qlient} from "@qlient/scripts/Qlient";
 
 console.log("Load client-side qwiki")
 
@@ -6,7 +6,7 @@ declare global {
     var $ql: Qlient
 }
 
-var $ql = new Qlient();
+$ql = new Qlient();
 $ql.boot();
 
 

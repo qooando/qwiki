@@ -2,7 +2,7 @@ import {ExpressAdvisor} from "@qwiki/modules/express/ExpressAdvisor";
 import {Value} from "@qwiki/core/beans/Value";
 import {WikiDocumentException, WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {HttpStatus} from "@qwiki/modules/express/constants/HttpStatus";
-import {ErrorDto, WikiDocumentErrorDto, WikiDocumentNotFoundErrorDto} from "@qlient/dto/ErrorDto";
+import {ErrorDto, WikiDocumentErrorDto, WikiDocumentNotFoundErrorDto} from "@qwiki/core/dto/ErrorDto";
 import {getFullStackTrace, RuntimeException} from "@qwiki/core/utils/Exceptions";
 
 export class WikiExceptionAdvisor extends ExpressAdvisor {

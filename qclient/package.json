@@ -1,0 +1,33 @@
+{
+  "name": "qlient",
+  "version": "1.0.0",
+  "description": "Web client for qwiki",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "build": "sh build.sh",
+    "dev": "cd .. && sh start.sh",
+    "build+dev": "npm run build && npm run dev",
+    "test": "npx jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qooando/qwiki.git"
+  },
+  "author": "Qooando",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/qooando/qwiki/issues"
+  },
+  "homepage": "https://github.com/qooando/qwiki#readme",
+  "devDependencies": {
+    "@types/handlebars": "^4.1.0",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  },
+  "_moduleAliases": {
+    "@qlient": "./build/webclient/js"
+  }
+}

@@ -1,5 +1,5 @@
-import {Base} from "@qlient/Base.js";
-import {WikiDocumentDto} from "@qlient/dto/WikiDocumentDto.js";
+import {Base} from "./Base";
+import {WikiDocumentDto} from "./dto/WikiDocumentDto";
 
 export class Requests extends Base {
 

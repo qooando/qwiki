@@ -1,6 +1,6 @@
-import {Base} from "@qlient/Base.js";
-import {Requests} from "@qlient/Requests.js";
-
+import {Base} from "./Base";
+import {Requests} from "./Requests";
+// import * as handlebars from "@qlient/libs/handlebars.min-v4.7.8.js";
 export class TemplateEngine extends Base {
 
     requests = new Requests();

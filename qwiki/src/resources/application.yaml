@@ -15,7 +15,7 @@ qwiki:
     servers:
       - wiki
     staticFiles:
-      localPath: "./dist/static"
+      localPath: "../client"
     storages:
       defaultProtocol: file
       protocols:

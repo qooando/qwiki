@@ -14,6 +14,7 @@ import {YamlProvider} from "@qwiki/modules/wiki/providers/YamlProvider";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
 import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
+import {BlobProvider} from "@qwiki/modules/wiki/providers/BlobProvider";
 
 export class TemplateProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
@@ -28,8 +29,7 @@ export class TemplateProvider extends DocumentProvider {
         "text/markdown"
     ]
 
-    jsonProvider = Autowire(JsonProvider);
-    yamlProvider = Autowire(YamlProvider);
+    blobProvider = Autowire(BlobProvider);
 
     defaultSearchPaths = [
         "templates",
@@ -42,15 +42,13 @@ export class TemplateProvider extends DocumentProvider {
         switch (mimetype) {
             case MediaType.TEXT_MARKDOWN:
                 // FIXME
-                throw new NotImplementedException();
+                return await this.blobProvider.read(validUrl);
             case MediaType.TEXT_HTML:
                 // FIXME
-                throw new NotImplementedException();
-                // return await this.jsonProvider.read(validUrl);
+                return await this.blobProvider.read(validUrl);
             case MediaType.TEXT_CSS:
                 // FIXME
-                throw new NotImplementedException();
-                // return await this.yamlProvider.read(validUrl);
+                return await this.blobProvider.read(validUrl);
             default:
                 throw new WikiDocumentException(`No document provider found for mimetype ${mimetype}: ${url}`, url.toString());
         }

@@ -9,18 +9,16 @@
     "preserveConstEnums": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "noEmit": false,
     "rootDir": "./src",
-    "outDir": "../build/server",
+    "outDir": "../build/client/",
     "paths": {
-      "@qwiki/*": [
+      "@qlient/*": [
         "./src/*"
       ]
     }
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.js"
+    "src/**/*"
   ],
   "exclude": [
     "**/*.spec.ts"
