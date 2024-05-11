@@ -15,7 +15,12 @@
       "@qlient/*": [
         "./src/*"
       ]
-    }
+    },
+    "plugins": [
+      {
+        "transform": "./compiler/transformer-static-paths"
+      }
+    ]
   },
   "include": [
     "src/**/*"

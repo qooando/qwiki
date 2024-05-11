@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+echo "Build Qwiki"
+
 OUTDIR=../build/server
 mkdir -p "$OUTDIR"
 
