@@ -10,20 +10,19 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "rootDir": "./src",
-    "outDir": "../build/client/",
+    "outDir": "../build/tmp/client_js",
     "paths": {
+      "@plugins/*": [
+        "./plugins/*"
+      ],
       "@qlient/*": [
         "./src/*"
       ]
-    },
-    "plugins": [
-      {
-        "transform": "./compiler/transformer-static-paths"
-      }
-    ]
+    }
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts",
+    "src/**/*.js"
   ],
   "exclude": [
     "**/*.spec.ts"

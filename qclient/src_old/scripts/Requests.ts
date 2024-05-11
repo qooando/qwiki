@@ -1,5 +1,5 @@
-import {Base} from "./Base";
-import {WikiDocumentDto} from "./dto/WikiDocumentDto";
+import {Base} from "./Base.js";
+import {WikiDocumentDto} from "./dto/WikiDocumentDto.js";
 
 export class Requests extends Base {
 

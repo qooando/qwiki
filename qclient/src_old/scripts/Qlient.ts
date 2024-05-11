@@ -1,6 +1,6 @@
-import {Base} from "./Base";
-import {Requests} from "./Requests";
-import {TemplateEngine} from "./TemplateEngine";
+import {Base} from "./Base.js";
+import {Requests} from "./Requests.js";
+import {TemplateEngine} from "./TemplateEngine.js";
 
 export class Qlient extends Base {
 

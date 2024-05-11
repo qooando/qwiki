@@ -1,6 +1,9 @@
-import {Base} from "./Base";
-import {Requests} from "./Requests";
-// import * as handlebars from "@qlient/libs/handlebars.min-v4.7.8.js";
+import {Base} from "./Base.js";
+import {Requests} from "./Requests.js";
+import * as Handlebars from "handlebars";
+const template = Handlebars.compile("Name: {{name}}");
+console.log(template({ name: "Nils" }));
+
 export class TemplateEngine extends Base {
 
     requests = new Requests();
@@ -8,6 +11,9 @@ export class TemplateEngine extends Base {
     async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
         let templateDoc = await this.requests.readTemplate(templateName, templateComponent);
         let container = document.getElementById(elementId);
+
+        const template = Handlebars.compile("Name: {{name}}");
+        console.log(template({ name: "Nils" }));
         // FIXME use template client-side template engine ?
         // FIXME need a lot of caching to avoid too much requests ?
         // FIXME avoid to send restricted data if user has no permissions

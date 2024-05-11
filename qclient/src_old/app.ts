@@ -3,12 +3,11 @@ import {Qlient} from "@qlient/scripts/Qlient.js";
 console.log("Load client-side qwiki")
 
 declare global {
-    var $ql: Qlient
+    var $qlient: Qlient
 }
 
-$ql = new Qlient();
-$ql.boot();
+globalThis.$qlient = new Qlient();
+$qlient.boot();
 
-"before"
 
 
