@@ -6,5 +6,10 @@ module.exports = {
     // context: path.resolve(__dirname, 'app'),
     output: {
         path: path.resolve(__dirname, '../build/client'),
+    },
+    resolve: {
+        alias: {
+            "@qlient": "./"
+        }
     }
 };

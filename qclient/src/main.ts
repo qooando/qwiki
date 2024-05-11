@@ -1,12 +1,26 @@
-import * as _ from 'lodash';
+// import * as _ from 'lodash';
+//
+// function component() {
+//     const element = document.createElement('div');
+//
+//     // Lodash, now imported by this script
+//     element.innerHTML = _.join(['Hello', 'webpack'], ' ');
+//
+//     return element;
+// }
+//
+// document.body.appendChild(component());
 
-function component() {
-    const element = document.createElement('div');
+import {Qlient} from "@qlient/scripts/Qlient";
 
-    // Lodash, now imported by this script
-    element.innerHTML = _.join(['Hello', 'webpack'], ' ');
+console.log("Qlient start...")
 
-    return element;
+declare global {
+    var $qlient: Qlient
 }
 
-document.body.appendChild(component());
+globalThis.$qlient = new Qlient();
+$qlient.boot();
+
+
+
