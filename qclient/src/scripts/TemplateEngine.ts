@@ -9,6 +9,12 @@ export class TemplateEngine extends Base {
 
     requests = new Requests();
 
+    postConstruct() {
+        Handlebars.registerHelper('loud', function (aString) {
+            return aString.toUpperCase()
+        })
+    }
+
     async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
         let templateDoc = await this.requests.readTemplate(templateName, templateComponent);
         let container = document.getElementById(elementId);

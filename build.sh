@@ -13,3 +13,9 @@ cd qclient || exit 1
 chmod +x ./build.sh
 ./build.sh
 )
+
+(
+cd data || exit 1
+chmod +x ./build.sh
+./build.sh
+)

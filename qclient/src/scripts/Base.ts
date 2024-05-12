@@ -3,6 +3,10 @@ export class Base {
 
     constructor() {
         this.log = console
+
+        if ((this as any).postConstruct) {
+            (this as any).postConstruct()
+        }
     }
 
 }
