@@ -1,46 +1,43 @@
 import {Base} from "./Base.js";
 import {Requests} from "./Requests.js";
 import * as Handlebars from "handlebars";
-
-const template = Handlebars.compile("Name: {{name}}");
-console.log(template({name: "Nils"}));
+import {replaceOnPromise} from "./snippets/replaceOnPromise.js";
 
 export class TemplateEngine extends Base {
 
     requests = new Requests();
 
     postConstruct() {
-        Handlebars.registerHelper('loud', function (aString) {
-            return aString.toUpperCase()
+        const self = this;
+        Handlebars.registerHelper('include', function (templateComponent) {
+            // NOTE: this is the current context
+            return replaceOnPromise(() => self.renderTemplateComponent(this.template.name, templateComponent));
         })
     }
 
-    async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
-        let templateDoc = await this.requests.readTemplate(templateName, templateComponent);
-        let container = document.getElementById(elementId);
-        let content = this.render(templateDoc.content, {
-            title: "My title"
-        });
+    async getTemplateComponent(templateName: string, templateComponent: string) {
+        const templateDoc = await this.requests.readTemplate(templateName, templateComponent);
+        const content = templateDoc.content;
+        return Handlebars.compile(content);
+    }
 
-        // const template = Handlebars.compile("Name: {{name}}");
-        // console.log(template({ name: "Nils" }));
+    async renderTemplateComponent(templateName: string, templateComponent: string) {
+        const template = await this.getTemplateComponent(templateName, templateComponent);
+        return template({
+            template: {
+                name: templateName,
+                component: templateComponent
+            }
+        });
+    }
+
+    async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
+        const content = await this.renderTemplateComponent(templateName, templateComponent);
+        const container = document.getElementById(elementId);
+        container.innerHTML = content
         // FIXME use template client-side template engine ?
         // FIXME need a lot of caching to avoid too much requests ?
         // FIXME avoid to send restricted data if user has no permissions
-        container.innerHTML = content
-    }
-
-    render(content: string, context: any) {
-        const template = Handlebars.compile(content);
-        let result = template(context);
-        // FIXME implement rendering
-        // FIXME leverage https://handlebarsjs.com/ ?
-        // FIXME furthermore, accept AST and convert them to the correct required output ?
-        //      maybe --> for content wiki documents only, not for the whole application
-
-        // NOTE: rendering may involve further requests of other templates, etc...
-        // return content;
-        return result;
     }
 
 }
