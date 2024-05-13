@@ -1,25 +1,15 @@
 import * as uuid from "uuid";
+import * as Handlebars from "handlebars";
 
-// function onReady(callback: () => void): void {
-//     if (document.readyState !== 'loading') {
-//         callback();
-//     } else {
-//         document.addEventListener('DOMContentLoaded', callback);
-//     }
-// }
-//
-// onReady(() => {
-// // Your code here
-// });
-
-export function replaceOnPromise(call: () => Promise<string>): string {
-    let uniqueId = uuid.v4();
-    document.addEventListener('DOMContentLoaded', event => {
-        console.log("DOMContentLoaded", event);
-        call().then((content) => {
-            console.log("DOMContentLoaded 2", event);
+export function replaceOnPromise(promiseSupplier: () => Promise<string>): Handlebars.SafeString {
+    const uniqueId = uuid.v4();
+    const eventName = `replace_${uniqueId}`;
+    document.addEventListener(eventName, event => {
+        promiseSupplier().then((content) => {
             document.getElementById(uniqueId).outerHTML = content;
         }) // FIXME on error ?
     });
-    return `<div id="${uniqueId}"></div>`
+    // leverage the execCustomHooks() in TemplateEngine
+    const html = `<div id=${uniqueId} dispatchEvent="${eventName}"></div>`
+    return new Handlebars.SafeString(html);
 }
