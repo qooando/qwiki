@@ -60,7 +60,7 @@ export class WikiController extends ExpressController {
             }
         )
 
-        app.put("/api/wiki/:wikiName/:documentId(.*)",
+        app.put("/api/wiki/:wikiName/:documentId",
             this.openapi.middleware.path({
                 responses: {
                     200: {
@@ -86,7 +86,7 @@ export class WikiController extends ExpressController {
             }
         )
 
-        app.get("/api/templates/:templateName/:componentPath",
+        app.get("/api/templates/:templateName/:componentPath([{}a-zA-Z_\\-.\\\\\/]+)",
             this.openapi.middleware.path({
                 summary: "Get a template file",
                 parameters: [

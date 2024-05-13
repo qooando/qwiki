@@ -3,6 +3,9 @@
 set -e
 echo "Copy data"
 
-OUTDIR=../build/server/data
-mkdir -p "$OUTDIR"
-cp -vr ./* $OUTDIR/
+DIST_OUTDIR=../build/server/data
+mkdir -p "$DIST_OUTDIR"
+
+npx sass ./
+find . -type f -regextype posix-extended -not -regex '^.*\.scss$' -exec cp -v --parents {} "$DIST_OUTDIR/" \;
+

@@ -1,0 +1,24 @@
+{
+  "name": "qlient",
+  "version": "1.0.0",
+  "description": "Default data for qwiki",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "sh build.sh",
+    "dev": "cd .. && sh start.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qooando/qwiki.git"
+  },
+  "author": "Qooando",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/qooando/qwiki/issues"
+  },
+  "homepage": "https://github.com/qooando/qwiki#readme",
+  "devDependencies": {
+    "sass": "^1.77.1"
+  }
+}

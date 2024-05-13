@@ -76,6 +76,16 @@ export class TemplateEngine extends Base {
         await this.execCustomHooks(elementId);
     }
 
+    async includeTemplateComponentAsStyle(templateName: string, templateComponent: string) {
+        const content = await this.renderTemplateComponent(templateName, templateComponent);
+        const styles = document.createElement('style');
+        // styles.type="text/css";
+        // styles.rel="stylesheet";
+        styles.innerHTML = content;
+        // styles.href="./css/style.css";
+        document.head.appendChild(styles);
+    }
+
     async execCustomHooks(rootElementId: string = undefined) {
         /*
          injected scripts don't run, nor events are dispatched

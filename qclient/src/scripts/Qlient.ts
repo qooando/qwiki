@@ -39,6 +39,11 @@ export class Qlient extends Base {
             pass content to template engine
             render as... html
          */
+        await this.templateEngine.includeTemplateComponentAsStyle(
+            this.config.template.name,
+            "css/main.css"
+        )
+
         await this.templateEngine.renderTemplateComponentToElement(
             this.config.template.name,
             "main.html",
