@@ -28,7 +28,7 @@ export class Requests extends Base {
         // FIXME
     }
 
-    async readDocument(identifier: string): Promise<WikiDocumentDto> {
+    async getDocument(identifier: string): Promise<WikiDocumentDto> {
         let url = this.makeURL(`/wiki/${identifier}`);
         return await this.request(url, {
             method: "GET"
@@ -41,7 +41,14 @@ export class Requests extends Base {
         // FIXME
     }
 
-    async readTemplate(templateName: string, componentPath: string): Promise<WikiDocumentDto> {
+    async readTemplate(templateName: string, componentPath: string): Promise<Response> {
+        let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
+        return await this.request(url, {
+            method: "GET"
+        })
+    }
+
+    async readTemplateDocument(templateName: string, componentPath: string): Promise<WikiDocumentDto> {
         let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
         return await this.request(url, {
             method: "GET"

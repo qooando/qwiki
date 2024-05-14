@@ -30,9 +30,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:zoom="6.1118384"
-     inkscape:cx="58.247613"
-     inkscape:cy="194.94953"
+     inkscape:zoom="3.0559192"
+     inkscape:cx="28.142105"
+     inkscape:cy="70.846114"
      inkscape:window-width="1920"
      inkscape:window-height="1054"
      inkscape:window-x="0"
@@ -97,7 +97,10 @@
        y="125.75275" />
     <g
        id="g19064"
-       transform="matrix(1.0543399,0,0,1.0543399,-4.5655716,-7.1254182)">
+       transform="matrix(1.0543399,0,0,1.0543399,-4.5655716,-7.1254182)"
+       inkscape:export-filename="/home/user/qooando/projects/qwiki/data/templates/default/img/logo.png"
+       inkscape:export-xdpi="912.41534"
+       inkscape:export-ydpi="912.41534">
       <circle
          style="font-variation-settings:normal;opacity:1;fill:none;fill-opacity:1;stroke:#fe0000;stroke-width:1.36488;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;stop-color:#000000;stop-opacity:1"
          id="path17630"

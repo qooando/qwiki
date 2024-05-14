@@ -3,12 +3,10 @@ import {Requests} from "./Requests.js";
 import * as Handlebars from "handlebars";
 import {replaceOnPromise} from "./snippets/replaceOnPromise.js";
 
-export enum PartialNames {
-    INCLUDE = "include"
-}
-
 export enum HelperNames {
-    INCLUDE = "include"
+    INCLUDE = "include",
+    INCLUDE_STYLE = "include_style",
+    INCLUDE_IMAGE = "includ_image",
 }
 
 export class TemplateEngine extends Base {
@@ -20,11 +18,25 @@ export class TemplateEngine extends Base {
 
         // {{ include "test.html" }}
         Handlebars.registerHelper(HelperNames.INCLUDE, function (component) {
+            console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
             // NOTE: this is the current context
             const parentCtx = this;
             return replaceOnPromise(async function (): Promise<string> {
-                return await templateEngine.renderTemplateComponent(parentCtx.template.name, component);
+                return await templateEngine.renderTemplateText(parentCtx.template.name, component);
             });
+        })
+
+        // {{ include_style "main.css" }}
+        Handlebars.registerHelper(HelperNames.INCLUDE_STYLE, function (component) {
+            console.assert(component, `handlebars helper ${HelperNames.INCLUDE_STYLE}, argument not specified`);
+            // NOTE: this is the current context
+            const parentCtx = this;
+            templateEngine.includeTemplateComponentAsStyle(parentCtx.template.name, component);
+            return null;
+            // return
+            // return replaceOnPromise(async function (): Promise<string> {
+            //     return await templateEngine.renderTemplateComponent(parentCtx.template.name, component);
+            // });
         })
 
         // // {{ include component="test.html" }}
@@ -50,13 +62,22 @@ export class TemplateEngine extends Base {
     }
 
     async getTemplateComponent(templateName: string, templateComponent: string) {
-        const templateDoc = await this.requests.readTemplate(templateName, templateComponent);
+        return await this.requests.readTemplate(templateName, templateComponent); // FIXME read files from template directly
+    }
+
+    async getTemplateText(templateName: string, templateComponent: string) {
+        console.assert(templateName);
+        console.assert(templateComponent);
+        const templateDoc = await this.requests.readTemplateDocument(templateName, templateComponent);
         const content = templateDoc.content;
+        console.assert(content);
         return Handlebars.compile(content);
     }
 
-    async renderTemplateComponent(templateName: string, templateComponent: string) {
-        const template = await this.getTemplateComponent(templateName, templateComponent);
+    async renderTemplateText(templateName: string, templateComponent: string) {
+        console.assert(templateName);
+        console.assert(templateComponent);
+        const template = await this.getTemplateText(templateName, templateComponent);
         return template({
             template: {
                 name: templateName,
@@ -66,7 +87,7 @@ export class TemplateEngine extends Base {
     }
 
     async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {
-        const content = await this.renderTemplateComponent(templateName, templateComponent);
+        const content = await this.renderTemplateText(templateName, templateComponent);
         const container = document.getElementById(elementId);
         container.innerHTML = content
         // FIXME use template client-side template engine ?
@@ -77,7 +98,7 @@ export class TemplateEngine extends Base {
     }
 
     async includeTemplateComponentAsStyle(templateName: string, templateComponent: string) {
-        const content = await this.renderTemplateComponent(templateName, templateComponent);
+        const content = await this.renderTemplateText(templateName, templateComponent);
         const styles = document.createElement('style');
         // styles.type="text/css";
         // styles.rel="stylesheet";

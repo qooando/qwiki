@@ -22,27 +22,20 @@ export class Qlient extends Base {
 
     async getConfig() {
         let wikiname = "default"
-        let doc = await this.requests.readDocument(`${wikiname}/wiki.json`);
+        let doc = await this.requests.getDocument(`${wikiname}/wiki.json`);
         if (doc)
             return doc.content;
     }
 
     async getRawTemplate() {
-        return await this.requests.readDocument(this.config.qlient.template.templateDocumentId)
+        return await this.requests.getDocument(this.config.qlient.template.templateDocumentId)
     }
 
     async refresh() {
-        /*
-            load template
-            read url #/path
-            ask to backend the /path
-            pass content to template engine
-            render as... html
-         */
-        await this.templateEngine.includeTemplateComponentAsStyle(
-            this.config.template.name,
-            "css/main.css"
-        )
+        // await this.templateEngine.includeTemplateComponentAsStyle(
+        //     this.config.template.name,
+        //     "css/main.css"
+        // )
 
         await this.templateEngine.renderTemplateComponentToElement(
             this.config.template.name,
