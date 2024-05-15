@@ -8,35 +8,36 @@ import {Value} from "@qwiki/core/beans/Value";
 import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
-import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
+import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
+import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
 
-export class JsonProvider extends DocumentProvider {
+export class BlobProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
 
     supportedProtocols = [
-        "json"
+        "blob"
     ];
 
     supportedMimetypes = [
-        "application/json"
+        "application/octet-stream"
     ]
 
     async read(url: PermissiveURL): Promise<WikiDocument> {
         let contentPath = url.path;
         let rawContent = await this.storageService.read(contentPath);
-        let content = JSON.parse(rawContent);
-        let doc = new WikiDocument(content);
+        let doc = new WikiDocument({content: rawContent});
         // FIXME some metadata should be filled here
         return doc;
     }
 
     async write(url: PermissiveURL, document: WikiDocument): Promise<void> {
-        let contentPath = url.path;
-        let rawContent = JSON.stringify({
-            metadata: document.metadata, // FIXME some metadata should be filled here
-            content: document.content
-        })
-        await this.storageService.write(contentPath, rawContent)
+        throw new NotImplementedException();
+        // let contentPath = url.path;
+        // let rawContent = JSON.stringify({
+        //     metadata: document.metadata, // FIXME some metadata should be filled here
+        //     content: document.content
+        // })
+        // await this.storageService.write(contentPath, rawContent)
     }
 
 }

@@ -12,7 +12,7 @@ import {mime} from "@qwiki/core/utils/Mime";
 import {MediaType} from "@qwiki/core/utils/MediaTypes";
 import {YamlProvider} from "@qwiki/modules/wiki/providers/YamlProvider";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
-import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
+import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
 
 export class WikiDocumentProvider extends DocumentProvider {

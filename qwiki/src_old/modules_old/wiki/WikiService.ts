@@ -10,7 +10,7 @@ import {
     WikiDocumentIOException,
     WikiDocumentProcessingException
 } from "@qwiki/modules/wiki/WikiExceptions";
-import {PermissiveURL} from "@qwiki/modules/storage/models/PermissiveURL";
+import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
 
 export class WikiService extends Base {
     static __bean__: __Bean__ = {}
