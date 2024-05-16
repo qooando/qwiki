@@ -4,19 +4,22 @@ import {RepositoryQuery} from "@qwiki/modules/persistence/query/RepositoryQuery"
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
 import {Bean} from "@qwiki/core/beans/Bean";
 import {BeanScope} from "@qwiki/core/beans/BeanUtils";
+import {Value} from "@qwiki/core/beans/Value";
 
 export class FileRepository extends Repository {
     static __bean__: __Bean__ = {
         scope: BeanScope.PROTOTYPE
     };
 
-    config: any;
+    basePath: string = Value("qwiki.persistence.config.basePath", "./repository");
 
-    constructor(config: any) {
+    constructor() {
         super();
-        this.config = config;
     }
 
+    async postConstruct() {
+        this.log.debug(`${this.constructor.name}: ${this.basePath}`);
+    }
 
     async find(query: RepositoryQuery): Promise<any[]> {
         throw new NotImplementedException();

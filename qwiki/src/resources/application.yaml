@@ -13,7 +13,8 @@ qwiki:
       port: 8080
   persistence:
     bean: FileRepository
-
+    config:
+      basePath: "./data"
 #  wiki:
 #    servers:
 #      - wiki
