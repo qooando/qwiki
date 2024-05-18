@@ -29,7 +29,7 @@ describe("Configuration beans", () => {
         await q.boot(config)
         let m = q._moduleManager;
         expect(m.beans.get("Foo").size()).toBe(1)
-        let b: any = await m.getBeanInstance("Foo");
+        let b: any = await m.getBeanInstances("Foo");
         expect(b.foo).toBe("Hello World!")
     })
 
@@ -49,7 +49,7 @@ describe("Configuration beans", () => {
         await q.boot(config)
         let m = q._moduleManager;
         expect(m.beans.get("Bar").size()).toBe(1)
-        let b: any = await m.getBeanInstance("Bar");
+        let b: any = await m.getBeanInstances("Bar");
         expect(b.bar).toBe("Hello Bob!")
     })
 })

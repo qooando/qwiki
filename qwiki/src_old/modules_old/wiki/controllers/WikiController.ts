@@ -8,7 +8,7 @@ import {Express} from "express";
 import * as express from "express";
 import * as fs from "node:fs";
 import {WikiService} from "@qwiki/modules/wiki/WikiService";
-import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
+import {PermissiveURL} from "../../persistence/models/PermissiveURL";
 
 // var express = require('express')
 

@@ -1,7 +1,7 @@
 import {Strings} from "@qwiki/core/utils/Strings";
 import {BeanConstants, BeanUtils} from "@qwiki/core/beans/BeanUtils";
 import {assert} from "@qwiki/core/utils/common";
-import {BeanFactoryOptions} from "@qwiki/core/beans/ModuleManager";
+import {FindBeanOptions} from "@qwiki/core/beans/ModuleManager";
 import {ClassConstructor, FilterFunction, KeyFunction} from "@qwiki/core/utils/Types";
 import {Bean} from "@qwiki/core/beans/Bean";
 
@@ -10,7 +10,7 @@ export enum AutowireResolveKind {
     AS_INSTANCE,
 }
 
-export interface AutowiredPlaceholderOptions extends BeanFactoryOptions {
+export interface AutowiredPlaceholderOptions extends FindBeanOptions {
     resolveAs?: AutowireResolveKind
 }
 
@@ -30,10 +30,10 @@ export class AutowiredPlaceholder<T> {
     async resolve(): Promise<any> {
         switch (this.options.resolveAs) {
             case AutowireResolveKind.AS_CLASS:
-                return await $qw._moduleManager.getBeanClass(this.beanIdentifier, this.options);
+                return await $qw._moduleManager.findBeans(this.beanIdentifier, this.options);
             case AutowireResolveKind.AS_INSTANCE:
             default:
-                return await $qw._moduleManager.getBeanInstance(this.beanIdentifier, this.options);
+                return await $qw._moduleManager.getBeanInstances(this.beanIdentifier, this.options);
         }
     }
 }

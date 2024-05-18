@@ -1,4 +1,4 @@
-import {ExpressController} from "@qwiki/modules/express/ExpressController";
+import {ExpressController} from "../ExpressController";
 import {Express} from "express";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {assert, require} from "@qwiki/core/utils/common";

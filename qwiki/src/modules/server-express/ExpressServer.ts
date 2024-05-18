@@ -1,10 +1,10 @@
 import {Server} from "@qwiki/modules/server/Server";
 import * as http from "node:http";
 import {Express} from "express";
-import {ExpressController} from "@qwiki/modules/express/ExpressController";
+import {ExpressController} from "./ExpressController";
 import {require} from "@qwiki/core/utils/common";
 import {Autowire} from "@qwiki/core/beans/Autowire";
-import {ExpressAdvisor} from "@qwiki/modules/express/ExpressAdvisor";
+import {ExpressAdvisor} from "./ExpressAdvisor";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {BeanScope} from "@qwiki/core/beans/BeanUtils";
 

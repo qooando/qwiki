@@ -1,9 +1,9 @@
-import {ExpressController} from "@qwiki/modules/express/ExpressController";
+import {ExpressController} from "../ExpressController";
 import {Express} from "express";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {assert, require} from "@qwiki/core/utils/common";
-import {OpenApiMiddleware} from "@qwiki/modules/express/middleware/OpenApiMiddleware";
+import {OpenApiMiddleware} from "../middleware/OpenApiMiddleware";
 import {BeanPriority} from "@qwiki/core/beans/BeanUtils";
 
 export class HealthzController extends ExpressController {

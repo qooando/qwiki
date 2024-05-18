@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
-import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
+import {PermissiveURL} from "../persistence/models/PermissiveURL";
 
 export class DocumentProvider extends Base {
 

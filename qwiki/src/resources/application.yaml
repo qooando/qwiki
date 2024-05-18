@@ -5,8 +5,10 @@ qwiki:
       - "./core/**/*.js"
       - "./modules/configuration/**/*.js"
       - "./modules/server/**/*.js"
-      - "./modules/express/**/*.js"
+      - "./modules/server-express/**/*.js"
       - "./modules/persistence/**/*.js"
+      #      - "./modules/persistence-mongodb/**/*.js"
+      - "./modules/persistence-tingodb/**/*.js"
       - "./resources/**/*.json"
       - "./resources/**/*.yaml"
   servers:
@@ -18,17 +20,17 @@ qwiki:
     kind: File
     config:
       basePath: "./data"
-#  wiki:
-#    servers:
-#      - wiki
-#    staticFiles:
-#      localPath: "../client"
-#    storages:
-#      defaultProtocol: file
-#      protocols:
-#        file:
-#          searchPaths:
-#            - "./data"
+  #  wiki:
+  #    servers:
+  #      - wiki
+  #    staticFiles:
+  #      localPath: "../client"
+  #    storages:
+  #      defaultProtocol: file
+  #      protocols:
+  #        file:
+  #          searchPaths:
+  #            - "./data"
 
   #    policies:
   #      # specify default missing provider policy

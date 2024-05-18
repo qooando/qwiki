@@ -20,7 +20,7 @@ import {ClassConstructor, FilterFunction, KeyFunction} from "@qwiki/core/utils/T
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export interface BeanFactoryOptions {
+export interface FindBeanOptions {
     isOptional?: boolean,
     asList?: boolean,
     asMap?: boolean,
@@ -58,12 +58,12 @@ export class ModuleManager extends Base {
         $qw.on(
             Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(ModuleScanner)),
             async (ctx: EventContext, bean: Bean, instance: ModuleScanner) => {
-                await self.addScanner(instance);
+                await self.registerScanner(instance);
             }
         );
 
         // manual bootstrap
-        await this.addBeans(
+        await this.registerBeans(
             [
                 new Bean(JavascriptScanner),
                 // new Bean(TypescriptScanner),
@@ -73,7 +73,7 @@ export class ModuleManager extends Base {
 
         // load all files from search paths using the loader
         await $qw.emit(EventNames.MODULES_BEFORE_LOAD)
-        await this.loadBeansFromPaths(this.config.searchPaths);
+        await this.registerBeansFromPaths(this.config.searchPaths);
         await $qw.emit(EventNames.MODULES_AFTER_LOAD)
     }
 
@@ -81,7 +81,7 @@ export class ModuleManager extends Base {
      * @param identifier
      * @param options
      */
-    async getBeanClass(identifier: ClassConstructor<any> | string, options: BeanFactoryOptions = {}): Promise<any> {
+    async findBeans(identifier: ClassConstructor<any> | string, options: FindBeanOptions = {}): Promise<any> {
         assert(identifier)
 
         const isOptional = options.isOptional ?? false;
@@ -155,7 +155,7 @@ export class ModuleManager extends Base {
      * @param identifier
      * @param options
      */
-    async getBeanInstance(identifier: ClassConstructor<any> | string, options: BeanFactoryOptions = {}): Promise<any> {
+    async getBeanInstances(identifier: ClassConstructor<any> | string, options: FindBeanOptions = {}): Promise<any> {
         assert(identifier)
 
         const isOptional = options.isOptional ?? false;
@@ -229,8 +229,8 @@ export class ModuleManager extends Base {
         throw new Error(`Invalid branch. This code should never execute.`)
     }
 
-    async addBeans(descriptors: Bean[], initialize: boolean = false) {
-        return Promise.all(descriptors.map(bean => this.addBean(bean, initialize)));
+    async registerBeans(descriptors: Bean[], initialize: boolean = false) {
+        return Promise.all(descriptors.map(bean => this.registerBean(bean, initialize)));
     }
 
     /**
@@ -240,7 +240,7 @@ export class ModuleManager extends Base {
      * @param descriptor
      * @param initialize
      */
-    async addBean(descriptor: Bean, initialize: boolean = false) {
+    async registerBean(descriptor: Bean, initialize: boolean = false) {
         assert(descriptor);
         assert(this.beans);
         assert(descriptor.clazz);
@@ -273,7 +273,7 @@ export class ModuleManager extends Base {
     /**
      * @param scanner
      */
-    async addScanner(scanner: ModuleScanner): Promise<ModuleScanner> {
+    async registerScanner(scanner: ModuleScanner): Promise<ModuleScanner> {
         assert(scanner)
         scanner.supportedExtensions.forEach((extension: string) => {
             this.log.debug(`Add scanner: ${extension} → ${scanner.constructor.name}`);
@@ -295,7 +295,7 @@ export class ModuleManager extends Base {
      * @param scanners
      * @private
      */
-    async loadBeansFromPaths(searchPaths: string[] = undefined, scanners: ModuleScanner[] = undefined): Promise<Bean[]> {
+    async registerBeansFromPaths(searchPaths: string[] = undefined, scanners: ModuleScanner[] = undefined): Promise<Bean[]> {
         searchPaths ??= this.config.searchPaths;
         scanners ??= Array.from(this.scanners.values());
         searchPaths = searchPaths.map(x => x.startsWith("/") ? x : path.join(__dirname, "..", "..", x));
@@ -319,8 +319,9 @@ export class ModuleManager extends Base {
             )
                 .then(b => b.flatMap(x => x))
                 .then(b => b.filter(x => !this.beans.has(x.name)))
+                .then(b => b.filter(x => x.loadCondition ? x.loadCondition() : true))
                 .then(b => Arrays.distincts(b, BeanUtils.compareName))
-                .then(b => this.addBeans(b)); // NOTE, from here on beans are available to others for autowiring
+                .then(b => this.registerBeans(b)); // NOTE, from here on beans are available to others for autowiring
             depGraph.addBeans(newCandidateBeans, true);
             candidateBeans.push(...newCandidateBeans);
 

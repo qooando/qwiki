@@ -32,7 +32,7 @@ describe("Conversion service", () => {
         expect($qw._moduleManager.hasBean("ConversionService")).toBeTruthy()
         expect($qw._moduleManager.hasBean("FooToBarConverter")).toBeTruthy()
 
-        let conversionService: ConversionService = await $qw._moduleManager.getBeanInstance("ConversionService");
+        let conversionService: ConversionService = await $qw._moduleManager.getBeanInstances("ConversionService");
         let foo = new Foo("Hello world!");
         let bar = conversionService.convert(foo, Bar);
         expect(bar.bar).toBe("Hello world!");
@@ -57,7 +57,7 @@ describe("Conversion service", () => {
         expect($qw._moduleManager.beans.get("FooToBarConverter").size()).toBe(1)
         expect($qw._moduleManager.beans.get("FooToBarConverter").top().instances.length).toBe(1)
 
-        let conversionService: ConversionService = await $qw._moduleManager.getBeanInstance("ConversionService");
+        let conversionService: ConversionService = await $qw._moduleManager.getBeanInstances("ConversionService");
         let foo = new Foo("Hello world!");
         let bar = conversionService.convert(foo, Bar);
         expect(bar.bar).toBe("Hello world!");

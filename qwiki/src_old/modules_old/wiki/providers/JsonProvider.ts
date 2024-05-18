@@ -8,7 +8,7 @@ import {Value} from "@qwiki/core/beans/Value";
 import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
-import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
+import {PermissiveURL} from "../../persistence/models/PermissiveURL";
 
 export class JsonProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};

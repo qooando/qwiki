@@ -1,10 +1,10 @@
-import {__Bean__} from "@qwiki/core/beans/__Bean__";
-import {Repository, AbstractRepositoryFactory} from "@qwiki/modules/persistence/models/Repository";
-import {RepositoryQuery} from "@qwiki/modules/persistence/query/RepositoryQuery";
-import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
-import {Bean} from "@qwiki/core/beans/Bean";
-import {BeanScope} from "@qwiki/core/beans/BeanUtils";
-import {Value} from "@qwiki/core/beans/Value";
+import {__Bean__} from "../../../src/core/beans/__Bean__";
+import {Repository, AbstractRepositoryFactory} from "./models/Repository";
+import {RepositoryQuery} from "./query/RepositoryQuery";
+import {NotImplementedException} from "../../../src/core/utils/Exceptions";
+import {Bean} from "../../../src/core/beans/Bean";
+import {BeanScope} from "../../../src/core/beans/BeanUtils";
+import {Value} from "../../../src/core/beans/Value";
 
 export class FileRepository extends Repository {
     static __bean__: __Bean__ = {

@@ -37,7 +37,7 @@ describe("Module manager", () => {
         await q.boot(config)
         let m = new ModuleManager();
         let d = new Bean(Foo, "myFoo");
-        m.addBean(d)
+        m.registerBean(d)
         expect(m.beans.size).toBe(2)
         expect(m.beans.get("class:Foo").size()).toBe(1)
         expect(m.beans.get("myFoo").size()).toBe(1)
@@ -93,7 +93,7 @@ describe("Module manager", () => {
         expect(m.beans.has("class:Parking")).toBeTruthy();
         expect(m.beans.has("group:myOldCars")).toBeTruthy();
         expect(m.beans.has("class:Car")).toBeTruthy();
-        let p: Parking = await m.getBeanInstance(Parking);
+        let p: Parking = await m.getBeanInstances(Parking);
         expect(p.panda.name).toBe("Panda");
         expect(p.punto.name).toBe("Punto");
         expect(p.myOldCars.length).toBe(1);
@@ -117,7 +117,7 @@ describe("Module manager", () => {
         await q.boot(config)
         let m = q._moduleManager;
         expect(m.beans.has("Car")).toBeTruthy();
-        let c: Car = await m.getBeanInstance("Car");
+        let c: Car = await m.getBeanInstances("Car");
         expect(c.model).toBe("Panda");
     })
 
@@ -147,7 +147,7 @@ describe("Module manager", () => {
         await q.boot(config)
         let m = q._moduleManager;
         expect(m.beans.has("Car")).toBeTruthy();
-        let c: Car = await m.getBeanInstance("Car");
+        let c: Car = await m.getBeanInstances("Car");
         expect(c.model).toBe("Panda");
         expect(content.carModel).toBe("Panda")
     })

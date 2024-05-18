@@ -6,24 +6,22 @@ import {Objects} from "../utils/Objects";
 import {getValueFields, ValuePlaceholder} from "@qwiki/core/beans/Value";
 import {assert} from "@qwiki/core/utils/common";
 import {RuntimeException} from "@qwiki/core/utils/Exceptions";
+import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
-export class Bean {
+export class Bean implements __Bean__ {
     name: string;
-    clazz: any;
     groups: Array<string>;
     priority: number;
-    scope: BeanScope;
     instances: Array<any>;
     dependsOn: Array<string>;
+    loadCondition: () => boolean;
+
+    clazz: any;
+    scope: BeanScope;
     path: string;
 
     constructor(
         clazz: any,
-        name: string = undefined,
-        groups: string[] = undefined,
-        scope: BeanScope = undefined,
-        priority: number = undefined,
-        dependsOn: string[] = undefined,
         path: string = undefined
     ) {
         assert(clazz);
@@ -31,13 +29,16 @@ export class Bean {
         const beanConfig = clazz[BEAN_FIELD_NAME] ??= {};
 
         this.clazz = clazz;
-        this.name = name ?? beanConfig.name ?? clazz.name;
-        this.groups = groups ?? beanConfig.groups ?? [];
-        this.scope = scope ?? beanConfig.scope ?? BeanScope.SINGLETON;
-        this.priority = priority ?? beanConfig.priority ?? 0;
-        this.dependsOn = dependsOn ?? beanConfig.dependsOn ?? [];
         this.instances = []
         this.path = path;
+
+        Object.assign(this, {
+            name: clazz.name,
+            groups: [],
+            scope: BeanScope.SINGLETON,
+            priority: 0,
+            dependsOn: []
+        }, beanConfig)
 
         // search autowired fields in clazz and add bean names as dependencies
         this.dependsOn.push(...
@@ -46,6 +47,10 @@ export class Bean {
         )
     }
 
+    /**
+     * Return a list of all string identifiers the bean can be referenced
+     * e.g. its name, its class name, ...
+     */
     getAllIdentifiers() {
         return [
             this.name,
@@ -55,6 +60,11 @@ export class Bean {
         ]
     }
 
+    /**
+     * Get an instance of this bean
+     *
+     * @param defaultConstructorArguments
+     */
     async getInstance(...defaultConstructorArguments: any[]) {
         try {
             if (this.scope === BeanScope.SINGLETON &&

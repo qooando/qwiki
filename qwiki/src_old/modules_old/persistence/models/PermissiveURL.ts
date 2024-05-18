@@ -1,4 +1,4 @@
-import {NotImplementedException, RuntimeException} from "@qwiki/core/utils/Exceptions";
+import {NotImplementedException, RuntimeException} from "../../../../src/core/utils/Exceptions";
 
 export class PermissiveURL {
 

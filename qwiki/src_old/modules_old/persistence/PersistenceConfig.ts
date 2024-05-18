@@ -1,9 +1,9 @@
-import {Base} from "@qwiki/core/base/Base";
-import {__Bean__} from "@qwiki/core/beans/__Bean__";
-import {AutowireFactory} from "@qwiki/core/beans/Autowire";
-import {Repository} from "@qwiki/modules/persistence/models/Repository";
-import {Value} from "@qwiki/core/beans/Value";
-import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
+import {Base} from "../../../src/core/base/Base";
+import {__Bean__} from "../../../src/core/beans/__Bean__";
+import {AutowireFactory} from "../../../src/core/beans/Autowire";
+import {Repository} from "./models/Repository";
+import {Value} from "../../../src/core/beans/Value";
+import {NotImplementedException} from "../../../src/core/utils/Exceptions";
 
 
 export class PersistenceConfig extends Base {

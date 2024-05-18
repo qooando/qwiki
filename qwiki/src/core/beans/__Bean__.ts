@@ -5,6 +5,7 @@ export interface __Bean__ {
     groups?: Array<string>;
     priority?: number;
     scope?: BeanScope;
-    dependsOn?: Array<string>
+    dependsOn?: Array<string>;
+    loadCondition?: () => boolean;
 }
 

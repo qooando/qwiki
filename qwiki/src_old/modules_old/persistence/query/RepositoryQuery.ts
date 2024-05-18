@@ -1,4 +1,4 @@
-import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
+import {NotImplementedException} from "../../../../src/core/utils/Exceptions";
 
 export class RepositoryQuery {
 

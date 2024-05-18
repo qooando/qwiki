@@ -1,7 +1,7 @@
 import * as uuid from "uuid";
-import {RepositoryQuery} from "@qwiki/modules/persistence/query/RepositoryQuery";
-import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
-import {Base} from "@qwiki/core/base/Base";
+import {RepositoryQuery} from "../query/RepositoryQuery";
+import {NotImplementedException} from "../../../../src/core/utils/Exceptions";
+import {Base} from "../../../../src/core/base/Base";
 
 export class Repository extends Base {
 

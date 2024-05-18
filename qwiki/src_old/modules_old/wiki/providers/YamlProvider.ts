@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import * as yaml from "js-yaml";
 import {StorageService} from "@qwiki/modules/storage/StorageService";
-import {PermissiveURL} from "@qwiki/modules/persistence/models/PermissiveURL";
+import {PermissiveURL} from "../../persistence/models/PermissiveURL";
 
 export class YamlProvider extends DocumentProvider {
     static __bean__: __Bean__ = {};
