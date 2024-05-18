@@ -67,32 +67,36 @@ export class Qwiki extends Base implements Configurable {
             this.config = configPath;
             return
         }
-        let configPathCandidates = [
+        let searchConfigPaths = [
             configPath,
             process.env["QWIKICONFIG"],
             "./application.yaml",
             "../application.yaml",
             "../resources/application.yaml"
-        ]
+        ];
+        let configPathCandidates = searchConfigPaths
             .filter((x: string) => !!x)
             .map((x: string) => path.join(__dirname, x))
             .map((x: string) => {
                 try {
                     var result = fs.realpathSync(x)
-                    this.log.debug(`Config file found: ${result}`)
+                    // this.log.debug(`Config file found: ${result}`)
                     return result;
                 } catch (e) {
-                    this.log.debug(`Config file not found: ${x}`)
+                    // this.log.debug(`Config file not found: ${x}`)
                     return undefined
                 }
             })
             .filter(x => !!x)
         configPath = configPathCandidates[0];
+        if (!configPath) {
+            throw new Error(`No configuration file found: ${searchConfigPaths.join(", ")}`);
+        }
         try {
-            this.log.info(`Load config from: ${configPath}`)
+            this.log.info(`Load config from ${configPath}`)
             initializeConfigurable(this, configPath)
         } catch (e) {
-            this.log.warn(`Fail to load configuration`)
+            this.log.warn(`Fail to load configuration from ${configPath}`)
             throw e;
         }
     }

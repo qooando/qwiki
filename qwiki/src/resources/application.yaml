@@ -3,7 +3,10 @@ qwiki:
     searchPaths:
       # search paths where search for modules
       - "./core/**/*.js"
-      - "./modules/**/*.js"
+      - "./modules/configuration/**/*.js"
+      - "./modules/server/**/*.js"
+      - "./modules/express/**/*.js"
+      - "./modules/persistence/**/*.js"
       - "./resources/**/*.json"
       - "./resources/**/*.yaml"
   servers:
