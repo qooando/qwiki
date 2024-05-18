@@ -2,21 +2,22 @@ import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {EventNames} from "@qwiki/core/events/EventNames";
 import {EventContext} from "@qwiki/core/events/EventManager";
 import {Server} from "@qwiki/modules/server/Server";
-import {Autowire} from "@qwiki/core/beans/Autowire";
+import {Autowire, AutowireFactory} from "@qwiki/core/beans/Autowire";
 import {Base} from "@qwiki/core/base/Base";
 import {Value} from "@qwiki/core/beans/Value";
 import {Objects} from "@qwiki/core/utils/Objects";
-import {ServerFactory} from "@qwiki/modules/server/ServerFactory";
+// import {ServerFactory} from "@qwiki/modules/server/ServerFactory";
+import {Bean} from "@qwiki/core/beans/Bean";
 
 export class ServerConfig extends Base {
     static __bean__: __Bean__ = {}
 
     servers: Server[] = Autowire([Server]);
 
-    serverFactories: Map<string, ServerFactory> = Autowire(
-        [ServerFactory],
+    availableServers: Map<String, Bean> = AutowireFactory(
+        [Server],
         undefined,
-        (x: ServerFactory) => x.constructor.name
+        (x: Bean) => x.name
     );
 
     configServers: {} = Value("qwiki.servers")
@@ -33,15 +34,19 @@ export class ServerConfig extends Base {
             if (!serverConfig.kind) {
                 throw new Error(`Missing kind field in qwiki.servers.${serverName} config`);
             }
-            let factoryName = serverConfig.kind + "ServerFactory";
-            if (!this.serverFactories.has(factoryName)) {
-                this.log.error(`Cannot initializing server '${serverName}', factory bean not found: ${factoryName}`);
+            let kind = serverConfig.kind;
+            let candidateNames = [
+                kind,
+                kind + "Server"
+            ].filter(x => this.availableServers.has(x))
+            if (!candidateNames.length) {
+                this.log.error(`Cannot initializing server '${serverName}', bean not found: ${kind}`);
                 continue
             }
-            let factory = this.serverFactories.get(factoryName);
-            let bean = factory.newBean(serverName, serverConfig);
-            await $qw._moduleManager.addBean(bean, true);
-            this.servers.push(await bean.getInstance());
+            let factoryName = candidateNames[0];
+            let factory = this.availableServers.get(factoryName);
+            serverConfig.name = serverName;
+            this.servers.push(await factory.getInstance(serverConfig));
         }
     }
 

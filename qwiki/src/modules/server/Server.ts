@@ -4,8 +4,11 @@ import {EventContext} from "@qwiki/core/events/EventManager";
 
 export class Server extends Base {
 
-    constructor() {
+    name: string
+
+    constructor(config: any = {}) {
         super();
+        this.name = config.name ?? this.constructor.name;
     }
 
     async start(): Promise<void> {

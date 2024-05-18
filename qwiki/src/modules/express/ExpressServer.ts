@@ -5,10 +5,15 @@ import {ExpressController} from "@qwiki/modules/express/ExpressController";
 import {require} from "@qwiki/core/utils/common";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {ExpressAdvisor} from "@qwiki/modules/express/ExpressAdvisor";
+import {__Bean__} from "@qwiki/core/beans/__Bean__";
+import {BeanScope} from "@qwiki/core/beans/BeanUtils";
 
 const express = require("express");
 
 export class ExpressServer extends Server {
+    static __bean__: __Bean__ = {
+        scope: BeanScope.PROTOTYPE
+    };
 
     declare name: string;
 
@@ -35,7 +40,7 @@ export class ExpressServer extends Server {
             // this.log.debug(`${new Date().toISOString()}:     ${req.method.padEnd(7)} ${req.path}`);
             let self = this;
             const oldEnd = res.end;
-            res.on('finish', function() {
+            res.on('finish', function () {
                 let code = this.statusCode;
                 self.log.debug(`${new Date().toISOString()}: ${code} ${req.method.padEnd(7)} ${req.path}`);
             })

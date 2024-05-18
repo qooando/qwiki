@@ -55,7 +55,7 @@ export class Bean {
         ]
     }
 
-    async getInstance() {
+    async getInstance(...defaultConstructorArguments: any[]) {
         try {
             if (this.scope === BeanScope.SINGLETON &&
                 this.instances.length >= 1) {
@@ -64,7 +64,6 @@ export class Bean {
 
             // console.log(`New instance ${this.name} from ${this.path}`)
             // assumes constructor is always with no arguments
-            let defaultConstructorArguments: [] = []
             let instance: any = new this.clazz(...defaultConstructorArguments);
 
             // find autowired values and resolve them

@@ -26,6 +26,7 @@ export interface BeanFactoryOptions {
     asMap?: boolean,
     filterFun?: FilterFunction<any>,
     keyFun?: KeyFunction<any>
+    constructorArgs?: any[]
 }
 
 /**
@@ -162,6 +163,7 @@ export class ModuleManager extends Base {
         const asMap = options.asMap ?? !!options.keyFun ?? false;
         const filterFun = options.filterFun ?? ((x: any) => true);
         const keyFun = options.keyFun;
+        const constructorArgs = options.constructorArgs ?? [];
 
         if (typeof identifier !== "string") {
             identifier = BeanUtils.getBeanIdentifierFromClass(identifier);
@@ -182,17 +184,18 @@ export class ModuleManager extends Base {
         }
 
         const beansHeap = this.beans.get(identifier);
-
+        const constructorArgsIsArray = Array.isArray(constructorArgs)
         if (!asList && !asMap) {
-            return await beansHeap.top().getInstance();
+            return await (constructorArgsIsArray ? beansHeap.top().getInstance(...constructorArgs) : beansHeap.top().getInstance(constructorArgs));
         }
 
         let beans = beansHeap.toSortedArray();
         // if (filterFun) {
         //     beans = beans.filter(filterFun);
         // }
-
-        let instances = await Promise.all(beans.map(x => x.getInstance()));
+        let instances = await Promise.all(
+            beans.map(x => constructorArgs ? x.getInstance(...constructorArgs) : x.getInstance(constructorArgsIsArray))
+        );
         if (filterFun) {
             instances = instances.filter(filterFun);
         }

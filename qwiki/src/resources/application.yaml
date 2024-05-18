@@ -12,7 +12,7 @@ qwiki:
       host: 0.0.0.0
       port: 8080
   persistence:
-    bean: FileRepository
+    kind: File
     config:
       basePath: "./data"
 #  wiki:
