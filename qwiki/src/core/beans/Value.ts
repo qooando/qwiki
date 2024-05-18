@@ -21,7 +21,7 @@ export class ValuePlaceholder<T> {
             return Objects.getValue($qw.config, this.valuePath);
         } catch (e) {
             if (this.defaultValue !== undefined) {
-                $qw.log.warn(`Value not found: ${this.valuePath}, use default`)
+                // $qw.log.debug(`Value not found: ${this.valuePath}, use default`)
                 return this.defaultValue
             }
             if (this.optional) {

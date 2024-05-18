@@ -17,4 +17,20 @@ export class Objects {
         }
         return val;
     }
+
+    static getValueOrDefault(obj: any, valuePath: string, valueDefault: any = undefined) {
+        let token = valuePath.split(".").reverse();
+        let val = obj;
+        while(token.length) {
+            let propName = token.pop();
+            if (!val.hasOwnProperty(propName)) {
+                return valueDefault;
+            }
+            val = val[propName];
+        }
+        if (!val) {
+            return valueDefault;
+        }
+        return val;
+    }
 }

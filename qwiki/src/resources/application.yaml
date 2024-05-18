@@ -17,9 +17,11 @@ qwiki:
       host: 0.0.0.0
       port: 8080
   persistence:
-    kind: File
-    config:
-      basePath: "./data"
+    tingodb:
+      dbPath: "./local.nosql"
+#    mongodb:
+#      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"
+#
   #  wiki:
   #    servers:
   #      - wiki
