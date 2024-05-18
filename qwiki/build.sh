@@ -3,6 +3,8 @@
 set -e
 echo "Build Qwiki"
 
+#npm i --include=dev
+
 OUTDIR=../build/server
 mkdir -p "$OUTDIR"
 
