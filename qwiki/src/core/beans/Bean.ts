@@ -21,7 +21,7 @@ export class Bean {
         clazz: any,
         name: string = undefined,
         groups: string[] = undefined,
-        scope: BeanScope = BeanScope.SINGLETON,
+        scope: BeanScope = undefined,
         priority: number = undefined,
         dependsOn: string[] = undefined,
         path: string = undefined
@@ -41,7 +41,7 @@ export class Bean {
 
         // search autowired fields in clazz and add bean names as dependencies
         this.dependsOn.push(...
-            getAutowiredFields(new clazz())
+            getAutowiredFields(Object.create(clazz))
                 .map(x => x[1].beanIdentifier)
         )
     }
@@ -63,7 +63,6 @@ export class Bean {
             }
 
             // console.log(`New instance ${this.name} from ${this.path}`)
-            // assumes constructor is always with no arguments
             let instance: any = new this.clazz(...defaultConstructorArguments);
 
             // find autowired values and resolve them

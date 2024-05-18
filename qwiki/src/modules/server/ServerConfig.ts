@@ -12,7 +12,7 @@ import {Bean} from "@qwiki/core/beans/Bean";
 export class ServerConfig extends Base {
     static __bean__: __Bean__ = {}
 
-    servers: Server[] = Autowire([Server]);
+    servers: Server[] = []; //Autowire([Server]);
 
     availableServers: Map<String, Bean> = AutowireFactory(
         [Server],
@@ -46,14 +46,16 @@ export class ServerConfig extends Base {
             let factoryName = candidateNames[0];
             let factory = this.availableServers.get(factoryName);
             serverConfig.name = serverName;
+            this.log.debug(`Add server: ${serverName} -> ${factoryName}`)
             this.servers.push(await factory.getInstance(serverConfig));
         }
     }
 
     async start() {
-        this.log.debug(`Start servers`)
+        // this.log.debug(`Start servers`)
         let promises = []
         for (let server of this.servers) {
+            this.log.debug(`Start server: ${server.name}`)
             promises.push(server.start());
         }
         // $qw._childPromises.push(...promises);

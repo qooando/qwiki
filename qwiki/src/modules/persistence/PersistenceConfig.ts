@@ -6,7 +6,7 @@ import {Value} from "@qwiki/core/beans/Value";
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
 
 
-export class PersistenceService extends Base {
+export class PersistenceConfig extends Base {
     static __bean__: __Bean__ = {}
 
     availableRepositories = AutowireFactory(

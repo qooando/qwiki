@@ -32,6 +32,12 @@ export class ExpressServer extends Server {
         (x) => x.servers.includes(this.name) || x.servers.includes("*")
     );
 
+    constructor(config: any = {}) {
+        super(config);
+        this.host = config.host ?? "localhost";
+        this.port = config.port ?? 8080;
+    }
+
     async postConstruct() {
         this._express = express();
 

@@ -34,7 +34,7 @@ export interface Logged {
 
 export function initializeLogged(self: Logged, options: LoggerConfig = {}) {
     options = Object.assign({
-        nameSuffix: null
+        nameSuffix: (self as any).name
     }, options)
     const loggerName = (("__bean__" in self.constructor ? (self.constructor.__bean__ as __Bean__).name : undefined) ?? self.constructor.name) + (options.nameSuffix ? `|${options.nameSuffix}` : "");
     self.log ??= pinoMainLogger.child({
