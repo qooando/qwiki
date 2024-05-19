@@ -8,7 +8,7 @@ echo "Build Qwiki"
 OUTDIR=../build/server
 mkdir -p "$OUTDIR"
 
-npx tsc --listFiles
+npx tsc # --listFiles
 # --traceResolution
 
 cp -v ./package.json $OUTDIR/package.json

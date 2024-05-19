@@ -1,5 +1,5 @@
 import {BeanConstants} from "@qwiki/core/beans/BeanUtils";
-import {ModuleScanner} from "@qwiki/core/scanners/ModuleScanner";
+import {ModuleScanner} from "@qwiki/core/beans/scanners/ModuleScanner";
 import {Bean} from "@qwiki/core/beans/Bean";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import * as yaml from "yaml";
