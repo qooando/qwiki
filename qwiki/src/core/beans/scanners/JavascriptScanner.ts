@@ -27,7 +27,13 @@ export class JavascriptScanner extends ModuleScanner {
         //     })
         let content = await import(path);
         return Object.entries(content)
-            .filter((e: [string, any]) => BeanConstants.BEAN_FIELD_NAME in e[1])
+            .filter((e: [string, any]) => {
+                try {
+                    return BeanConstants.BEAN_FIELD_NAME in e[1]
+                } catch (e) {
+                    return false;
+                }
+            })
             .map((e: [string, any]) => {
                 let b = new Bean(e[1]);
                 b.path = path;

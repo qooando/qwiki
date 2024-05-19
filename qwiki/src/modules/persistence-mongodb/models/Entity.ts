@@ -1,11 +1,25 @@
+import * as uuid from "uuid";
+
 export interface __ENTITY__ {
     collection: string
-    typeAlias: string
+    typeAlias?: string
 }
 
-export interface Entity {
-    // __entity__: __ENTITY__
+export var ENTITY_FIELD: string = "__entity__";
 
-    [x: string]: any;
-    // [x: (string | number | symbol)]: unknown;
+export class Entity {
+    _id: any;
+    _type: string;
+
+    get __entity__() {
+        return (this.constructor as any).__entity__;
+    }
+
+    constructor(obj: any) {
+        Object.assign(this, obj)
+        // default values
+        this._id ??= uuid.v4();
+        this._type ??= this.__entity__.typeAlias ?? this.constructor.name
+    }
+
 }

@@ -37,19 +37,12 @@ export class Mongo extends NoSqlPersistence {
             })
     }
 
-    /**
-     * populate default fields in a model, if they are missing
-     *
-     * @param model
-     */
-    _setDefaultFields(model: Entity): Entity {
-        model._id ??= uuid.v4();
-        model._type ??= (model.constructor as any).__entity__.typeAlias
-        return model;
-    }
-
-    async save(model: Entity) {
-        throw new NotImplementedException();
+    async save(model: Entity, collection: string = undefined) {
+        collection ??= model.__entity__.collection;
+        var result =
+            this.db.collection(collection)
+                .insertOne(model);
+        return result;
     }
 
     async find(query: any): Promise<Entity[]> {

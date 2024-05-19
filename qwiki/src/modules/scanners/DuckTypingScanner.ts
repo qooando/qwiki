@@ -40,13 +40,6 @@ export class DuckTypingScanner extends Base {
                 )
             )
         )
-
-        this.log.debug("")
-        // .flatMap(content => Object.entries(content))
-        // .map(([key, value]) => {
-        //
-        //     }
-        // );
     }
 
     async _registerObject(obj: any) {
