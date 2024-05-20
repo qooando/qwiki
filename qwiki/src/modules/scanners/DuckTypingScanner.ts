@@ -10,7 +10,7 @@ import {Base} from "@qwiki/core/base/Base";
 /**
  * Scan all js files, scan them, find objects and group them by different criteria
  * Default criteria:
- *  a property starting with __
+ *  group by an existing static property starting with __ and ending with __, e.g. __entity__, __bean__
  */
 export class DuckTypingScanner extends Base {
     static __bean__: __Bean__ = {}

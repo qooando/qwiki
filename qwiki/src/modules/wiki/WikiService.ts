@@ -10,19 +10,16 @@ export class WikiService extends Base {
     static __bean__: __Bean__ = {}
 
     mongo: Mongo = Autowire(Mongo);
-    config: WikiApplicationConfig = Value("qwiki.applications.wiki", {
+    fileConfig: WikiApplicationConfig = Value("qwiki.applications.wiki", {
         serverName: "default"
     })
+    dbConfig: WikiConfig;
 
     async postConstruct() {
-        this.log.debug(`Wiki server: ${this.config.serverName}`)
+        this.log.debug(`Wiki server: ${this.fileConfig.serverName}`)
 
-        let c = new WikiConfig({
-            "foo": 123
-        });
-        this.mongo.save(c);
-        // const collection = await this.mongo.db.collection("config");
-        // const result = collection.insertOne(c);
+        this.dbConfig = await this.mongo.findOne({}, WikiConfig) ?? new WikiConfig();
+        this.mongo.save(this.dbConfig)
     }
 
 }

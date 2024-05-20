@@ -10,16 +10,17 @@ export var ENTITY_FIELD: string = "__entity__";
 export class Entity {
     _id: any;
     _type: string;
+    createdBy: string;
+    createdAt: Date;
+    updatedBy: string;
+    updatedAt: Date;
 
     get __entity__() {
         return (this.constructor as any).__entity__;
     }
 
-    constructor(obj: any) {
+    constructor(obj: any = {}) {
         Object.assign(this, obj)
-        // default values
-        this._id ??= uuid.v4();
-        this._type ??= this.__entity__.typeAlias ?? this.constructor.name
     }
 
 }
