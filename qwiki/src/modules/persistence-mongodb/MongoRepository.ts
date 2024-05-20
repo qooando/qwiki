@@ -5,9 +5,12 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {Mongo} from "@qwiki/modules/persistence-mongodb/Mongo";
 import {Db} from "mongodb";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
+import {Objects} from "@qwiki/core/utils/Objects";
 
 export class MongoRepository {
-    static __bean__: __Bean__ = {}
+    static __bean__: __Bean__ = {
+        loadCondition: () => Objects.getValueOrDefault($qw.config, "qwiki.persistence.mongodb", false)
+    }
 
     mongo = Autowire(Mongo);
     db: Db;

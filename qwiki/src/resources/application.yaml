@@ -24,9 +24,13 @@ qwiki:
     mongodb:
       dbName: qwiki
       dbUrl: "mongodb://admin:password@localhost:27017/"
+    files:
+      basePath: "./data"
   applications:
     wiki:
       serverName: default # same of a server above
+      urlPrefix: "/"
+      staticFilesPath: "../client"
 
   #    mongodb:
   #      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"

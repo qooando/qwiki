@@ -1,20 +1,15 @@
-import {NoSqlPersistence} from "@qwiki/modules/persistence/NoSqlPersistence";
 import {Db as MongoDb, MongoClient} from "mongodb";
 import {Value} from "@qwiki/core/beans/Value";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {Objects} from "@qwiki/core/utils/Objects";
-import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
-import * as uuid from "uuid";
-import {Entity} from "@qwiki/modules/persistence-mongodb/models/Entity";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {DuckTypingScanner} from "@qwiki/modules/scanners/DuckTypingScanner";
-import {ClassConstructor} from "@qwiki/core/utils/Types";
-import {assert} from "@qwiki/core/utils/common";
+import {Base} from "@qwiki/core/base/Base";
 
 /**
  * https://www.mongodb.com/resources/products/compatibilities/using-typescript-with-mongodb-tutorial
  */
-export class Mongo extends NoSqlPersistence {
+export class Mongo extends Base {
     static __bean__: __Bean__ = {
         loadCondition: () => Objects.getValueOrDefault($qw.config, "qwiki.persistence.mongodb", false)
     }

@@ -1,5 +1,5 @@
 import {Base} from "@qwiki/core/base/Base";
-import {WikiDocument} from "@qwiki/modules/wiki/models/WikiDocument";
+import {WikiDocument} from "../../../src/modules/wiki/persistence/WikiDocument";
 import * as fs from "node:fs";
 import {WikiDocumentNotFoundException} from "@qwiki/modules/wiki/WikiExceptions";
 import {Autowire} from "@qwiki/core/beans/Autowire";
