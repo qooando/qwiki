@@ -32,6 +32,10 @@ export class MongoRepository {
             .updateOne({_id: model._id}, {$set: model}, {upsert: true})
     }
 
+    async findAll<T extends Entity>(klazz: ClassConstructor<T>, collection: string = undefined) {
+        return this.find({}, klazz, collection);
+    }
+
     async find<T extends Entity>(query: any, klazz: ClassConstructor<T>, collection: string = undefined): Promise<T[]> {
         collection ??= (klazz as any).__entity__.collection;
         return this.db.collection(collection)
