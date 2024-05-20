@@ -5,11 +5,12 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {WikiApplicationConfig} from "@qwiki/modules/wiki/models/WikiApplicationConfig";
 import {Value} from "@qwiki/core/beans/Value";
 import {WikiConfig} from "@qwiki/modules/wiki/persistence/models/WikiConfig";
+import {MongoRepository} from "@qwiki/modules/persistence-mongodb/MongoRepository";
 
 export class WikiService extends Base {
     static __bean__: __Bean__ = {}
 
-    mongo: Mongo = Autowire(Mongo);
+    repository = Autowire(MongoRepository);
     fileConfig: WikiApplicationConfig = Value("qwiki.applications.wiki", {
         serverName: "default"
     })
@@ -18,8 +19,8 @@ export class WikiService extends Base {
     async postConstruct() {
         this.log.debug(`Wiki server: ${this.fileConfig.serverName}`)
 
-        this.dbConfig = await this.mongo.findOne({}, WikiConfig) ?? new WikiConfig();
-        this.mongo.save(this.dbConfig)
+        this.dbConfig = await this.repository.findOne({}, WikiConfig) ?? new WikiConfig();
+        this.repository.save(this.dbConfig)
     }
 
 }
