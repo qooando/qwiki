@@ -8,6 +8,7 @@ import {MongoRepository} from "@qwiki/modules/persistence-mongodb/MongoRepositor
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
 import {Value} from "@qwiki/core/beans/Value";
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
+import * as yaml from "yaml";
 
 export class MarkdownRepository extends Base {
     static __bean__: __Bean__ = {}
@@ -16,6 +17,8 @@ export class MarkdownRepository extends Base {
     files = Autowire(FilesRepository);
     documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
 
+    // splitMarkdown = /^(?:---(.*?)---)?(.*)/s
+    splitMarkdown = /^(?:---(?<metadata>.*?)---)?(?<content>.*)/s
     supportedExtensions = [
         ".md"
     ]
@@ -24,24 +27,26 @@ export class MarkdownRepository extends Base {
         /*
          reindex files at startup
          */
-
+        await this.rebuildIndex();
     }
 
     async rebuildIndex(searchPath: string = undefined) {
         searchPath ??= this.documentsPath;
         searchPath = fs.realpathSync(searchPath);
-        const mdMetadata = new RegExp("^---(.*)---\n(.*)$", "g")
         // const re = new RegExp(this.supportedExtensions.map(x => `${x}$`).join("|"))
         const files = glob.globSync(`${searchPath}/**/*.md`, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
             .flatMap(files => files)
             .map(file => {
-                let content = fs.readFileSync(file, "utf-8");
-                let result = mdMetadata.exec(content)
-                console.log(result)
+                let match = this.splitMarkdown.exec(fs.readFileSync(file, "utf-8"))
+                // let metadata = result[1];
+                // let metadata = result.groups.metadata;
+                // let content = result.groups.content;
+                let metadata = match.groups.metadata ? yaml.parse(match.groups.metadata) : {};
+                let content = match.groups.content.trim();
+                this.save(file, metadata, content);
             })
-
     }
 
     async save(path: string, metadata: any, content: string) {
