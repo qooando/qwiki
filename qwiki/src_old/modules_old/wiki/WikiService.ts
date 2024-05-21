@@ -2,7 +2,7 @@ import {Base} from "@qwiki/core/base/Base";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {DocumentProvider} from "@qwiki/modules/wiki/DocumentProvider";
-import {WikiDocument} from "../../../src/modules/wiki/persistence/WikiDocument";
+import {WikiDocument} from "../../../src/modules/wiki/persistence/models/WikiDocument";
 import {Value} from "@qwiki/core/beans/Value";
 import {RuntimeException} from "@qwiki/core/utils/Exceptions";
 import {

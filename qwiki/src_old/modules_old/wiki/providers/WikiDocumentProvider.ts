@@ -2,7 +2,7 @@ import {StorageProvider} from "@qwiki/modules/storage/StorageProvider";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {DocumentProvider} from "@qwiki/modules/wiki/DocumentProvider";
 import {Autowire} from "@qwiki/core/beans/Autowire";
-import {WikiDocument} from "../../../../src/modules/wiki/persistence/WikiDocument";
+import {WikiDocument} from "../../../../src/modules/wiki/persistence/models/WikiDocument";
 import {FilesStorageProvider} from "@qwiki/modules/storage/providers/FilesStorageProvider";
 import {Value} from "@qwiki/core/beans/Value";
 import * as fs from "node:fs";

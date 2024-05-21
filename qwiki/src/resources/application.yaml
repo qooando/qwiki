@@ -8,7 +8,7 @@ qwiki:
       - "./modules/server-express/**/*.js"
       - "./modules/persistence/**/*.js"
       - "./modules/persistence-mongodb/**/*.js"
-      #      - "./modules/persistence-tingodb/**/*.js
+      - "./modules/persistence-files/**/*.js"
       - "./modules/scanners/**/*.js"
       - "./modules/wiki/**/*.js"
       - "./resources/**/*.json"
@@ -31,6 +31,7 @@ qwiki:
       serverName: default # same of a server above
       urlPrefix: "/"
       staticFilesPath: "../client"
+      documentsPath: "../data"
 
   #    mongodb:
   #      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"

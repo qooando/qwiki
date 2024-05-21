@@ -193,9 +193,14 @@ export class ModuleManager extends Base {
         // if (filterFun) {
         //     beans = beans.filter(filterFun);
         // }
-        let instances = await Promise.all(
-            beans.map(x => constructorArgs ? x.getInstance(...constructorArgs) : x.getInstance(constructorArgsIsArray))
-        );
+        // let instances = await Promise.all(
+        //     beans.map(x => constructorArgs ? x.getInstance(...constructorArgs) : x.getInstance(constructorArgsIsArray))
+        // );
+        let instances = []
+        for (let x of beans) {
+            let r = await (constructorArgs ? x.getInstance(...constructorArgs) : x.getInstance(constructorArgsIsArray))
+            instances.push(r);
+        }
         if (filterFun) {
             instances = instances.filter(filterFun);
         }
