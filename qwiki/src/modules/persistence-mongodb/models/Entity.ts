@@ -23,4 +23,8 @@ export class Entity {
         Object.assign(this, obj)
     }
 
+    static of(obj: any = {}) {
+        return Object.assign(Object.create(this.prototype), obj)
+    }
+
 }

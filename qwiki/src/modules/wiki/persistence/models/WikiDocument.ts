@@ -6,12 +6,18 @@ export class WikiDocument extends Entity {
         collection: "wiki.document",
     };
 
-    parentWikiId: any;
+    constructor(obj: any = {}) {
+        super(obj);
+    }
+    
+    project: any;
     title: string;
     annotations: Map<string, string> = new Map();
     tags: string[] = [];
+    mediaType: string;
+    contentPath: string;
+    content: string;
 
-    mediaType: string; // MIME type
-    content: any;
-    ast: any;
+    // content: any;
+    // ast: any;
 }

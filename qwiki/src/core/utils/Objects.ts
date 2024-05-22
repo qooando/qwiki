@@ -1,3 +1,5 @@
+import {ClassConstructor} from "@qwiki/core/utils/Types";
+
 export class Objects {
     static getParentClasses(obj: any) {
         let parent = Object.getPrototypeOf(obj)
@@ -12,7 +14,7 @@ export class Objects {
     static getValue(obj: any, valuePath: string) {
         let token = valuePath.split(".").reverse();
         let val = obj;
-        while(token.length) {
+        while (token.length) {
             val = val[token.pop()];
         }
         return val;
@@ -21,7 +23,7 @@ export class Objects {
     static getValueOrDefault(obj: any, valuePath: string, valueDefault: any = undefined) {
         let token = valuePath.split(".").reverse();
         let val = obj;
-        while(token.length) {
+        while (token.length) {
             let propName = token.pop();
             if (!val.hasOwnProperty(propName)) {
                 return valueDefault;
@@ -33,4 +35,11 @@ export class Objects {
         }
         return val;
     }
+
+    static mapTo<T>(data: any = {}, klazz: ClassConstructor<T>) {
+        let obj = Object.create(klazz.prototype);
+        Object.assign(obj, data);
+        return obj;
+    }
+
 }

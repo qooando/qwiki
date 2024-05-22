@@ -31,8 +31,11 @@ export class MongoRepository {
     async save(model: Entity, collection: string = undefined) {
         collection ??= model.__entity__.collection;
         model = this._setDefaultField(model);
-        return this.db.collection(collection)
-            .updateOne({_id: model._id}, {$set: model}, {upsert: true})
+        let coll = this.db.collection(collection);
+        await coll.updateOne({_id: model._id}, {$set: model}, {upsert: true});
+        let result = coll.findOne({_id: model._id});
+        // FIXME autocast to model entity?
+        return result;
     }
 
     async findAll<T extends Entity>(klazz: ClassConstructor<T>, collection: string = undefined) {
@@ -57,7 +60,16 @@ export class MongoRepository {
 
     async upsert<T extends Entity>(query: any, update: any, klazz: ClassConstructor<T>, collection: string = undefined) {
         collection ??= (klazz as any).__entity__.collection;
-        return this.db.collection(collection)
+        // create default object, then upsert
+        // model = this._setDefaultField(model);
+        // FIXME missing call to this._setDefaultField(model)
+        let coll =  this.db.collection(collection);
+        return coll
             .updateOne(query, update, {upsert: true})
+            .then(result => coll.findOne(query))
+            .then(doc => Objects.mapTo(doc, klazz)) //FIXME wrong initialization
+            .then(doc => this._setDefaultField(doc))
+            .then(doc => this.save(doc))
+            .then(doc => Objects.mapTo(doc, klazz))
     }
 }

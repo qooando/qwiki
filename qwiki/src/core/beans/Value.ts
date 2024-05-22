@@ -18,7 +18,7 @@ export class ValuePlaceholder<T> {
 
     async resolve(): Promise<any> {
         try {
-            return Objects.getValue($qw.config, this.valuePath);
+            return Objects.getValue($qw.config, this.valuePath) ?? this.defaultValue;
         } catch (e) {
             if (this.defaultValue !== undefined) {
                 // $qw.log.debug(`Value not found: ${this.valuePath}, use default`)
