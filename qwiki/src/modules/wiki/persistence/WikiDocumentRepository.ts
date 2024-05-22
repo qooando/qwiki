@@ -14,17 +14,16 @@ import {MediaType} from "@qwiki/core/utils/MediaTypes";
 import {WikiMarkdownMetadata} from "@qwiki/modules/wiki/models/WikiMarkdownMetadata";
 import {assert} from "@qwiki/core/utils/common";
 import * as uuid from "uuid";
+import {Markdown} from "@qwiki/modules/wiki/persistence/loaders/Markdown";
 
 export class WikiDocumentRepository extends Base {
     static __bean__: __Bean__ = {}
 
     mongo = Autowire(MongoRepository);
-    files = Autowire(FilesRepository);
     documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
     defaultProject = Value("qwiki.applications.wiki.defaultProject", "main");
 
-    // splitMarkdown = /^(?:---(.*?)---)?(.*)/s
-    splitMarkdown = /^(?:---(?<metadata>.*?)---)?(?<content>.*)/s
+    markdown = Autowire(Markdown)
     supportedExtensions = [
         ".md"
     ]
@@ -43,24 +42,12 @@ export class WikiDocumentRepository extends Base {
         const files = glob.globSync(`${searchPath}/**/*.md`, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
-            .flatMap(files => files)
-            .map(file => {
-                let match = this.splitMarkdown.exec(fs.readFileSync(file, "utf-8"))
-                let metadata: WikiMarkdownMetadata = match.groups.metadata ? yaml.parse(match.groups.metadata) : {};
-                let content = match.groups.content.trim();
-                let filePath = path.relative(this.files.basePath, file);
-                let doc = WikiDocument.of({
-                    _id: metadata.id,
-                    project: metadata.project ?? this.defaultProject,
-                    title: metadata.title,
-                    tags: metadata.tags ?? [],
-                    annotations: metadata.annotations ?? new Map(),
-                    mediaType: MediaType.TEXT_MARKDOWN,
-                    contentPath: filePath,
-                    content: content
-                });
-                this.save(doc);
-            })
+            .flatMap(files => files);
+
+        Promise.all(files.map(filePath => {
+            return this.markdown.load(filePath)
+                .then(doc => this.save(doc));
+        }));
     }
 
     // FIXME monitor folder for changes and update mongo document accordingly
@@ -102,15 +89,7 @@ export class WikiDocumentRepository extends Base {
             WikiDocument);
 
         // save file
-        let mdMetadata: WikiMarkdownMetadata = {
-            id: doc._id,
-            project: doc.project,
-            title: doc.title,
-            tags: doc.tags,
-            annotations: doc.annotations
-        };
-        let mdContent = `---\n${yaml.stringify(mdMetadata)}---\n${doc.content}\n`;
-        await this.files.save(doc.contentPath, mdContent);
+        this.markdown.save(doc);
         return doc;
     }
 
