@@ -46,7 +46,7 @@ export class Markdown extends Base {
             annotations: doc.annotations
         };
         let mdContent = `---\n${yaml.stringify(mdMetadata)}---\n${doc.content}\n`;
-        this.log.debug(`Save /${path.relative("/", doc.contentPath)}`)
+        this.log.debug(`Save ${path.resolve(this.files.basePath, doc.contentPath)}`)
         await this.files.save(doc.contentPath, mdContent);
     }
 }

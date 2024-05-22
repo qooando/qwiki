@@ -20,6 +20,7 @@ export class WikiDocumentRepository extends Base {
     static __bean__: __Bean__ = {}
 
     mongo = Autowire(MongoRepository);
+    files = Autowire(FilesRepository);
     documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
     defaultProject = Value("qwiki.applications.wiki.defaultProject", "main");
 
@@ -44,7 +45,7 @@ export class WikiDocumentRepository extends Base {
             .filter(p => fs.statSync(p).isFile())
             .flatMap(files => files);
 
-        Promise.all(files.map(filePath => {
+        await Promise.all(files.map(filePath => {
             return this.markdown.load(filePath)
                 .then(doc => this.save(doc));
         }));
@@ -89,7 +90,7 @@ export class WikiDocumentRepository extends Base {
             WikiDocument);
 
         // save file
-        this.markdown.save(doc);
+        await this.markdown.save(doc);
         return doc;
     }
 
