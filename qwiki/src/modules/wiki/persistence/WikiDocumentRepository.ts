@@ -16,6 +16,7 @@ import {assert} from "@qwiki/core/utils/common";
 import * as uuid from "uuid";
 import {Markdown} from "@qwiki/modules/wiki/persistence/loaders/Markdown";
 import {Semaphore} from "@qwiki/core/utils/Synchronize";
+import {INotifyWaitEvents} from "@qwiki/modules/inotifywait/INotifyWait";
 
 export class WikiDocumentRepository extends Base {
     static __bean__: __Bean__ = {}
@@ -51,6 +52,15 @@ export class WikiDocumentRepository extends Base {
          */
         // https://github.com/Inist-CNRS/node-inotifywait
         let watcher = this.files.watcher;
+        watcher.on(INotifyWaitEvents.ADD, (filePath: string) => {
+            self.log.debug(`Add ${filePath}`)
+        })
+        watcher.on(INotifyWaitEvents.UNLINK, (filePath: string) => {
+            self.log.debug(`Unlink ${filePath}`)
+        })
+        watcher.on(INotifyWaitEvents.CHANGE, (filePath: string) => {
+            self.log.debug(`Change ${filePath}`)
+        })
         // watcher.on("add", async (filePath: string) => {
         //     // FIXME not working ?
         //     if (!filePath.endsWith(".md")) return;
