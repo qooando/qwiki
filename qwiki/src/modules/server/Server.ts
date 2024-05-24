@@ -1,6 +1,4 @@
 import {Base} from "@qwiki/core/base/Base";
-import {EventNames} from "@qwiki/core/events/EventNames";
-import {EventContext} from "@qwiki/core/events/EventManager";
 
 export class Server extends Base {
 

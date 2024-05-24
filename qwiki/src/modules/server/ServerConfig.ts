@@ -1,6 +1,5 @@
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 import {EventNames} from "@qwiki/core/events/EventNames";
-import {EventContext} from "@qwiki/core/events/EventManager";
 import {Server} from "@qwiki/modules/server/Server";
 import {Autowire, AutowireFactory} from "@qwiki/core/beans/Autowire";
 import {Base} from "@qwiki/core/base/Base";

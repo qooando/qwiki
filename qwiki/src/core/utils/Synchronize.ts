@@ -1,5 +1,4 @@
 import {EventEmitter} from "events";
-import {EventManager} from "@qwiki/core/events/EventManager";
 import {Promises} from "@qwiki/core/utils/Promises";
 
 export class Lock {

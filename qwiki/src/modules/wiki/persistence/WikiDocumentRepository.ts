@@ -15,7 +15,6 @@ import {WikiMarkdownMetadata} from "@qwiki/modules/wiki/models/WikiMarkdownMetad
 import {assert} from "@qwiki/core/utils/common";
 import * as uuid from "uuid";
 import {Markdown} from "@qwiki/modules/wiki/persistence/loaders/Markdown";
-import {EventCallback} from "@qwiki/core/events/EventManager";
 import {Semaphore} from "@qwiki/core/utils/Synchronize";
 
 export class WikiDocumentRepository extends Base {
