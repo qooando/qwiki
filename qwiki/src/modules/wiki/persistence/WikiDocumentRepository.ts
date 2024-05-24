@@ -15,47 +15,99 @@ import {WikiMarkdownMetadata} from "@qwiki/modules/wiki/models/WikiMarkdownMetad
 import {assert} from "@qwiki/core/utils/common";
 import * as uuid from "uuid";
 import {Markdown} from "@qwiki/modules/wiki/persistence/loaders/Markdown";
+import {EventCallback} from "@qwiki/core/events/EventManager";
+import {Semaphore} from "@qwiki/core/utils/Synchronize";
 
 export class WikiDocumentRepository extends Base {
     static __bean__: __Bean__ = {}
 
     mongo = Autowire(MongoRepository);
     files = Autowire(FilesRepository);
-    documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
+    // documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
     defaultProject = Value("qwiki.applications.wiki.defaultProject", "main");
+    monitorFiles = Value("qwiki.applications.wiki.monitorFiles", true);
+    monitorSemaphore = new Semaphore();
+    monitorBlacklist: Map<String, number> = new Map();
+    searchPath: string;
 
     markdown = Autowire(Markdown)
-    supportedExtensions = [
-        ".md"
-    ]
+    supportedExtensions = [".md"]
+
+    // FIXME monitor folder for changes and update mongo document accordingly
+    // FIXME permits other save formats (e.g. any file format with a companion .json metadata file
+    // e.g. logo.jpg logo.jpg.meta.json
 
     async postConstruct() {
+        this.searchPath = fs.realpathSync(path.join(process.cwd(), this.files.basePath)) + "/**/*.md";
         /*
-         reindex files at startup
+         reload all files
          */
-        await this.rebuildIndex();
+        // if (!this.files.monitoringEnabled) {
+        await this.syncFromPath(this.searchPath);
+        // }
+
+        const self = this;
+        /*
+         * to avoid conflicts, lock a file if you are working on it
+         */
+        // https://github.com/Inist-CNRS/node-inotifywait
+        let watcher = this.files.watcher;
+        // watcher.on("add", async (filePath: string) => {
+        //     // FIXME not working ?
+        //     if (!filePath.endsWith(".md")) return;
+        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
+        //     if (await this.files.tryLockFile(filePath)) {
+        //         self.log.debug(`File created: ${filePath}`)
+        //         await self.syncFromPath(filePath)
+        //         return await this.files.unlockFile(filePath);
+        //     }
+        // })
+        // watcher.on("change", async (filePath: string) => {
+        //     if (!filePath.endsWith(".md")) return;
+        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
+        //     if (this.monitorBlacklist.has(filePath) &&
+        //         fs.statSync(filePath).mtimeMs <= this.monitorBlacklist.get(filePath)) {
+        //         this.monitorBlacklist.delete(filePath)
+        //         return;
+        //     }
+        //     if (await this.files.tryLockFile(filePath)) {
+        //         self.log.debug(`File updated: ${filePath}`)
+        //         await self.syncFromPath(filePath);
+        //         return await this.files.unlockFile(filePath);
+        //         // FIXME implement history
+        //     }
+        // });
+        // watcher.on("unlink", async (filePath: string) => {
+        //     // FIXME not working ?
+        //     if (!filePath.endsWith(".md")) return;
+        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
+        //     if (await this.files.lockFile(filePath)) {
+        //         self.log.debug(`File deleted: ${filePath}`)
+        //         await self.delete(filePath);
+        //         // FIXME what to do? remove from mongo or mark it as deleted?
+        //         return await this.files.unlockFile(filePath);
+        //     }
+        // });
     }
 
-    async rebuildIndex(searchPath: string = undefined) {
-        searchPath ??= this.documentsPath;
-        searchPath = fs.realpathSync(searchPath);
+    async syncFromPath(searchPath: string = undefined) {
+        searchPath ??= this.searchPath;
         // const re = new RegExp(this.supportedExtensions.map(x => `${x}$`).join("|"))
-        const files = glob.globSync(`${searchPath}/**/*.md`, {})
+        const files = glob.globSync(searchPath, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
             .flatMap(files => files);
-
         await Promise.all(files.map(filePath => {
             return this.markdown.load(filePath)
                 .then(doc => this.save(doc));
         }));
     }
 
-    // FIXME monitor folder for changes and update mongo document accordingly
-    // FIXME permits other save formats (e.g. any file format with a companion .json metadata file
-    // e.g. logo.jpg logo.jpg.meta.json
+    async delete(contentPath: string) {
+        await this.mongo.delete({contentPath: contentPath}, WikiDocument);
+    }
 
-    async save(doc: WikiDocument, mirrorToFile: boolean = true) {
+    async save(doc: WikiDocument) {
         /*
          * fill default fields
          * upsert on mongo
@@ -74,8 +126,7 @@ export class WikiDocumentRepository extends Base {
         let update = {
             $setOnInsert: {
                 "_id": doc._id
-            },
-            $set: {
+            }, $set: {
                 "project": doc.project,
                 "tags": doc.tags,
                 "annotations": doc.annotations,
@@ -84,25 +135,24 @@ export class WikiDocumentRepository extends Base {
                 "mediaType": doc.mediaType
             }
         };
-        doc = await this.mongo.upsert(
-            query,
-            update,
-            WikiDocument);
+        doc = await this.mongo.upsert(query, update, WikiDocument);
 
         // save file
         await this.markdown.save(doc);
+        let filePath = path.join(process.cwd(), this.files.basePath, doc.contentPath);
+        this.monitorBlacklist.set(filePath, fs.statSync(filePath).mtimeMs);
         return doc;
     }
 
-    async findByTitle(title: string) {
+    findByTitle(title: string) {
         throw new NotImplementedException();
     }
 
-    async findByTag(tag: string) {
+    findByTag(tag: string) {
         throw new NotImplementedException();
     }
 
-    async findByAnnotation(annotation: string) {
+    findByAnnotation(annotation: string) {
         throw new NotImplementedException();
     }
 

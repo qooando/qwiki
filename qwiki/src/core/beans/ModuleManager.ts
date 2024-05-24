@@ -57,7 +57,7 @@ export class ModuleManager extends Base {
         // register new loaders automatically
         $qw.on(
             Strings.format(EventNames.BEAN_NEW_INSTANCE_NAME, BeanUtils.getBeanIdentifierFromClass(ModuleScanner)),
-            async (ctx: EventContext, bean: Bean, instance: ModuleScanner) => {
+            async (bean: Bean, instance: ModuleScanner) => {
                 await self.registerScanner(instance);
             }
         );

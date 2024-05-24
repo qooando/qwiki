@@ -24,10 +24,10 @@ export class ServerConfig extends Base {
 
     async postConstruct() {
         let self = this;
-        $qw.on(EventNames.STARTUP, async (ctx: EventContext) => {
+        $qw.on(EventNames.STARTUP, async () => {
             await self.start()
         })
-        $qw.on(EventNames.STOP, async (ctx: EventContext) => {
+        $qw.on(EventNames.STOP, async () => {
             await self.stop()
         });
         for (let [serverName, serverConfig] of Object.entries(this.configServers) as [string, any]) {

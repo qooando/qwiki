@@ -63,7 +63,7 @@ export class MongoRepository {
         // create default object, then upsert
         // model = this._setDefaultField(model);
         // FIXME missing call to this._setDefaultField(model)
-        let coll =  this.db.collection(collection);
+        let coll = this.db.collection(collection);
         return coll
             .updateOne(query, update, {upsert: true})
             .then(result => coll.findOne(query))
@@ -71,5 +71,11 @@ export class MongoRepository {
             .then(doc => this._setDefaultField(doc))
             .then(doc => this.save(doc))
             .then(doc => Objects.mapTo(doc, klazz))
+    }
+
+    async delete<T extends Entity>(query: any, klazz: ClassConstructor<T>, collection: string = undefined) {
+        collection ??= (klazz as any).__entity__.collection;
+        let coll = this.db.collection(collection);
+        return coll.deleteOne(query);
     }
 }

@@ -19,9 +19,9 @@ export class Markdown extends Base {
     files: FilesRepository = Autowire(FilesRepository);
 
     async load(filePath: string): Promise<WikiDocument> {
-        this.log.debug(`Read ${filePath}`);
+        // this.log.debug(`Read ${filePath}`);
         let match = this.splitMarkdown.exec(fs.readFileSync(filePath, "utf-8"))
-        let metadata: WikiMarkdownMetadata = match.groups.metadata ? yaml.parse(match.groups.metadata) : {};
+        let metadata: WikiMarkdownMetadata = (match.groups.metadata ? yaml.parse(match.groups.metadata) : {}) ?? {};
         let content = match.groups.content.trim();
         filePath = path.relative(this.files.basePath, filePath);
         let doc = new WikiDocument({
@@ -46,7 +46,7 @@ export class Markdown extends Base {
             annotations: doc.annotations
         };
         let mdContent = `---\n${yaml.stringify(mdMetadata)}---\n${doc.content}\n`;
-        this.log.debug(`Save ${path.resolve(this.files.basePath, doc.contentPath)}`)
+        // this.log.debug(`Save ${path.resolve(this.files.basePath, doc.contentPath)}`)
         await this.files.save(doc.contentPath, mdContent);
     }
 }
