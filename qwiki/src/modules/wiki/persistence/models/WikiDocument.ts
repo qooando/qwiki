@@ -9,7 +9,7 @@ export class WikiDocument extends Entity {
     constructor(obj: any = {}) {
         super(obj);
     }
-    
+
     project: any;
     title: string;
     annotations: Map<string, string> = new Map();

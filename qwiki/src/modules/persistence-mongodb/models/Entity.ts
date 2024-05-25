@@ -14,6 +14,7 @@ export class Entity {
     createdAt: Date;
     updatedBy: string;
     updatedAt: Date;
+    deleted: boolean;
 
     get __entity__() {
         return (this.constructor as any).__entity__;

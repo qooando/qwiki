@@ -24,10 +24,12 @@ export interface INotifyWaitOptions {
 }
 
 export enum INotifyWaitEvents {
-    ADD = "add",
-    MOVE = "move",
+    ALL = "all",
+    CREATE = "create",
+    MOVE_IN = "move_in",
+    MOVE_OUT = "move_out",
     CHANGE = "change",
-    UNLINK = "unlink",
+    REMOVE = "remove",
     UNKNOWN = "unknown",
 }
 
@@ -51,6 +53,14 @@ export class INotifyWait extends Base {
             events: [],
             spawnArgs: {}
         }, options);
+
+        this.on(INotifyWaitEvents.CREATE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CREATE, filePath, stats));
+        this.on(INotifyWaitEvents.MOVE_IN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_IN, filePath, stats));
+        this.on(INotifyWaitEvents.MOVE_OUT, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_OUT, filePath, stats));
+        this.on(INotifyWaitEvents.CHANGE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CHANGE, filePath, stats));
+        this.on(INotifyWaitEvents.REMOVE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE, filePath, stats));
+        this.on(INotifyWaitEvents.UNKNOWN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.UNKNOWN, filePath, stats));
+
         this.runProcess();
     }
 
@@ -106,7 +116,7 @@ export class INotifyWait extends Base {
                 .filter(x => x.length)
                 // .map(x => console.log(">", x, "<"))
                 .map(x => {
-                    self.log.debug(x);
+                    // self.log.debug(x);
                     try {
                         return JSON.parse(x)
                     } catch (err) {
@@ -114,53 +124,58 @@ export class INotifyWait extends Base {
                         return {type: '', file: '', date: new Date()};
                     }
                 })
-                .flatMap((event) => {
+                .map((event) => {
                     let date = new Date(event.date * 1000); // Unix Epoch * 1000 = JavaScript Epoch
-                    return event.type.split(',')
-                        .map((t: string) => {
-                            return {type: t, file: event.file, date: date}
-                        })
+                    return {type: event.type.split(','), file: event.file, date: date}
                 })
                 .forEach((event) => {
                     // skip directories ?
-                    var isDir = (event.type.indexOf('ISDIR') != -1);
+                    var isDir = event.type.includes('ISDIR');
                     if (isDir && !this.options.watchDirectory) {
                         return;
                     }
 
+                    // console.log(event)
                     var stats = {isDir: isDir, date: event.date};
-                    if (event.type.indexOf('CREATE') != -1) {
-                        self.currentEvents.set(event.file, INotifyWaitEvents.ADD);
+                    if (event.type.includes('CREATE')) {
+                        self.currentEvents.set(event.file, INotifyWaitEvents.CREATE);
                         fs.lstat(event.file, (err, lstats) => {
                             if (!err && !lstats.isDirectory() && (lstats.isSymbolicLink() || lstats.nlink > 1)) {
                                 // symlink and hard link does not receive any CLOSE event
-                                self.emit('add', event.file, stats);
+                                self.emit(INotifyWaitEvents.CREATE, event.file, stats);
                                 self.currentEvents.delete(event.file);
                             }
                         });
-                    } else if (event.type.indexOf('MOVED_TO') != -1) {
-                        this.currentEvents.set(event.file, INotifyWaitEvents.MOVE);
+
+                    } else if (event.type.includes('MOVED_TO')) {
+                        this.currentEvents.set(event.file, INotifyWaitEvents.MOVE_IN);
                         fs.lstat(event.file, function (err, lstats) {
                             if (!err && !lstats.isDirectory()) {
                                 // symlink and hard link does not receive any CLOSE event
-                                self.emit('move', event.file, stats);
+                                self.emit(INotifyWaitEvents.MOVE_IN, event.file, stats);
                                 self.currentEvents.delete(event.file);
                             }
                         });
-                    } else if (event.type.indexOf('MODIFY') != -1 || // to detect modifications on files
-                        event.type.indexOf('ATTRIB') != -1) { // to detect touch on hard link
+
+                    } else if (event.type.includes('MOVED_FROM')) {
+                        self.emit(INotifyWaitEvents.MOVE_OUT, event.file, stats);
+
+                    } else if (event.type.includes('MODIFY') || // to detect modifications on files
+                        event.type.includes('ATTRIB')) { // to detect touch on hard link
                         if (!self.currentEvents.has(event.file) ||
-                            self.currentEvents.get(event.file) != INotifyWaitEvents.ADD) {
+                            self.currentEvents.get(event.file) != INotifyWaitEvents.CREATE) {
                             self.currentEvents.set(event.file, INotifyWaitEvents.CHANGE);
                         }
-                    } else if (event.type.indexOf('DELETE') != -1) {
-                        self.emit(INotifyWaitEvents.UNLINK, event.file, stats);
-                    } else if (event.type.indexOf('CLOSE') != -1) {
+
+                    } else if (event.type.includes('DELETE')) {
+                        self.emit(INotifyWaitEvents.REMOVE, event.file, stats);
+
+                    } else if (event.type.includes('CLOSE')) {
                         if (self.currentEvents.has(event.file)) {
-                            this.emit(self.currentEvents.get(event.file), event.file, stats);
+                            self.emit(self.currentEvents.get(event.file), event.file, stats);
                             this.currentEvents.delete(event.file);
                         } else {
-                            this.emit(INotifyWaitEvents.UNKNOWN, event.file, event, stats);
+                            self.emit(INotifyWaitEvents.UNKNOWN, event.file, event, stats);
                         }
                     }
                 })

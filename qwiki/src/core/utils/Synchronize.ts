@@ -17,7 +17,7 @@ export class Lock {
     }
 
     async lock(): Promise<boolean> {
-        if (this.lock) {
+        if (this.locked) {
             let event = new EventEmitter();
             this.waitingQueue.push(event)
             await new Promise((resolve) => event.once("unlocked", resolve));

@@ -52,51 +52,51 @@ export class WikiDocumentRepository extends Base {
          */
         // https://github.com/Inist-CNRS/node-inotifywait
         let watcher = this.files.watcher;
-        watcher.on(INotifyWaitEvents.ADD, (filePath: string) => {
-            self.log.debug(`Add ${filePath}`)
-        })
-        watcher.on(INotifyWaitEvents.UNLINK, (filePath: string) => {
-            self.log.debug(`Unlink ${filePath}`)
-        })
-        watcher.on(INotifyWaitEvents.CHANGE, (filePath: string) => {
-            self.log.debug(`Change ${filePath}`)
-        })
-        // watcher.on("add", async (filePath: string) => {
-        //     // FIXME not working ?
-        //     if (!filePath.endsWith(".md")) return;
-        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
-        //     if (await this.files.tryLockFile(filePath)) {
-        //         self.log.debug(`File created: ${filePath}`)
-        //         await self.syncFromPath(filePath)
-        //         return await this.files.unlockFile(filePath);
-        //     }
-        // })
-        // watcher.on("change", async (filePath: string) => {
-        //     if (!filePath.endsWith(".md")) return;
-        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
-        //     if (this.monitorBlacklist.has(filePath) &&
-        //         fs.statSync(filePath).mtimeMs <= this.monitorBlacklist.get(filePath)) {
-        //         this.monitorBlacklist.delete(filePath)
-        //         return;
-        //     }
-        //     if (await this.files.tryLockFile(filePath)) {
-        //         self.log.debug(`File updated: ${filePath}`)
-        //         await self.syncFromPath(filePath);
-        //         return await this.files.unlockFile(filePath);
-        //         // FIXME implement history
-        //     }
-        // });
-        // watcher.on("unlink", async (filePath: string) => {
-        //     // FIXME not working ?
-        //     if (!filePath.endsWith(".md")) return;
-        //     filePath = path.join(process.cwd(), this.files.basePath, filePath);
-        //     if (await this.files.lockFile(filePath)) {
-        //         self.log.debug(`File deleted: ${filePath}`)
-        //         await self.delete(filePath);
-        //         // FIXME what to do? remove from mongo or mark it as deleted?
-        //         return await this.files.unlockFile(filePath);
-        //     }
-        // });
+        watcher.on(INotifyWaitEvents.ALL, this.syncFromPathEvent.bind(this))
+
+        // FIXME recreate files from mongo
+    }
+
+    async syncFromPathEvent(event: INotifyWaitEvents, filePath: string) {
+        // avoid to manage unwanted files
+        if (!filePath.endsWith(".md")) return;
+        if (event === INotifyWaitEvents.UNKNOWN) return;
+        // absolute path
+        filePath = path.join(process.cwd(), this.files.basePath, filePath);
+        // anti-cyclical test, avoid to manage blacklisted files (e.g. files edited by qwiki itself
+        if (this.monitorBlacklist.has(filePath) &&
+            fs.statSync(filePath).mtimeMs <= this.monitorBlacklist.get(filePath)) {
+            this.monitorBlacklist.delete(filePath)
+            return;
+        }
+        switch (event) {
+            case INotifyWaitEvents.CREATE:
+            case INotifyWaitEvents.MOVE_IN:
+                if (await this.files.tryLockFile(filePath)) {
+                    this.log.debug(`File created: ${filePath}`)
+                    await this.syncFromPath(filePath)
+                    await this.files.unlockFile(filePath);
+                }
+                break;
+            case INotifyWaitEvents.REMOVE:
+            case INotifyWaitEvents.MOVE_OUT:
+                if (await this.files.lockFile(filePath)) {
+                    this.log.debug(`File deleted: ${filePath}`)
+                    await this.trash(filePath);
+                    await this.files.unlockFile(filePath);
+                }
+                break;
+            case INotifyWaitEvents.CHANGE:
+                if (await this.files.tryLockFile(filePath)) {
+                    this.log.debug(`File updated: ${filePath}`)
+                    await this.syncFromPath(filePath);
+                    await this.files.unlockFile(filePath);
+                }
+                break;
+            // default:
+            //     this.log.debug(`Not implemented file event: ${event} ${filePath}`);
+        }
+        return;
     }
 
     async syncFromPath(searchPath: string = undefined) {
@@ -112,8 +112,27 @@ export class WikiDocumentRepository extends Base {
         }));
     }
 
+    async trash(contentPath: string) {
+        if (path.isAbsolute(contentPath)) {
+            contentPath = path.relative(this.files.basePath, contentPath);
+        }
+        let query = {contentPath: contentPath};
+        let update = {$set: {"deleted": true}};
+        let doc = await this.mongo.upsert(query, update, WikiDocument);
+        if (fs.existsSync(contentPath)) {
+            fs.unlinkSync(contentPath);
+        }
+        return doc;
+    }
+
     async delete(contentPath: string) {
+        if (path.isAbsolute(contentPath)) {
+            contentPath = path.relative(this.files.basePath, contentPath);
+        }
         await this.mongo.delete({contentPath: contentPath}, WikiDocument);
+        if (fs.existsSync(contentPath)) {
+            fs.unlinkSync(contentPath);
+        }
     }
 
     async save(doc: WikiDocument) {
@@ -130,18 +149,22 @@ export class WikiDocumentRepository extends Base {
         doc.mediaType ??= MediaType.TEXT_MARKDOWN;
 
         let query = {
-            "_id": doc._id
+            $or: [
+                {_id: doc._id},
+                {contentPath: doc.contentPath}
+            ]
         }
         let update = {
             $setOnInsert: {
-                "_id": doc._id
+                _id: doc._id
             }, $set: {
-                "project": doc.project,
-                "tags": doc.tags,
-                "annotations": doc.annotations,
-                "contentPath": doc.contentPath,
-                "content": doc.content,
-                "mediaType": doc.mediaType
+                project: doc.project,
+                tags: doc.tags,
+                annotations: doc.annotations,
+                contentPath: doc.contentPath,
+                content: doc.content,
+                mediaType: doc.mediaType,
+                deleted: false
             }
         };
         doc = await this.mongo.upsert(query, update, WikiDocument);
