@@ -8,134 +8,66 @@ import {MongoRepository} from "@qwiki/modules/persistence-mongodb/MongoRepositor
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
 import {Value} from "@qwiki/core/beans/Value";
 import {NotImplementedException} from "@qwiki/core/utils/Exceptions";
-import * as yaml from "yaml";
 import {WikiDocument} from "@qwiki/modules/wiki/persistence/models/WikiDocument";
 import {MediaType} from "@qwiki/core/utils/MediaTypes";
-import {WikiMarkdownMetadata} from "@qwiki/modules/wiki/models/WikiMarkdownMetadata";
-import {assert} from "@qwiki/core/utils/common";
 import * as uuid from "uuid";
-import {Markdown} from "@qwiki/modules/wiki/persistence/loaders/Markdown";
-import {Semaphore} from "@qwiki/core/utils/Synchronize";
-import {INotifyWaitEvents} from "@qwiki/modules/inotifywait/INotifyWait";
+import {query} from "express";
+
+export enum WikiDocumentRepositoryEvents {
+    UPDATE = "update",
+    TRASH = "trash",
+    DELETE = "delete",
+    ALL = "all"
+}
 
 export class WikiDocumentRepository extends Base {
     static __bean__: __Bean__ = {}
+
+    /*
+        mongo
+        file system sync (separated, with event binding)
+     */
 
     mongo = Autowire(MongoRepository);
     files = Autowire(FilesRepository);
     // documentsPath = Value("qwiki.applications.wiki.documentsPath", "./data");
     defaultProject = Value("qwiki.applications.wiki.defaultProject", "main");
-    monitorFiles = Value("qwiki.applications.wiki.monitorFiles", true);
-    monitorSemaphore = new Semaphore();
-    monitorBlacklist: Map<String, number> = new Map();
-    searchPath: string;
-
-    markdown = Autowire(Markdown)
-    supportedExtensions = [".md"]
 
     // FIXME monitor folder for changes and update mongo document accordingly
     // FIXME permits other save formats (e.g. any file format with a companion .json metadata file
     // e.g. logo.jpg logo.jpg.meta.json
 
     async postConstruct() {
-        this.searchPath = fs.realpathSync(path.join(process.cwd(), this.files.basePath)) + "/**/*.md";
-        /*
-         reload all files
-         */
-        // if (!this.files.monitoringEnabled) {
-        await this.syncFromPath(this.searchPath);
-        // }
-
-        const self = this;
-        /*
-         * to avoid conflicts, lock a file if you are working on it
-         */
-        // https://github.com/Inist-CNRS/node-inotifywait
-        let watcher = this.files.watcher;
-        watcher.on(INotifyWaitEvents.ALL, this.syncFromPathEvent.bind(this))
-
-        // FIXME recreate files from mongo
+        this.on(WikiDocumentRepositoryEvents.UPDATE, (doc: WikiDocument) => this.emit(WikiDocumentRepositoryEvents.ALL, WikiDocumentRepositoryEvents.UPDATE, doc));
+        this.on(WikiDocumentRepositoryEvents.TRASH, (doc: WikiDocument) => this.emit(WikiDocumentRepositoryEvents.ALL, WikiDocumentRepositoryEvents.TRASH, doc));
+        this.on(WikiDocumentRepositoryEvents.DELETE, (doc: WikiDocument) => this.emit(WikiDocumentRepositoryEvents.ALL, WikiDocumentRepositoryEvents.DELETE, doc));
     }
 
-    async syncFromPathEvent(event: INotifyWaitEvents, filePath: string) {
-        // avoid to manage unwanted files
-        if (!filePath.endsWith(".md")) return;
-        if (event === INotifyWaitEvents.UNKNOWN) return;
-        // absolute path
-        filePath = path.join(process.cwd(), this.files.basePath, filePath);
-        // anti-cyclical test, avoid to manage blacklisted files (e.g. files edited by qwiki itself
-        if (this.monitorBlacklist.has(filePath) &&
-            fs.statSync(filePath).mtimeMs <= this.monitorBlacklist.get(filePath)) {
-            this.monitorBlacklist.delete(filePath)
-            return;
+    async trash(query: WikiDocument | any, emitEvent: boolean = true) {
+        if (query instanceof WikiDocument) {
+            query = {"_id": query._id};
         }
-        switch (event) {
-            case INotifyWaitEvents.CREATE:
-            case INotifyWaitEvents.MOVE_IN:
-                if (await this.files.tryLockFile(filePath)) {
-                    this.log.debug(`File created: ${filePath}`)
-                    await this.syncFromPath(filePath)
-                    await this.files.unlockFile(filePath);
-                }
-                break;
-            case INotifyWaitEvents.REMOVE:
-            case INotifyWaitEvents.MOVE_OUT:
-                if (await this.files.lockFile(filePath)) {
-                    this.log.debug(`File deleted: ${filePath}`)
-                    await this.trash(filePath);
-                    await this.files.unlockFile(filePath);
-                }
-                break;
-            case INotifyWaitEvents.CHANGE:
-                if (await this.files.tryLockFile(filePath)) {
-                    this.log.debug(`File updated: ${filePath}`)
-                    await this.syncFromPath(filePath);
-                    await this.files.unlockFile(filePath);
-                }
-                break;
-            // default:
-            //     this.log.debug(`Not implemented file event: ${event} ${filePath}`);
-        }
-        return;
-    }
-
-    async syncFromPath(searchPath: string = undefined) {
-        searchPath ??= this.searchPath;
-        // const re = new RegExp(this.supportedExtensions.map(x => `${x}$`).join("|"))
-        const files = glob.globSync(searchPath, {})
-            .map(p => path.isAbsolute(p) ? p : path.resolve(p))
-            .filter(p => fs.statSync(p).isFile())
-            .flatMap(files => files);
-        await Promise.all(files.map(filePath => {
-            return this.markdown.load(filePath)
-                .then(doc => this.save(doc));
-        }));
-    }
-
-    async trash(contentPath: string) {
-        if (path.isAbsolute(contentPath)) {
-            contentPath = path.relative(this.files.basePath, contentPath);
-        }
-        let query = {contentPath: contentPath};
-        let update = {$set: {"deleted": true}};
+        const update = {$set: {"deleted": true}};
         let doc = await this.mongo.upsert(query, update, WikiDocument);
-        if (fs.existsSync(contentPath)) {
-            fs.unlinkSync(contentPath);
+        if (emitEvent) {
+            this.emit(WikiDocumentRepositoryEvents.TRASH, doc);
         }
         return doc;
     }
 
-    async delete(contentPath: string) {
-        if (path.isAbsolute(contentPath)) {
-            contentPath = path.relative(this.files.basePath, contentPath);
+    async delete(query: WikiDocument | any, emitEvent: boolean = true) {
+        if (query instanceof WikiDocument) {
+            query = {"_id": query._id};
         }
-        await this.mongo.delete({contentPath: contentPath}, WikiDocument);
-        if (fs.existsSync(contentPath)) {
-            fs.unlinkSync(contentPath);
+        let doc = await this.mongo.find(query, WikiDocument);
+        await this.mongo.delete(query, WikiDocument);
+        if (emitEvent) {
+            this.emit(WikiDocumentRepositoryEvents.DELETE, doc);
         }
+        return doc;
     }
 
-    async save(doc: WikiDocument) {
+    async upsert(doc: WikiDocument, emitEvent: boolean = true) {
         /*
          * fill default fields
          * upsert on mongo
@@ -168,11 +100,9 @@ export class WikiDocumentRepository extends Base {
             }
         };
         doc = await this.mongo.upsert(query, update, WikiDocument);
-
-        // save file
-        await this.markdown.save(doc);
-        let filePath = path.join(process.cwd(), this.files.basePath, doc.contentPath);
-        this.monitorBlacklist.set(filePath, fs.statSync(filePath).mtimeMs);
+        if (emitEvent) {
+            this.emit(WikiDocumentRepositoryEvents.UPDATE, doc);
+        }
         return doc;
     }
 

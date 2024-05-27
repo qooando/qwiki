@@ -9,7 +9,7 @@ import {require} from "@qwiki/core/utils/common";
 import {initializeLogged, Logged} from "@qwiki/core/base/Logged";
 import pino from "pino";
 // let INotifyWait = require('inotifywait');
-import {INotifyWait} from "@qwiki/modules/inotifywait/INotifyWait";
+import {INotifyWait, INotifyWaitEvents} from "@qwiki/modules/inotifywait/INotifyWait";
 
 export class FilesRepository extends Base {
     static __bean__: __Bean__ = {
@@ -29,12 +29,12 @@ export class FilesRepository extends Base {
         }
     }
 
-    async save(filePath: string, content: string) {
-        return fs.writeFileSync(path.join(this.basePath, filePath), content, {encoding: "utf-8"});
+    async save(relPath: string, content: string) {
+        return fs.writeFileSync(path.join(this.basePath, relPath), content, {encoding: "utf-8"});
     }
 
-    async load(filePath: string) {
-        return fs.readFileSync(path.join(this.basePath, filePath), {encoding: "utf-8"});
+    async load(relPath: string) {
+        return fs.readFileSync(path.join(this.basePath, relPath), {encoding: "utf-8"});
     }
 
     async startMonitoring() {
@@ -48,6 +48,14 @@ export class FilesRepository extends Base {
         this.watcher = new INotifyWait(this.basePath, {
             recursive: true
         });
+        this.watcher.on(INotifyWaitEvents.ALL,
+            (event: INotifyWaitEvents, relPath: string, stats: any) => {
+                self.emit("TEST")
+                self.emit(event, relPath, stats);
+                self.emit(INotifyWaitEvents.ALL, event, relPath, stats);
+            }
+        );
+        console.log("startMonitoring FilesRepository")
     }
 
     async stopMonitoring() {
@@ -59,6 +67,7 @@ export class FilesRepository extends Base {
     }
 
     async lockFile(filePath: string) {
+        // this.log.debug(`Lock file: ${filePath}`);
         if (!this.fileLocks.has(filePath)) {
             this.fileLocks.set(filePath, new Lock());
         }
@@ -66,6 +75,7 @@ export class FilesRepository extends Base {
     }
 
     async tryLockFile(filePath: string) {
+        // this.log.debug(`Try lock file: ${filePath}`);
         if (!this.fileLocks.has(filePath)) {
             this.fileLocks.set(filePath, new Lock());
         }
@@ -73,6 +83,7 @@ export class FilesRepository extends Base {
     }
 
     async unlockFile(filePath: string) {
+        // this.log.debug(`Unlock file: ${filePath}`);
         return await this.fileLocks.get(filePath).unlock();
     }
 

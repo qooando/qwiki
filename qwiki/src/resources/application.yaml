@@ -32,6 +32,11 @@ qwiki:
       serverName: default # same of a server above
       urlPrefix: "/"
       staticFilesPath: "../client"
+      fsSync:
+        markdown:
+          enable: true
+          subPath: ""
+
   #    mongodb:
   #      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"
   #
