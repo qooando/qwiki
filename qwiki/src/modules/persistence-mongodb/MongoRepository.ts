@@ -19,18 +19,21 @@ export class MongoRepository {
         this.db = this.mongo.db;
     }
 
-    _setDefaultField(model: Entity) {
-        model._id ??= uuid.v4();
-        model._type ??= model.__entity__.typeAlias ?? model.constructor.name
-        model.createdAt ??= new Date();
-        model.updatedAt = new Date();
-        return model;
-    }
+    // _setDefaultField(model: Entity) {
+    //     model._id ??= uuid.v4();
+    //     model._type ??= model.__entity__.typeAlias ?? model.constructor.name
+    //     model.createdAt ??= new Date();
+    //     model.updatedAt = new Date();
+    //     return model;
+    // }
 
 
     async save(model: Entity, collection: string = undefined) {
         collection ??= model.__entity__.collection;
-        model = this._setDefaultField(model);
+        model._id ??= uuid.v4();
+        model._type ??= model.__entity__.typeAlias ?? model.constructor.name
+        model.createdAt ??= new Date();
+        model.updatedAt = new Date();
         let coll = this.db.collection(collection);
         await coll.updateOne({_id: model._id}, {$set: model}, {upsert: true});
         let result = coll.findOne({_id: model._id});
@@ -58,19 +61,20 @@ export class MongoRepository {
             .catch(reason => null)
     }
 
-    async upsert<T extends Entity>(query: any, update: any, klazz: ClassConstructor<T>, collection: string = undefined) {
+    async upsert<T extends Entity>(query: any, update: any, klazz: ClassConstructor<T>, collection: string = undefined, upsert: boolean = true) {
         collection ??= (klazz as any).__entity__.collection;
         // create default object, then upsert
-        // model = this._setDefaultField(model);
-        // FIXME missing call to this._setDefaultField(model)
+        update.$setOnInsert ??= {}
+        update.$setOnInsert._id ??= uuid.v4();
+        update.$setOnInsert._type ??= (klazz as any).__entity__.typeAlias
+        update.$setOnInsert.createdAt ??= new Date();
+        update.$set ??= {}
+        update.$set.updatedAt ??= new Date();
         let coll = this.db.collection(collection);
-        return coll
-            .updateOne(query, update, {upsert: true})
-            .then(result => coll.findOne(query))
-            .then(doc => Objects.mapTo(doc, klazz)) //FIXME wrong initialization
-            .then(doc => this._setDefaultField(doc))
-            .then(doc => this.save(doc))
-            .then(doc => Objects.mapTo(doc, klazz))
+        let result = await coll.updateOne(query, update, {upsert: upsert});
+        let doc = await coll.findOne(query);
+        let model = Objects.mapTo(doc, klazz);
+        return model;
     }
 
     async delete<T extends Entity>(query: any, klazz: ClassConstructor<T>, collection: string = undefined) {

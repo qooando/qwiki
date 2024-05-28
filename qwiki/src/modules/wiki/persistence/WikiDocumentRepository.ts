@@ -48,7 +48,7 @@ export class WikiDocumentRepository extends Base {
             query = {"_id": query._id};
         }
         const update = {$set: {"deleted": true}};
-        let doc = await this.mongo.upsert(query, update, WikiDocument);
+        let doc = await this.mongo.upsert(query, update, WikiDocument, null, false);
         if (emitEvent) {
             this.emit(WikiDocumentRepositoryEvents.TRASH, doc);
         }

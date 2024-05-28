@@ -87,9 +87,9 @@ export class FsSync extends Base {
         if (path.isAbsolute(genericPath)) {
             return [path.relative(this.absSyncBasePath, genericPath), genericPath];
         } else {
-            genericPath = path.join(process.cwd(), genericPath);
-            return [path.relative(this.absSyncBasePath, genericPath), genericPath];
-            // return [genericPath, path.join(this.absSyncBasePath, genericPath)];
+            // genericPath = path.join(process.cwd(), genericPath);
+            // return [path.relative(this.absSyncBasePath, genericPath), genericPath];
+            return [genericPath, path.join(this.absSyncBasePath, genericPath)];
         }
     }
 
@@ -122,6 +122,8 @@ export class FsSync extends Base {
         // avoid to manage unwanted files
         if (!this.fileExtensionsRegexp.test(filePath)) return;
         if (event === INotifyWaitEvents.UNKNOWN) return;
+        // filepath is relative to process.cwd()
+        filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
         if (fs.existsSync(absPath)) {
             let mtime = fs.statSync(absPath).mtimeMs;
@@ -135,6 +137,7 @@ export class FsSync extends Base {
             case INotifyWaitEvents.MOVE_IN:
             case INotifyWaitEvents.CHANGE:
                 // load the document and upsert
+                // FIXME c'è un salvataggio di troppo sul move_in ?
                 await this.load(absPath, async (absPath: string, doc: WikiDocument) => {
                     doc = await this.wikiRepository.upsert(doc, false);
                     await this._saveUnsafe(absPath, doc);
@@ -167,6 +170,7 @@ export class FsSync extends Base {
                 save the doc to db (avoid signals)
                 save again to file (update metadata)
              */
+            this.log.debug(`Sync file to db: ${filePath}`)
             return this.load(filePath, async (absPath: string, doc: WikiDocument) => {
                 doc = await this.wikiRepository.upsert(doc, false);
                 await this._saveUnsafe(absPath, doc);
@@ -180,6 +184,7 @@ export class FsSync extends Base {
             docs.map(
                 async (doc) => {
                     let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath ?? `${doc.title ?? doc._id}.${this.fileExtensions[0]}`);
+                    this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
                         return await this.delete(absPath);
