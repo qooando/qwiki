@@ -36,6 +36,8 @@ qwiki:
         markdown:
           enable: true
           subPath: ""
+        stylesheet:
+          enable: true
 
   #    mongodb:
   #      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"

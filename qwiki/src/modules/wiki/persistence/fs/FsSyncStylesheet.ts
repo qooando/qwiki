@@ -13,27 +13,26 @@ import {FsSync} from "@qwiki/modules/wiki/persistence/fs/FsSync";
 import {Value} from "@qwiki/core/beans/Value";
 import {WikiDocumentRepository} from "@qwiki/modules/wiki/persistence/WikiDocumentRepository";
 
-export class FsSyncMarkdown extends FsSync {
+export class FsSyncStylesheet extends FsSync {
     static __bean__: __Bean__ = {
-        loadCondition: () => Objects.getValueOrDefault($qw.config, "qwiki.applications.wiki.fsSync.markdown.enable", false)
+        loadCondition: () => Objects.getValueOrDefault($qw.config, "qwiki.applications.wiki.fsSync.stylesheet.enable", false)
     }
 
     mediaTypes: string[] = [
-        MediaType.TEXT_MARKDOWN
+        MediaType.TEXT_CSS
     ]
     fileExtensions: string[] = [
-        "md"
+        "css"
     ]
-    syncSubPath = Value("qwiki.applications.wiki.fsSync.markdown.subPath", "");
-
-    splitMarkdown: RegExp = /^(?:---(?<metadata>.*?)---)?(?<content>.*)/s
+    syncSubPath = Value("qwiki.applications.wiki.fsSync.stylesheet.subPath", "");
+    splitCss: RegExp = /^(?:\/\*(?<metadata>.*?)\*\/)?(?<content>.*)/s
 
     async postConstruct() {
         await super.postConstruct();
     }
 
     async _loadUnsafe(absPath: string): Promise<WikiDocument> {
-        let match = this.splitMarkdown.exec(fs.readFileSync(absPath, "utf-8"))
+        let match = this.splitCss.exec(fs.readFileSync(absPath, "utf-8"))
         let metadata: WikiDocumentMetadata = (match.groups.metadata ? yaml.parse(match.groups.metadata) : {}) ?? {};
         let content = match.groups.content.trim();
         let relPath = path.relative(this.filesRepository.basePath, absPath);
@@ -43,7 +42,7 @@ export class FsSyncMarkdown extends FsSync {
             title: metadata.title,
             tags: metadata.tags,
             annotations: metadata.annotations,
-            mediaType: MediaType.TEXT_MARKDOWN,
+            mediaType: MediaType.TEXT_CSS,
             contentPath: relPath,
             content: content
         });
@@ -58,8 +57,8 @@ export class FsSyncMarkdown extends FsSync {
             tags: doc.tags,
             annotations: doc.annotations
         };
-        let mdContent = `---\n${yaml.stringify(mdMetadata)}---\n${doc.content}\n`;
+        let content = `/*\n${yaml.stringify(mdMetadata)}*/\n${doc.content}\n`;
         let relPath = path.relative(this.filesRepository.basePath, absPath);
-        await this.filesRepository.save(relPath ?? doc.contentPath, mdContent);
+        await this.filesRepository.save(relPath ?? doc.contentPath, content);
     }
 }

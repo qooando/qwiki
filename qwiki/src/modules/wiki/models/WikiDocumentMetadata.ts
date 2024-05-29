@@ -1,4 +1,4 @@
-export interface WikiMarkdownMetadata {
+export interface WikiDocumentMetadata {
     id?: string;
     title?: string;
     project?: string;

@@ -137,7 +137,6 @@ export class FsSync extends Base {
             case INotifyWaitEvents.MOVE_IN:
             case INotifyWaitEvents.CHANGE:
                 // load the document and upsert
-                // FIXME c'è un salvataggio di troppo sul move_in ?
                 await this.load(absPath, async (absPath: string, doc: WikiDocument) => {
                     doc = await this.wikiRepository.upsert(doc, false);
                     await this._saveUnsafe(absPath, doc);
@@ -159,10 +158,11 @@ export class FsSync extends Base {
     }
 
     async syncFilesToDb() {
-        let globPath = this.absSyncBasePath + "/**/*.md";
+        let globPath = this.absSyncBasePath + "/**/*";
         const files = glob.globSync(globPath, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
+            .filter(p => this.fileExtensionsRegexp.test(p))
             .flatMap(files => files);
         await Promise.all(files.map(filePath => {
             /*
@@ -170,7 +170,7 @@ export class FsSync extends Base {
                 save the doc to db (avoid signals)
                 save again to file (update metadata)
              */
-            this.log.debug(`Sync file to db: ${filePath}`)
+            // this.log.debug(`Sync file to db: ${filePath}`)
             return this.load(filePath, async (absPath: string, doc: WikiDocument) => {
                 doc = await this.wikiRepository.upsert(doc, false);
                 await this._saveUnsafe(absPath, doc);
@@ -184,7 +184,7 @@ export class FsSync extends Base {
             docs.map(
                 async (doc) => {
                     let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath ?? `${doc.title ?? doc._id}.${this.fileExtensions[0]}`);
-                    this.log.debug(`Sync db to file: ${absPath}`)
+                    // this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
                         return await this.delete(absPath);
