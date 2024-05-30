@@ -33,11 +33,8 @@ qwiki:
       urlPrefix: "/"
       staticFilesPath: "../client"
       fsSync:
-        markdown:
-          enable: true
-          subPath: ""
-        stylesheet:
-          enable: true
+        enable: true
+        subPath: ""
 
   #    mongodb:
   #      connectionString: "mongodb://admin:admin@localhost:27017/qwiki"

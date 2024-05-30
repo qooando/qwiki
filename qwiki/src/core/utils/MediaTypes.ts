@@ -1,3 +1,6 @@
+import * as mmm from "mmmagic";
+import {DetectionCallback, Magic} from "mmmagic";
+
 export enum MediaType {
     ANY = "*/*",
     APPLICATION_JSON = "application/json",
@@ -351,3 +354,38 @@ export function getMediaTypeFromFilePath(name: string) {
 export function getExtensionFromMediaType(mimetype: string) {
     return mediaTypeExtensionMap.get(mimetype);
 };
+
+export let magic = new Magic();
+
+// detect(data: Buffer, callback: DetectionCallback): void;
+export async function detectFile(path: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        magic.detectFile(path, (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                if (Array.isArray(result)) {
+                    resolve(result[0]);
+                } else {
+                    resolve(result);
+                }
+            }
+        })
+    });
+}
+
+export async function detect(data: Buffer): Promise<string> {
+    return new Promise((resolve, reject) => {
+        magic.detect(data, (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                if (Array.isArray(result)) {
+                    resolve(result[0]);
+                } else {
+                    resolve(result);
+                }
+            }
+        })
+    });
+}

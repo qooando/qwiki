@@ -12,18 +12,20 @@ import {
     WikiDocumentRepositoryEvents
 } from "@qwiki/modules/wiki/persistence/WikiDocumentRepository";
 import {FsLoader} from "@qwiki/modules/wiki/persistence/fs/FsLoader";
-import * as mmm from "mmmagic";
-import * as buffer from "node:buffer";
-import {MediaType} from "@qwiki/core/utils/MediaTypes";
+import {detectFile, MediaType} from "@qwiki/core/utils/MediaTypes";
+import {__Bean__} from "@qwiki/core/beans/__Bean__";
+import {Value} from "@qwiki/core/beans/Value";
 
 export class FsSync extends Base {
-    declare syncSubPath: string;
+    static __bean__: __Bean__ = {
+        loadCondition: () => ($qw.config.qwiki as any).applications.wiki.fsSync.enable
+    }
+    syncSubPath: string = Value("qwiki.applications.wiki.fsSync.subPath", "");
     absSyncBasePath: string;
 
     filesRepository = Autowire(FilesRepository);
     fileLastAccess: Map<String, number> = new Map();
     wikiRepository = Autowire(WikiDocumentRepository);
-    magic = new mmm.Magic();
 
     fsLoadersByMediaType = Autowire(
         [FsLoader],
@@ -76,10 +78,7 @@ export class FsSync extends Base {
     }
 
     async _loadUnsafe(absPath: string): Promise<WikiDocument> {
-        let mediaType: string = null
-        this.magic.detectFile(absPath, (err, result: string) => {
-            mediaType = result;
-        });
+        let mediaType: string = await detectFile(absPath);
         let fsloader: FsLoader = null;
         if (this.fsLoadersByMediaType.has(mediaType)) {
             fsloader = this.fsLoadersByMediaType.get(mediaType);
@@ -90,12 +89,7 @@ export class FsSync extends Base {
     }
 
     async _saveUnsafe(absPath: string, doc: WikiDocument) {
-        let mediaType: string = doc.mediaType
-        if (!mediaType) {
-            this.magic.detectFile(absPath, (err, result: string) => {
-                mediaType = result;
-            });
-        }
+        let mediaType: string = doc.mediaType ?? await detectFile(absPath);
         let fsloader: FsLoader = null;
         if (this.fsLoadersByMediaType.has(mediaType)) {
             fsloader = this.fsLoadersByMediaType.get(mediaType);

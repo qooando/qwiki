@@ -8,8 +8,11 @@ import * as yaml from "yaml";
 import * as path from "node:path";
 import {Autowire} from "@qwiki/core/beans/Autowire";
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
+import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
 export class FsLoaderMarkdown extends FsLoader {
+    static __bean__: __Bean__ = {}
+
     mediaTypes: string[] = [
         MediaType.TEXT_MARKDOWN
     ]
