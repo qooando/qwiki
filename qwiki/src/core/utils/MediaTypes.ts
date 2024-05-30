@@ -1,4 +1,5 @@
 export enum MediaType {
+    ANY = "*/*",
     APPLICATION_JSON = "application/json",
     APPLICATION_YAML = "application/yaml",
     TEXT_MARKDOWN = "text/markdown",

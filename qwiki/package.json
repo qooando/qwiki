@@ -33,6 +33,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@types/mmmagic": "^0.4.33",
     "@wesleytodd/openapi": "^1.0.0",
     "esm": "^3.2.25",
     "express": "^4.19.2",
@@ -41,6 +42,7 @@
     "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0",
     "localized-strings": "^0.2.4",
+    "mmmagic": "^0.5.3",
     "mongodb": "^6.6.2",
     "node-json-transform": "^1.1.2",
     "pino": "^8.19.0",

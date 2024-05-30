@@ -11,23 +11,29 @@ import {
     WikiDocumentRepository,
     WikiDocumentRepositoryEvents
 } from "@qwiki/modules/wiki/persistence/WikiDocumentRepository";
+import {FsLoader} from "@qwiki/modules/wiki/persistence/fs/FsLoader";
+import * as mmm from "mmmagic";
+import * as buffer from "node:buffer";
+import {MediaType} from "@qwiki/core/utils/MediaTypes";
 
 export class FsSync extends Base {
-    declare mediaTypes: string[];
-    declare fileExtensions: string[];
     declare syncSubPath: string;
     absSyncBasePath: string;
 
     filesRepository = Autowire(FilesRepository);
-    fileExtensionsRegexp: RegExp;
     fileLastAccess: Map<String, number> = new Map();
-
     wikiRepository = Autowire(WikiDocumentRepository);
+    magic = new mmm.Magic();
+
+    fsLoadersByMediaType = Autowire(
+        [FsLoader],
+        undefined,
+        (x: FsLoader) => x.mediaTypes
+    );
 
     async postConstruct() {
         const self = this;
         this.absSyncBasePath = path.join(process.cwd(), this.filesRepository.basePath, this.syncSubPath)
-        this.fileExtensionsRegexp = new RegExp(`\.(${this.fileExtensions.join("|")})$`);
         this.log.debug(`Sync database → filesystem`)
         await this.syncDbToFiles();
         this.log.debug(`Sync filesystem → database`)
@@ -70,11 +76,33 @@ export class FsSync extends Base {
     }
 
     async _loadUnsafe(absPath: string): Promise<WikiDocument> {
-        throw new NotImplementedException();
+        let mediaType: string = null
+        this.magic.detectFile(absPath, (err, result: string) => {
+            mediaType = result;
+        });
+        let fsloader: FsLoader = null;
+        if (this.fsLoadersByMediaType.has(mediaType)) {
+            fsloader = this.fsLoadersByMediaType.get(mediaType);
+        } else {
+            fsloader = this.fsLoadersByMediaType.get(MediaType.ANY);
+        }
+        return await fsloader.load(absPath);
     }
 
     async _saveUnsafe(absPath: string, doc: WikiDocument) {
-        throw new NotImplementedException();
+        let mediaType: string = doc.mediaType
+        if (!mediaType) {
+            this.magic.detectFile(absPath, (err, result: string) => {
+                mediaType = result;
+            });
+        }
+        let fsloader: FsLoader = null;
+        if (this.fsLoadersByMediaType.has(mediaType)) {
+            fsloader = this.fsLoadersByMediaType.get(mediaType);
+        } else {
+            fsloader = this.fsLoadersByMediaType.get(MediaType.ANY);
+        }
+        return await fsloader.save(absPath, doc);
     }
 
     async _deleteUnsafe(absPath: string): Promise<void> {
@@ -98,9 +126,8 @@ export class FsSync extends Base {
             this.log.warn(`Document mediaType is null: ${doc._id}`);
             return;
         }
-        if (!this.mediaTypes.includes(doc.mediaType)) return;
         // FIXME transform title to a better filename
-        let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath ?? `${doc.title ?? doc._id}.${this.fileExtensions[0]}`);
+        let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath);
         switch (event) {
             case WikiDocumentRepositoryEvents.UPDATE:
                 await this.save(absPath, doc, doc.contentPath ? undefined :
@@ -120,7 +147,6 @@ export class FsSync extends Base {
 
     async onFileEvent(event: INotifyWaitEvents, filePath: string) {
         // avoid to manage unwanted files
-        if (!this.fileExtensionsRegexp.test(filePath)) return;
         if (event === INotifyWaitEvents.UNKNOWN) return;
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
@@ -162,7 +188,6 @@ export class FsSync extends Base {
         const files = glob.globSync(globPath, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
-            .filter(p => this.fileExtensionsRegexp.test(p))
             .flatMap(files => files);
         await Promise.all(files.map(filePath => {
             /*
@@ -179,11 +204,11 @@ export class FsSync extends Base {
     }
 
     async syncDbToFiles() {
-        let docs = await this.wikiRepository.mongo.find({mediaType: {$in: this.mediaTypes}}, WikiDocument);
+        let docs = await this.wikiRepository.mongo.find({}, WikiDocument);
         await Promise.all(
             docs.map(
                 async (doc) => {
-                    let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath ?? `${doc.title ?? doc._id}.${this.fileExtensions[0]}`);
+                    let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath);
                     // this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
