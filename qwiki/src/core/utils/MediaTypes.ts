@@ -360,17 +360,43 @@ export let magic = new Magic();
 // detect(data: Buffer, callback: DetectionCallback): void;
 export async function detectFile(path: string): Promise<string> {
     return new Promise((resolve, reject) => {
-        magic.detectFile(path, (err, result) => {
-            if (err) {
-                reject(err);
-            } else {
-                if (Array.isArray(result)) {
-                    resolve(result[0]);
+        let mediaType = getMediaTypeFromFilePath(path);
+        if (mediaType) {
+            resolve(mediaType);
+        } else {
+            magic.detectFile(path, (err, result) => {
+                if (err) {
+                    reject(err);
                 } else {
-                    resolve(result);
+                    if (Array.isArray(result)) {
+                        resolve(result[0]);
+                    } else {
+                        resolve(result);
+                    }
                 }
-            }
-        })
+            })
+        }
+        // magic.detectFile(path, (err, result) => {
+        //     if (err) {
+        //         try {
+        //             resolve(getMediaTypeFromFilePath(path));
+        //         } catch (e) {
+        //             reject(err);
+        //         }
+        //     } else {
+        //         if (result === "empty") {
+        //             try {
+        //                 resolve(getMediaTypeFromFilePath(path));
+        //             } catch (e) {
+        //                 reject(e);
+        //             }
+        //         } else if (Array.isArray(result)) {
+        //             resolve(result[0]);
+        //         } else {
+        //             resolve(result);
+        //         }
+        //     }
+        // })
     });
 }
 

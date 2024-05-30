@@ -10,14 +10,14 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
-export class FsLoaderMarkdown extends FsLoader {
+export class FsLoaderStylesheet extends FsLoader {
     static __bean__: __Bean__ = {}
 
     mediaTypes: string[] = [
-        MediaType.TEXT_MARKDOWN
+        MediaType.TEXT_CSS
     ]
     fileExtensions: string[] = [
-        "md"
+        "css"
     ]
     splitCss: RegExp = /^(?:\/\*(?<metadata>.*?)\*\/)?(?<content>.*)/s
     filesRepository = Autowire(FilesRepository);

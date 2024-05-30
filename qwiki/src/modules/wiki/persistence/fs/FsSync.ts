@@ -33,9 +33,14 @@ export class FsSync extends Base {
         (x: FsLoader) => x.mediaTypes
     );
 
+    ignoreFileExtensions: string[];
+    ignoreFileExtensionsRegExp: RegExp;
+
     async postConstruct() {
         const self = this;
         this.absSyncBasePath = path.join(process.cwd(), this.filesRepository.basePath, this.syncSubPath)
+        this.ignoreFileExtensions = [...this.fsLoadersByMediaType.values()].flatMap(x => x.ignoreFileExtensions ?? []);
+        this.ignoreFileExtensionsRegExp = new RegExp("\.(" + this.ignoreFileExtensions.join("|") + ")$");
         this.log.debug(`Sync database → filesystem`)
         await this.syncDbToFiles();
         this.log.debug(`Sync filesystem → database`)
@@ -79,30 +84,26 @@ export class FsSync extends Base {
 
     async _loadUnsafe(absPath: string): Promise<WikiDocument> {
         let mediaType: string = await detectFile(absPath);
-        let fsloader: FsLoader = null;
-        if (this.fsLoadersByMediaType.has(mediaType)) {
-            fsloader = this.fsLoadersByMediaType.get(mediaType);
-        } else {
-            fsloader = this.fsLoadersByMediaType.get(MediaType.ANY);
-        }
-        return await fsloader.load(absPath);
+        let fsLoader: FsLoader =
+            this.fsLoadersByMediaType.get(mediaType) ??
+            this.fsLoadersByMediaType.get(MediaType.ANY);
+        return await fsLoader.load(absPath);
     }
 
     async _saveUnsafe(absPath: string, doc: WikiDocument) {
         let mediaType: string = doc.mediaType ?? await detectFile(absPath);
-        let fsloader: FsLoader = null;
-        if (this.fsLoadersByMediaType.has(mediaType)) {
-            fsloader = this.fsLoadersByMediaType.get(mediaType);
-        } else {
-            fsloader = this.fsLoadersByMediaType.get(MediaType.ANY);
-        }
-        return await fsloader.save(absPath, doc);
+        let fsLoader: FsLoader =
+            this.fsLoadersByMediaType.get(mediaType) ??
+            this.fsLoadersByMediaType.get(MediaType.ANY);
+        return await fsLoader.save(absPath, doc);
     }
 
     async _deleteUnsafe(absPath: string): Promise<void> {
-        if (fs.existsSync(absPath)) {
-            fs.unlinkSync(absPath);
-        }
+        let mediaType: string = await detectFile(absPath);
+        let fsLoader: FsLoader =
+            this.fsLoadersByMediaType.get(mediaType) ??
+            this.fsLoadersByMediaType.get(MediaType.ANY);
+        return await fsLoader.delete(absPath);
     }
 
     _getRelAbsPaths(genericPath: string): [string, string] {
@@ -142,6 +143,7 @@ export class FsSync extends Base {
     async onFileEvent(event: INotifyWaitEvents, filePath: string) {
         // avoid to manage unwanted files
         if (event === INotifyWaitEvents.UNKNOWN) return;
+        if (this.ignoreFileExtensionsRegExp.test(filePath)) return;
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
@@ -182,6 +184,7 @@ export class FsSync extends Base {
         const files = glob.globSync(globPath, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
+            .filter(p => !this.ignoreFileExtensionsRegExp.test(p))
             .flatMap(files => files);
         await Promise.all(files.map(filePath => {
             /*

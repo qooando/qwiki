@@ -1,7 +1,7 @@
 import {Base} from "@qwiki/core/base/Base";
 import {WikiDocument} from "@qwiki/modules/wiki/persistence/models/WikiDocument";
 import {FsLoader} from "@qwiki/modules/wiki/persistence/fs/FsLoader";
-import {MediaType} from "@qwiki/core/utils/MediaTypes";
+import {detectFile, MediaType} from "@qwiki/core/utils/MediaTypes";
 import {WikiDocumentMetadata} from "@qwiki/modules/wiki/models/WikiDocumentMetadata";
 import * as fs from "node:fs";
 import * as yaml from "yaml";
@@ -11,7 +11,7 @@ import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository"
 import * as mmm from "mmmagic";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
-export class FsLoaderMarkdown extends FsLoader {
+export class FsLoaderAny extends FsLoader {
     static __bean__: __Bean__ = {}
 
     mediaTypes: string[] = [
@@ -22,8 +22,10 @@ export class FsLoaderMarkdown extends FsLoader {
     ]
     splitCss: RegExp = /^(?:\/\*(?<metadata>.*?)\*\/)?(?<content>.*)/s
     filesRepository = Autowire(FilesRepository);
-    magic = new mmm.Magic();
     metaExt = ".meta.json"
+    ignoreFileExtensions: string[] = [
+        ".meta.json"
+    ]
 
     async load(absPath: string): Promise<WikiDocument> {
         let metaAbsPath = `${absPath}${this.metaExt}`
@@ -33,10 +35,7 @@ export class FsLoaderMarkdown extends FsLoader {
         }
         let content = fs.readFileSync(absPath, "utf-8");
         let relPath = path.relative(this.filesRepository.basePath, absPath);
-        let mediaType: string = null
-        this.magic.detectFile(absPath, (err, result: string) => {
-            mediaType = result
-        });
+        let mediaType: string = await detectFile(absPath);
         let doc = new WikiDocument({
             _id: metadata.id,
             project: metadata.project,
@@ -66,5 +65,13 @@ export class FsLoaderMarkdown extends FsLoader {
         await this.filesRepository.save(metaRelPath ?? `${doc.contentPath}${this.metaExt}`, JSON.stringify(meta));
     }
 
-
+    async delete(absPath: string): Promise<void> {
+        if (fs.existsSync(absPath)) {
+            fs.unlinkSync(absPath);
+        }
+        let metaAbsPath = `${absPath}${this.metaExt}`
+        if (fs.existsSync(metaAbsPath)) {
+            fs.unlinkSync(metaAbsPath);
+        }
+    }
 }
