@@ -22,9 +22,9 @@ export class FsLoaderAny extends FsLoader {
     ]
     splitCss: RegExp = /^(?:\/\*(?<metadata>.*?)\*\/)?(?<content>.*)/s
     filesRepository = Autowire(FilesRepository);
-    metaExt = ".meta.json"
+    metaExt = ".meta"
     ignoreFileExtensions: string[] = [
-        ".meta.json"
+        ".meta"
     ]
 
     async load(absPath: string): Promise<WikiDocument> {

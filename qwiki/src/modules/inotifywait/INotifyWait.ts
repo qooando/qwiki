@@ -26,8 +26,8 @@ export interface INotifyWaitOptions {
 export enum INotifyWaitEvents {
     ALL = "all",
     CREATE = "create",
-    MOVE_IN = "move_in",
-    MOVE_OUT = "move_out",
+    MOVE_TO = "move_to",
+    MOVE_FROM = "move_from",
     CHANGE = "change",
     REMOVE = "remove",
     UNKNOWN = "unknown",
@@ -39,6 +39,7 @@ export class INotifyWait extends Base {
     options: INotifyWaitOptions;
     currentEvents: Map<string, string> = new Map();
     process: ChildProcess;
+    cookies: Map<string, string> = new Map();
 
     constructor(wpath: string, options: INotifyWaitOptions) {
         super();
@@ -55,8 +56,8 @@ export class INotifyWait extends Base {
         }, options);
 
         this.on(INotifyWaitEvents.CREATE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CREATE, filePath, stats));
-        this.on(INotifyWaitEvents.MOVE_IN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_IN, filePath, stats));
-        this.on(INotifyWaitEvents.MOVE_OUT, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_OUT, filePath, stats));
+        this.on(INotifyWaitEvents.MOVE_TO, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_TO, filePath, stats));
+        this.on(INotifyWaitEvents.MOVE_FROM, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.MOVE_FROM, filePath, stats));
         this.on(INotifyWaitEvents.CHANGE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CHANGE, filePath, stats));
         this.on(INotifyWaitEvents.REMOVE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE, filePath, stats));
         this.on(INotifyWaitEvents.UNKNOWN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.UNKNOWN, filePath, stats));
@@ -68,7 +69,7 @@ export class INotifyWait extends Base {
         let args = [
             (this.options.recursive ? '-r' : ''),
             '--format',
-            '{"type":"%e","file":"%w%f","date":"%T"}',
+            '{"type":"%e","file":"%w%f","cookie":"%c","date":"%T"}',
             '--timefmt',
             '%s',
             '-m'
@@ -126,7 +127,7 @@ export class INotifyWait extends Base {
                 })
                 .map((event) => {
                     let date = new Date(event.date * 1000); // Unix Epoch * 1000 = JavaScript Epoch
-                    return {type: event.type.split(','), file: event.file, date: date}
+                    return {type: event.type.split(','), file: event.file, date: date, cookie: event.cookie}
                 })
                 .forEach((event) => {
                     // skip directories ?
@@ -136,7 +137,7 @@ export class INotifyWait extends Base {
                     }
 
                     // console.log(event)
-                    var stats = {isDir: isDir, date: event.date};
+                    var stats: any = {isDir: isDir, date: event.date, cookie: event.cookie};
                     if (event.type.includes('CREATE')) {
                         self.currentEvents.set(event.file, INotifyWaitEvents.CREATE);
                         fs.lstat(event.file, (err, lstats) => {
@@ -148,17 +149,22 @@ export class INotifyWait extends Base {
                         });
 
                     } else if (event.type.includes('MOVED_TO')) {
-                        this.currentEvents.set(event.file, INotifyWaitEvents.MOVE_IN);
+                        this.currentEvents.set(event.file, INotifyWaitEvents.MOVE_TO);
                         fs.lstat(event.file, function (err, lstats) {
                             if (!err && !lstats.isDirectory()) {
                                 // symlink and hard link does not receive any CLOSE event
-                                self.emit(INotifyWaitEvents.MOVE_IN, event.file, stats);
+                                stats.from = null;
+                                if (stats.cookie) {
+                                    stats.from = self.cookies.get(stats.cookie);
+                                    self.cookies.delete(stats.cookie);
+                                }
+                                self.emit(INotifyWaitEvents.MOVE_TO, event.file, stats);
                                 self.currentEvents.delete(event.file);
                             }
                         });
 
                     } else if (event.type.includes('MOVED_FROM')) {
-                        self.emit(INotifyWaitEvents.MOVE_OUT, event.file, stats);
+                        self.emit(INotifyWaitEvents.MOVE_FROM, event.file, stats);
 
                     } else if (event.type.includes('MODIFY') || // to detect modifications on files
                         event.type.includes('ATTRIB')) { // to detect touch on hard link

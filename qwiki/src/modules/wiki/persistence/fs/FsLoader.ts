@@ -16,6 +16,10 @@ export class FsLoader extends Base {
         throw new NotImplementedException();
     }
 
+    async move(fromAbsPath: string, toAbsPath: string, doc: WikiDocument) {
+        return await this.save(toAbsPath, doc);
+    }
+
     async delete(absPath: string): Promise<void> {
         if (fs.existsSync(absPath)) {
             fs.unlinkSync(absPath);

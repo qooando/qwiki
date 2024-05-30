@@ -51,59 +51,68 @@ export class FsSync extends Base {
         this.filesRepository.watcher.on(INotifyWaitEvents.ALL, this.onFileEvent.bind(this));
     }
 
-    async load(absPath: string, then: (absPath: string, doc: WikiDocument) => Promise<void> = undefined): Promise<WikiDocument> {
+    async _getMediaTypeAndFsLoader(absPath: string): Promise<[string, FsLoader]> {
+        const mediaType: string = await detectFile(absPath);
+        const fsLoader: FsLoader =
+            this.fsLoadersByMediaType.get(mediaType) ??
+            this.fsLoadersByMediaType.get(MediaType.ANY);
+        return [mediaType, fsLoader];
+    }
+
+    async _withFileLock(absPath: string, cb: () => Promise<any>) {
         if (await this.filesRepository.lockFile(absPath)) {
-            let doc = await this._loadUnsafe(absPath)
+            try {
+                return await cb();
+            } finally {
+                await this.filesRepository.unlockFile(absPath);
+            }
+        }
+    }
+
+    async loadFile(absPath: string, then: (absPath: string, doc: WikiDocument) => Promise<void> = undefined): Promise<WikiDocument> {
+        return await this._withFileLock(absPath, async () => {
+            const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+            const doc = await fsLoader.load(absPath);
             if (then) {
                 await then(absPath, doc);
             }
-            await this.filesRepository.unlockFile(absPath);
             return doc;
-        }
+        });
     }
 
-    async save(absPath: string, doc: WikiDocument, then: (absPath: string, doc: WikiDocument) => Promise<void> = undefined) {
-        if (await this.filesRepository.lockFile(absPath)) {
-            await this._saveUnsafe(absPath, doc)
+    async saveFile(absPath: string, doc: WikiDocument, then: (absPath: string, doc: WikiDocument) => Promise<void> = undefined) {
+        return await this._withFileLock(absPath, async () => {
+            const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+            await fsLoader.save(absPath, doc);
             if (then) {
                 await then(absPath, doc);
             }
-            await this.filesRepository.unlockFile(absPath);
-        }
+            return doc;
+        });
     }
 
-    async delete(absPath: string, then: (absPath: string) => Promise<void> = undefined): Promise<void> {
-        if (await this.filesRepository.lockFile(absPath)) {
-            await this._deleteUnsafe(absPath)
+    async moveFile(fromAbsPath: string, toAbsPath: string, doc: WikiDocument,
+                   then: (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => Promise<void> = undefined) {
+        // we assume toAbsPath exists
+        return await this._withFileLock(toAbsPath, async () => {
+            const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(toAbsPath);
+            await fsLoader.move(fromAbsPath, toAbsPath, doc);
+            if (then) {
+                await then(fromAbsPath, toAbsPath, doc);
+            }
+            return doc;
+        });
+    }
+
+    async deleteFile(absPath: string, then: (absPath: string) => Promise<void> = undefined): Promise<void> {
+        return await this._withFileLock(absPath, async () => {
+            const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+            const doc = await fsLoader.delete(absPath);
             if (then) {
                 await then(absPath);
             }
-            await this.filesRepository.unlockFile(absPath);
-        }
-    }
-
-    async _loadUnsafe(absPath: string): Promise<WikiDocument> {
-        let mediaType: string = await detectFile(absPath);
-        let fsLoader: FsLoader =
-            this.fsLoadersByMediaType.get(mediaType) ??
-            this.fsLoadersByMediaType.get(MediaType.ANY);
-        return await fsLoader.load(absPath);
-    }
-
-    async _saveUnsafe(absPath: string, doc: WikiDocument) {
-        let mediaType: string = doc.mediaType ?? await detectFile(absPath);
-        let fsLoader: FsLoader =
-            this.fsLoadersByMediaType.get(mediaType) ??
-            this.fsLoadersByMediaType.get(MediaType.ANY);
-        return await fsLoader.save(absPath, doc);
-    }
-
-    async _deleteUnsafe(absPath: string): Promise<void> {
-        let mediaType: string = await detectFile(absPath);
-        let fsLoader: FsLoader =
-            this.fsLoadersByMediaType.get(mediaType) ??
-            this.fsLoadersByMediaType.get(MediaType.ANY);
-        return await fsLoader.delete(absPath);
+            return doc;
+        });
     }
 
     _getRelAbsPaths(genericPath: string): [string, string] {
@@ -125,7 +134,7 @@ export class FsSync extends Base {
         let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath);
         switch (event) {
             case WikiDocumentRepositoryEvents.UPDATE:
-                await this.save(absPath, doc, doc.contentPath ? undefined :
+                await this.saveFile(absPath, doc, doc.contentPath ? undefined :
                     async (absPath: string, doc: WikiDocument) => {
                         doc.contentPath = relPath;
                         await this.wikiRepository.upsert(doc, false);
@@ -133,14 +142,14 @@ export class FsSync extends Base {
                 break;
             case WikiDocumentRepositoryEvents.DELETE:
             case WikiDocumentRepositoryEvents.TRASH:
-                await this.delete(absPath);
+                await this.deleteFile(absPath);
                 break;
         }
 
         return;
     }
 
-    async onFileEvent(event: INotifyWaitEvents, filePath: string) {
+    async onFileEvent(event: INotifyWaitEvents, filePath: string, stats: any) {
         // avoid to manage unwanted files
         if (event === INotifyWaitEvents.UNKNOWN) return;
         if (this.ignoreFileExtensionsRegExp.test(filePath)) return;
@@ -155,13 +164,38 @@ export class FsSync extends Base {
             }
         }
         switch (event) {
+            case INotifyWaitEvents.MOVE_TO:
+                // use cookie to find the correct db document
+                if (stats.from) {
+                    // FIXME test doc.contentPath to be non null
+                    const doc = await this.wikiRepository.findByContentPath(relPath);
+                    if (doc) {
+                        await this.moveFile(stats.from, absPath, doc,
+                            async (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => {
+                                doc = await this.wikiRepository.upsert(doc, false);
+                            });
+                    }
+                } else {
+                    await this.loadFile(absPath, async (absPath: string, doc: WikiDocument) => {
+                        doc = await this.wikiRepository.upsert(doc, false);
+                        const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+                        await fsLoader.save(absPath, doc);
+                        // blacklisting by timestamp
+                        let mtime = fs.statSync(absPath).mtimeMs;
+                        if (!this.fileLastAccess.has(absPath) ||
+                            this.fileLastAccess.get(absPath) < mtime) {
+                            this.fileLastAccess.set(absPath, mtime);
+                        }
+                    });
+                }
+                break;
             case INotifyWaitEvents.CREATE:
-            case INotifyWaitEvents.MOVE_IN:
             case INotifyWaitEvents.CHANGE:
                 // load the document and upsert
-                await this.load(absPath, async (absPath: string, doc: WikiDocument) => {
+                await this.loadFile(absPath, async (absPath: string, doc: WikiDocument) => {
                     doc = await this.wikiRepository.upsert(doc, false);
-                    await this._saveUnsafe(absPath, doc);
+                    const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+                    await fsLoader.save(absPath, doc);
                     // blacklisting by timestamp
                     let mtime = fs.statSync(absPath).mtimeMs;
                     if (!this.fileLastAccess.has(absPath) ||
@@ -171,9 +205,14 @@ export class FsSync extends Base {
                 });
                 break;
             case INotifyWaitEvents.REMOVE:
-            case INotifyWaitEvents.MOVE_OUT:
-                // trash a document in the db
-                await this.wikiRepository.trash({contentPath: relPath}, false);
+                await this.deleteFile(absPath, async (absPath: string) => {
+                    await this.wikiRepository.trash({contentPath: relPath}, false);
+                });
+                break;
+            case INotifyWaitEvents.MOVE_FROM:
+                await this.deleteFile(absPath, async (absPath: string) => {
+                    await this.wikiRepository.trash({contentPath: relPath}, false);
+                });
                 break;
         }
         return;
@@ -193,9 +232,10 @@ export class FsSync extends Base {
                 save again to file (update metadata)
              */
             // this.log.debug(`Sync file to db: ${filePath}`)
-            return this.load(filePath, async (absPath: string, doc: WikiDocument) => {
+            return this.loadFile(filePath, async (absPath: string, doc: WikiDocument) => {
                 doc = await this.wikiRepository.upsert(doc, false);
-                await this._saveUnsafe(absPath, doc);
+                const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+                await fsLoader.save(absPath, doc);
             });
         }));
     }
@@ -209,11 +249,11 @@ export class FsSync extends Base {
                     // this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
-                        return await this.delete(absPath);
+                        return await this.deleteFile(absPath);
                     } else {
                         // if document exists, save it to file, then update document itself if required (no content path)
                         // avoid to raise another db event to exit the loop
-                        return await this.save(absPath, doc, doc.contentPath ? undefined :
+                        return await this.saveFile(absPath, doc, doc.contentPath ? undefined :
                             async (absPath: string, doc: WikiDocument) => {
                                 doc.contentPath = relPath;
                                 await this.wikiRepository.upsert(doc, false);

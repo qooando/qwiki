@@ -106,6 +106,10 @@ export class WikiDocumentRepository extends Base {
         return doc;
     }
 
+    findByContentPath(contentPath: string): Promise<WikiDocument> {
+        throw new NotImplementedException();
+    }
+
     findByTitle(title: string) {
         throw new NotImplementedException();
     }
