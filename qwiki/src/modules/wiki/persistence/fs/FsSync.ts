@@ -161,22 +161,10 @@ export class FsSync extends Base {
 
     async onFileEvent(event: INotifyWaitEvents, filePath: string, stats: any) {
         // avoid to manage unwanted files
-        if (event === INotifyWaitEvents.UNKNOWN) return;
         if (this.ignoreFileExtensionsRegExp.test(filePath)) return;
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
-        /*
-         * Antiloop, avoid to manage a file with timestamp >= current time
-         * e.g. save on a file can trigger another save on the same file
-         */
-        if (fs.existsSync(absPath)) {
-            let mtime = fs.statSync(absPath).mtimeMs;
-            if (this.fileLastAccess.has(absPath) &&
-                this.fileLastAccess.get(absPath) >= mtime) {
-                return;
-            }
-        }
         switch (event) {
             case INotifyWaitEvents.MOVE_TO:
                 /*
@@ -209,6 +197,17 @@ export class FsSync extends Base {
             case INotifyWaitEvents.CREATE:
             case INotifyWaitEvents.CHANGE:
                 /*
+                 * Antiloop, avoid to manage a file with timestamp >= current time
+                 * e.g. save on a file can trigger another save on the same file
+                 */
+                if (fs.existsSync(absPath)) {
+                    let mtime = fs.statSync(absPath).mtimeMs;
+                    if (this.fileLastAccess.has(absPath) &&
+                        this.fileLastAccess.get(absPath) >= mtime) {
+                        break;
+                    }
+                }
+                /*
                  * When a file is created or changes its content
                  * 1. reload the file content and create a new WikiDocument object from it
                  * 2. upsert the new doc to db
@@ -220,18 +219,18 @@ export class FsSync extends Base {
                     doc = await this.wikiRepository.upsert(doc, false);
                     const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
                     await fsLoader.save(absPath, doc);
-                    // blacklisting by timestamp
-                    let mtime = fs.statSync(absPath).mtimeMs;
-                    if (!this.fileLastAccess.has(absPath) ||
-                        this.fileLastAccess.get(absPath) < mtime) {
-                        this.fileLastAccess.set(absPath, mtime);
-                    }
+                    this.fileLastAccess.set(absPath, fs.statSync(absPath).mtimeMs);
                 });
                 break;
-            case INotifyWaitEvents.REMOVE:
             case INotifyWaitEvents.MOVE_FROM:
                 /*
-                 * If a file was removed or move outside WATCHED folder
+                 * If a file is moved OUT, flag it on db
+                 */
+                await this.wikiRepository.trash({contentPath: relPath}, false);
+                break;
+            case INotifyWaitEvents.REMOVE:
+                /*
+                 * If a file was removed
                  * just call FsLoader onDeleted and then mark the document as deleted on db
                  */
                 await this.onDeletedFile(absPath, async (absPath: string) => {

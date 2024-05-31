@@ -364,39 +364,24 @@ export async function detectFile(path: string): Promise<string> {
         if (mediaType) {
             resolve(mediaType);
         } else {
-            magic.detectFile(path, (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    if (Array.isArray(result)) {
-                        resolve(result[0]);
+            try {
+                magic.detectFile(path, (err, result) => {
+                    if (err) {
+                        resolve(undefined);
+                        // reject(err);
                     } else {
-                        resolve(result);
+                        if (Array.isArray(result)) {
+                            resolve(result[0]);
+                        } else {
+                            resolve(result);
+                        }
                     }
-                }
-            })
+                })
+            } catch (e) {
+                this.warn(`Could not detect file: ${path}`);
+                resolve(undefined);
+            }
         }
-        // magic.detectFile(path, (err, result) => {
-        //     if (err) {
-        //         try {
-        //             resolve(getMediaTypeFromFilePath(path));
-        //         } catch (e) {
-        //             reject(err);
-        //         }
-        //     } else {
-        //         if (result === "empty") {
-        //             try {
-        //                 resolve(getMediaTypeFromFilePath(path));
-        //             } catch (e) {
-        //                 reject(e);
-        //             }
-        //         } else if (Array.isArray(result)) {
-        //             resolve(result[0]);
-        //         } else {
-        //             resolve(result);
-        //         }
-        //     }
-        // })
     });
 }
 

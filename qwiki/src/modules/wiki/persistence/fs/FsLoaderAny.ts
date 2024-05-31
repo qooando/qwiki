@@ -78,10 +78,10 @@ export class FsLoaderAny extends FsLoader {
     }
 
     async onMoved(fromAbsPath: string, toAbsPath: string): Promise<WikiDocument> {
-        let metaFromAbsPath = `${toAbsPath}${this.metaExt}`;
+        let metaFromAbsPath = `${fromAbsPath}${this.metaExt}`;
         let metaToAbsPath = `${toAbsPath}${this.metaExt}`;
         if (fs.existsSync(metaFromAbsPath)) {
-            fs.renameSync(metaFromAbsPath, toAbsPath);
+            fs.renameSync(metaFromAbsPath, metaToAbsPath);
         }
         return await this.load(toAbsPath);
     }

@@ -4,8 +4,6 @@
  */
 
 import * as fs from "fs";
-
-;
 import * as util from "util";
 import {spawn, ChildProcess} from "child_process";
 import {EventEmitter} from "events";
@@ -37,7 +35,7 @@ export class INotifyWait extends Base {
 
     wpath: string;
     options: INotifyWaitOptions;
-    currentEvents: Map<string, string> = new Map();
+    currentEvents: Map<string, [string, any]> = new Map();
     process: ChildProcess;
     cookies: Map<string, string> = new Map();
 
@@ -136,85 +134,29 @@ export class INotifyWait extends Base {
                         return;
                     }
 
-                    // console.log(event)
                     var stats: any = {isDir: isDir, date: event.date, cookie: event.cookie};
                     if (event.type.includes('CREATE')) {
-                        self.currentEvents.set(event.file, INotifyWaitEvents.CREATE);
-                        fs.lstat(event.file, (err, lstats) => {
-                            if (!err && !lstats.isDirectory() && (lstats.isSymbolicLink() || lstats.nlink > 1)) {
-                                // symlink and hard link does not receive any CLOSE event
-                                self.emit(INotifyWaitEvents.CREATE, event.file, stats);
-                                self.currentEvents.delete(event.file);
-                            }
-                        });
-
+                        self.emit(INotifyWaitEvents.CREATE, event.file, stats);
+                        self.currentEvents.delete(event.file);
+                    } else if (event.type.includes('MODIFY')) {
+                        self.emit(INotifyWaitEvents.CHANGE, event.file, stats);
+                    } else if (event.type.includes('DELETE')) {
+                        self.emit(INotifyWaitEvents.REMOVE, event.file, stats);
                     } else if (event.type.includes('MOVED_TO')) {
-                        this.currentEvents.set(event.file, INotifyWaitEvents.MOVE_TO);
-                        fs.lstat(event.file, function (err, lstats) {
-                            if (!err && !lstats.isDirectory()) {
-                                // symlink and hard link does not receive any CLOSE event
-                                stats.from = null;
-                                if (stats.cookie) {
-                                    stats.from = self.cookies.get(stats.cookie);
-                                    self.cookies.delete(stats.cookie);
-                                }
-                                self.emit(INotifyWaitEvents.MOVE_TO, event.file, stats);
-                                self.currentEvents.delete(event.file);
-                            }
-                        });
-
+                        stats.from = null;
+                        if (stats.cookie) {
+                            stats.from = self.cookies.get(stats.cookie);
+                            self.cookies.delete(stats.cookie);
+                        }
+                        self.emit(INotifyWaitEvents.MOVE_TO, event.file, stats);
                     } else if (event.type.includes('MOVED_FROM')) {
                         if (stats.cookie) {
                             stats.from = self.cookies.set(stats.cookie, event.file);
                         }
                         self.emit(INotifyWaitEvents.MOVE_FROM, event.file, stats);
-
-                    } else if (event.type.includes('MODIFY') || // to detect modifications on files
-                        event.type.includes('ATTRIB')) { // to detect touch on hard link
-                        if (!self.currentEvents.has(event.file) ||
-                            self.currentEvents.get(event.file) != INotifyWaitEvents.CREATE) {
-                            self.currentEvents.set(event.file, INotifyWaitEvents.CHANGE);
-                        }
-
-                    } else if (event.type.includes('DELETE')) {
-                        self.emit(INotifyWaitEvents.REMOVE, event.file, stats);
-
-                    } else if (event.type.includes('CLOSE')) {
-                        if (self.currentEvents.has(event.file)) {
-                            self.emit(self.currentEvents.get(event.file), event.file, stats);
-                            this.currentEvents.delete(event.file);
-                        } else {
-                            self.emit(INotifyWaitEvents.UNKNOWN, event.file, event, stats);
-                        }
                     }
                 })
         });
-
-//         // parse stderr of the inotifywatch command
-//         Lazy(this.process.stderr)
-//             .lines
-//             .map(String)
-//             .forEach(function (line) {
-//                 if (/^Watches established/.test(line)) {
-//                     // tell when the watch is ready
-//                     this.emit('ready', this.process);
-//                 } else if (/^Setting up watches/.test(line)) {
-//                     // ignore this message
-//                 } else {
-//                     this.emit('error', new Error(line));
-//                 }
-//             });
-//
-//         // Maybe it's not this module job to trap the SIGTERM event on the process
-//         // ======>
-//         // check if the nodejs process is killed
-//         // then kill inotifywait shell command
-//         // process.on('SIGTERM', function () {
-//         //   if (this.process) {
-//         //     this.process.kill();
-//         //   }
-//         // });
-//
     }
 
     close(cb: Function): void {
