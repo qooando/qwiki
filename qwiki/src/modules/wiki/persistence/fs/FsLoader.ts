@@ -12,15 +12,15 @@ export class FsLoader extends Base {
         throw new NotImplementedException();
     }
 
-    async save(absPath: string, doc: WikiDocument) {
+    async save(absPath: string, doc: WikiDocument): Promise<WikiDocument> {
         throw new NotImplementedException();
     }
 
-    async move(fromAbsPath: string, toAbsPath: string, doc: WikiDocument) {
-        return await this.save(toAbsPath, doc);
+    async onMoved(fromAbsPath: string, toAbsPath: string): Promise<WikiDocument> {
+        return await this.load(toAbsPath);
     }
 
-    async delete(absPath: string): Promise<void> {
+    async onDeleted(absPath: string): Promise<void> {
         if (fs.existsSync(absPath)) {
             fs.unlinkSync(absPath);
         }

@@ -91,12 +91,12 @@ export class FsSync extends Base {
         });
     }
 
-    async moveFile(fromAbsPath: string, toAbsPath: string, doc: WikiDocument,
-                   then: (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => Promise<void> = undefined) {
+    async onMovedFile(fromAbsPath: string, toAbsPath: string,
+                      then: (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => Promise<void> = undefined) {
         // we assume toAbsPath exists
         return await this._withFileLock(toAbsPath, async () => {
             const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(toAbsPath);
-            await fsLoader.move(fromAbsPath, toAbsPath, doc);
+            const doc = await fsLoader.onMoved(fromAbsPath, toAbsPath);
             if (then) {
                 await then(fromAbsPath, toAbsPath, doc);
             }
@@ -104,10 +104,10 @@ export class FsSync extends Base {
         });
     }
 
-    async deleteFile(absPath: string, then: (absPath: string) => Promise<void> = undefined): Promise<void> {
+    async onDeletedFile(absPath: string, then: (absPath: string) => Promise<void> = undefined): Promise<void> {
         return await this._withFileLock(absPath, async () => {
             const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
-            const doc = await fsLoader.delete(absPath);
+            const doc = await fsLoader.onDeleted(absPath);
             if (then) {
                 await then(absPath);
             }
@@ -134,6 +134,12 @@ export class FsSync extends Base {
         let [relPath, absPath] = this._getRelAbsPaths(doc.contentPath);
         switch (event) {
             case WikiDocumentRepositoryEvents.UPDATE:
+                /*
+                 * A document was added or updated,
+                 * 1. save the content to file
+                 * 2. update the document on db again if the saveFile
+                 *    changed something in the doc (e.g. contentPath)
+                 */
                 await this.saveFile(absPath, doc, doc.contentPath ? undefined :
                     async (absPath: string, doc: WikiDocument) => {
                         doc.contentPath = relPath;
@@ -142,7 +148,11 @@ export class FsSync extends Base {
                 break;
             case WikiDocumentRepositoryEvents.DELETE:
             case WikiDocumentRepositoryEvents.TRASH:
-                await this.deleteFile(absPath);
+                /*
+                 * if a document is removed or trashed
+                 * 1. remove the relative file
+                 */
+                await this.onDeletedFile(absPath);
                 break;
         }
 
@@ -156,6 +166,10 @@ export class FsSync extends Base {
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
+        /*
+         * Antiloop, avoid to manage a file with timestamp >= current time
+         * e.g. save on a file can trigger another save on the same file
+         */
         if (fs.existsSync(absPath)) {
             let mtime = fs.statSync(absPath).mtimeMs;
             if (this.fileLastAccess.has(absPath) &&
@@ -165,32 +179,42 @@ export class FsSync extends Base {
         }
         switch (event) {
             case INotifyWaitEvents.MOVE_TO:
-                // use cookie to find the correct db document
+                /*
+                 * Custom INotifyWait wrapper use cookie to track when a file is moved
+                 * WITHIN the same watched path, then it sets the previous file path
+                 * as stats.from field.
+                 */
                 if (stats.from) {
-                    // FIXME test doc.contentPath to be non null
-                    const doc = await this.wikiRepository.findByContentPath(relPath);
-                    if (doc) {
-                        await this.moveFile(stats.from, absPath, doc,
-                            async (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => {
-                                doc = await this.wikiRepository.upsert(doc, false);
-                            });
-                    }
+                    /*
+                     * If the from field is set, then the file was moved from a path
+                     * WITHIN the watched folder to another path WITHIN the watched folder
+                     * thus we must call the MOVED filed method, useful if the FsLoader
+                     * has side effects about the file itself (e.g. FsLoaderAny saves metadata
+                     * in a separate file)
+                     *
+                     * FIXME we don't manage changes in FsLoader, e.g. test.json -> test.css ???
+                     */
+                    await this.onMovedFile(stats.from, absPath,
+                        async (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => {
+                            doc = await this.wikiRepository.upsert(doc, false);
+                        });
                 } else {
-                    await this.loadFile(absPath, async (absPath: string, doc: WikiDocument) => {
-                        doc = await this.wikiRepository.upsert(doc, false);
-                        const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
-                        await fsLoader.save(absPath, doc);
-                        // blacklisting by timestamp
-                        let mtime = fs.statSync(absPath).mtimeMs;
-                        if (!this.fileLastAccess.has(absPath) ||
-                            this.fileLastAccess.get(absPath) < mtime) {
-                            this.fileLastAccess.set(absPath, mtime);
-                        }
-                    });
+                    /*
+                     * If the from field is not set, then we assume the file was moved from an OUTSIDE
+                     * path to a WATCHED path, thus we threat it as a new file.
+                     */
+                    await this.onFileEvent(INotifyWaitEvents.CHANGE, absPath, stats);
                 }
                 break;
             case INotifyWaitEvents.CREATE:
             case INotifyWaitEvents.CHANGE:
+                /*
+                 * When a file is created or changes its content
+                 * 1. reload the file content and create a new WikiDocument object from it
+                 * 2. upsert the new doc to db
+                 * 3. save again to file changes provided by db (e.g. metadata)
+                 * 4. blacklist the save timestamp to avoid loop trigger of this method
+                 */
                 // load the document and upsert
                 await this.loadFile(absPath, async (absPath: string, doc: WikiDocument) => {
                     doc = await this.wikiRepository.upsert(doc, false);
@@ -205,15 +229,20 @@ export class FsSync extends Base {
                 });
                 break;
             case INotifyWaitEvents.REMOVE:
-                await this.deleteFile(absPath, async (absPath: string) => {
-                    await this.wikiRepository.trash({contentPath: relPath}, false);
-                });
-                break;
             case INotifyWaitEvents.MOVE_FROM:
-                await this.deleteFile(absPath, async (absPath: string) => {
+                /*
+                 * If a file was removed or move outside WATCHED folder
+                 * just call FsLoader onDeleted and then mark the document as deleted on db
+                 */
+                await this.onDeletedFile(absPath, async (absPath: string) => {
                     await this.wikiRepository.trash({contentPath: relPath}, false);
                 });
                 break;
+            // case INotifyWaitEvents.MOVE_FROM:
+            //     await this.onDeletedFile(absPath, async (absPath: string) => {
+            //         await this.wikiRepository.trash({contentPath: relPath}, false);
+            //     });
+            //     break;
         }
         return;
     }
@@ -249,7 +278,7 @@ export class FsSync extends Base {
                     // this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
-                        return await this.deleteFile(absPath);
+                        return await this.onDeletedFile(absPath);
                     } else {
                         // if document exists, save it to file, then update document itself if required (no content path)
                         // avoid to raise another db event to exit the loop

@@ -164,6 +164,9 @@ export class INotifyWait extends Base {
                         });
 
                     } else if (event.type.includes('MOVED_FROM')) {
+                        if (stats.cookie) {
+                            stats.from = self.cookies.set(stats.cookie, event.file);
+                        }
                         self.emit(INotifyWaitEvents.MOVE_FROM, event.file, stats);
 
                     } else if (event.type.includes('MODIFY') || // to detect modifications on files

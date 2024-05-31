@@ -106,20 +106,22 @@ export class WikiDocumentRepository extends Base {
         return doc;
     }
 
-    findByContentPath(contentPath: string): Promise<WikiDocument> {
-        throw new NotImplementedException();
+    async findByContentPath(contentPath: string): Promise<WikiDocument> {
+        return await this.mongo.findOne({contentPath: contentPath}, WikiDocument);
     }
 
-    findByTitle(title: string) {
-        throw new NotImplementedException();
+    async findByTitle(title: string) {
+        return await this.mongo.find({title: title}, WikiDocument);
     }
 
-    findByTag(tag: string) {
-        throw new NotImplementedException();
+    async findByTag(tag: string) {
+        return await this.mongo.find({tags: tag}, WikiDocument);
     }
 
-    findByAnnotation(annotation: string) {
-        throw new NotImplementedException();
+    async findByAnnotation(annotation: string, value: string) {
+        let query: any = {}
+        query[`annotations.${annotation}`] = value;
+        return await this.mongo.find(query, WikiDocument);
     }
 
 }

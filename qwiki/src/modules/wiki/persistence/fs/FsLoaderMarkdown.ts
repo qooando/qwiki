@@ -51,6 +51,7 @@ export class FsLoaderMarkdown extends FsLoader {
         let mdContent = `---\n${yaml.stringify(mdMetadata)}---\n${doc.content}\n`;
         let relPath = path.relative(this.filesRepository.basePath, absPath);
         await this.filesRepository.save(relPath ?? doc.contentPath, mdContent);
+        return doc;
     }
 
 

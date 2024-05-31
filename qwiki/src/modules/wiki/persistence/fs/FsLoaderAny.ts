@@ -10,6 +10,7 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
 import * as mmm from "mmmagic";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
+import {load} from "js-yaml";
 
 export class FsLoaderAny extends FsLoader {
     static __bean__: __Bean__ = {}
@@ -63,9 +64,10 @@ export class FsLoaderAny extends FsLoader {
         await this.filesRepository.save(relPath ?? doc.contentPath, content);
         let metaRelPath = path.relative(this.filesRepository.basePath, metaAbsPath);
         await this.filesRepository.save(metaRelPath ?? `${doc.contentPath}${this.metaExt}`, JSON.stringify(meta));
+        return doc;
     }
 
-    async delete(absPath: string): Promise<void> {
+    async onDeleted(absPath: string): Promise<void> {
         if (fs.existsSync(absPath)) {
             fs.unlinkSync(absPath);
         }
@@ -73,5 +75,14 @@ export class FsLoaderAny extends FsLoader {
         if (fs.existsSync(metaAbsPath)) {
             fs.unlinkSync(metaAbsPath);
         }
+    }
+
+    async onMoved(fromAbsPath: string, toAbsPath: string): Promise<WikiDocument> {
+        let metaFromAbsPath = `${toAbsPath}${this.metaExt}`;
+        let metaToAbsPath = `${toAbsPath}${this.metaExt}`;
+        if (fs.existsSync(metaFromAbsPath)) {
+            fs.renameSync(metaFromAbsPath, toAbsPath);
+        }
+        return await this.load(toAbsPath);
     }
 }
