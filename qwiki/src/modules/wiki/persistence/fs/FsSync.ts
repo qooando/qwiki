@@ -34,13 +34,13 @@ export class FsSync extends Base {
     );
 
     ignoreFileExtensions: string[];
-    ignoreFileExtensionsRegExp: RegExp;
+    ignoreFileRegexp: RegExp;
 
     async postConstruct() {
         const self = this;
         this.absSyncBasePath = path.join(process.cwd(), this.filesRepository.basePath, this.syncSubPath)
         this.ignoreFileExtensions = [...this.fsLoadersByMediaType.values()].flatMap(x => x.ignoreFileExtensions ?? []);
-        this.ignoreFileExtensionsRegExp = new RegExp("\.(" + this.ignoreFileExtensions.join("|") + ")$");
+        this.ignoreFileRegexp = new RegExp("\.(" + this.ignoreFileExtensions.join("|") + ")$");
         this.log.debug(`Sync database → filesystem`)
         await this.syncDbToFiles();
         this.log.debug(`Sync filesystem → database`)
@@ -155,13 +155,12 @@ export class FsSync extends Base {
                 await this.onDeletedFile(absPath);
                 break;
         }
-
         return;
     }
 
     async onFileEvent(event: INotifyWaitEvents, filePath: string, stats: any) {
-        // avoid to manage unwanted files
-        if (this.ignoreFileExtensionsRegExp.test(filePath)) return;
+        if (this.ignoreFileRegexp.test(filePath)) return; // avoid to manage unwanted files
+        if (path.basename(filePath).startsWith(".")) return; // ignore hidden files
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
@@ -251,7 +250,9 @@ export class FsSync extends Base {
         const files = glob.globSync(globPath, {})
             .map(p => path.isAbsolute(p) ? p : path.resolve(p))
             .filter(p => fs.statSync(p).isFile())
-            .filter(p => !this.ignoreFileExtensionsRegExp.test(p))
+            .filter(p =>
+                !this.ignoreFileRegexp.test(p) &&
+                !path.basename(p).startsWith("."))
             .flatMap(files => files);
         await Promise.all(files.map(filePath => {
             /*

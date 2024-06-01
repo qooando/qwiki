@@ -74,6 +74,7 @@ export class WikiDocumentRepository extends Base {
          * write all to file
          */
         doc._id ??= uuid.v4();
+        doc._type ??= doc.__entity__.typeAlias ?? doc.constructor.name
         doc.project ??= this.defaultProject;
         doc.contentPath ??= `${doc.project}/${doc.title}.md`;
         doc.tags ??= [];
@@ -88,7 +89,8 @@ export class WikiDocumentRepository extends Base {
         }
         let update = {
             $setOnInsert: {
-                _id: doc._id
+                _id: doc._id,
+                _type: doc._type,
             }, $set: {
                 project: doc.project,
                 tags: doc.tags,
@@ -104,6 +106,18 @@ export class WikiDocumentRepository extends Base {
             this.emit(WikiDocumentRepositoryEvents.UPDATE, doc);
         }
         return doc;
+    }
+
+    async findByIdOrTitleOrPath(identifier: string) {
+        return await this.mongo.findOne(
+            {
+                $or: [
+                    {_id: identifier},
+                    {title: identifier},
+                    {contentPath: identifier}
+                ]
+            },
+            WikiDocument);
     }
 
     async findByContentPath(contentPath: string): Promise<WikiDocument> {

@@ -8,6 +8,7 @@ import * as fs from "node:fs";
 import {WikiService} from "@qwiki/modules/wiki/WikiService";
 import {ExpressController} from "@qwiki/modules/server-express/ExpressController";
 import {OpenApiMiddleware} from "@qwiki/modules/server-express/middleware/OpenApiMiddleware";
+import {WikiDocumentRepository} from "@qwiki/modules/wiki/persistence/WikiDocumentRepository";
 
 // var express = require('express')
 
@@ -19,6 +20,7 @@ export class WikiDocumentController extends ExpressController {
     staticFilesPath: string;
     openapi = Autowire(OpenApiMiddleware);
     wiki = Autowire(WikiService);
+    wikiDocumentRepository = Autowire(WikiDocumentRepository)
 
     async postConstruct() {
         this.servers = [this.wiki.appConfig.serverName];
@@ -29,37 +31,42 @@ export class WikiDocumentController extends ExpressController {
     register(app: Express) {
         assert(app);
 
-        // FIXME
+        // app.get(/\/api\/wiki\/(\w+)\/(.*)/,
+        app.get("/api/wiki/:wikiPath",
+            this.openapi.middleware.path({
+                parameters: [
+                    {
+                        in: "path",
+                        name: "wikiPath",
+                        schema: {
+                            type: "string"
+                        },
+                        required: true,
+                        description: "Document id, path or title"
+                    }
+                ],
+                responses: {
+                    200: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: {type: 'string'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+            (request, response, next) => {
+                return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params.wikiPath)
+                    .then(data => response.json(data))
+                    .catch(err => next(err));
+            }
+        );
 
-        //
-        // // app.get(/\/api\/wiki\/(\w+)\/(.*)/,
-        // app.get("/api/wiki/:wikiName/:wikiPath",
-        //     this.openapi.middleware.path({
-        //         responses: {
-        //             200: {
-        //                 description: 'Successful response',
-        //                 content: {
-        //                     'application/json': {
-        //                         schema: {
-        //                             type: 'object',
-        //                             properties: {
-        //                                 status: {type: 'string'}
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }),
-        //     (request, response, next) => {
-        //         let internalUrl = new PermissiveURL(`wiki:/${request.params.wikiName}/${request.params.wikiPath}`);
-        //         // let internalUrl = new URL(`wiki:/${request.params[0]}/${request.params[1]}`);
-        //         this.wikiService.readDocument(internalUrl)
-        //             .then(data => response.json(data))
-        //             .catch(err => next(err));
-        //     }
-        // )
-        //
         // app.put("/api/wiki/:wikiName/:documentId",
         //     this.openapi.middleware.path({
         //         responses: {
@@ -79,7 +86,10 @@ export class WikiDocumentController extends ExpressController {
         //         }
         //     }),
         //     (request, response, next) => {
-        //         let internalUrl = new PermissiveURL(`wiki:/${request.params.wikiName}/${request.params.documentId}`);
+        //         let internalUrl = new PermissiveURL(`wiki:/${request.params.wikiName}/${request.params.documentId}`
+
+        // )
+        //     ;
         //         let content = request.body;
         //         this.wikiService.writeDocumentByUrl(internalUrl, content)
         //             .then(data => response.json(data));
@@ -119,12 +129,15 @@ export class WikiDocumentController extends ExpressController {
         //         }
         //     }),
         //     (request, response, next) => {
-        //         let internalUrl = new PermissiveURL(`template://${request.params.templateName}/${request.params.componentPath}`);
+        //         let internalUrl = new PermissiveURL(
+
+        // `template://${request.params.templateName}/${request.params.componentPath}`);
         //         this.wikiService.readDocument(internalUrl)
         //             .then(data => response.json(data))
         //             .catch(err => next(err));
         //     }
         // )
+        // }
     }
 
 }
