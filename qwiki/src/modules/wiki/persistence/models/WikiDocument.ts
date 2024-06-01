@@ -16,7 +16,7 @@ export class WikiDocument extends Entity {
     tags: string[] = [];
     mediaType: string;
     contentPath: string;
-    content: string;
+    content: any;
     fingerprints: string[] = [];
     // content: any;
     // ast: any;
