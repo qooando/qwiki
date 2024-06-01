@@ -14,18 +14,19 @@ export class FsLoaderYaml extends FsLoader {
     static __bean__: __Bean__ = {}
 
     mediaTypes: string[] = [
+        MediaType.APPLICATION_JSON,
         MediaType.APPLICATION_YAML,
-        MediaType.APPLICATION_JSON
+        MediaType.TEXT_YAML
     ]
     fileExtensions: string[] = [
         "yaml",
         "json"
     ]
-    metadataFieldName: "__metadata__"
+    metadataFieldName = "__metadata__"
     filesRepository = Autowire(FilesRepository);
 
     async load(absPath: string): Promise<WikiDocument> {
-        let content = yaml.parse(fs.readFileSync(absPath, "utf-8"));
+        let content = yaml.parse(fs.readFileSync(absPath, "utf-8")) ?? {};
         let metadata: WikiDocumentMetadata = content[this.metadataFieldName] ?? {};
         let relPath = path.relative(this.filesRepository.basePath, absPath);
         delete content[this.metadataFieldName];

@@ -5,9 +5,10 @@ export enum MediaType {
     ANY = "*/*",
     APPLICATION_JSON = "application/json",
     APPLICATION_YAML = "application/yaml",
-    TEXT_MARKDOWN = "text/markdown",
-    TEXT_HTML = "text/html",
     TEXT_CSS = "text/css",
+    TEXT_HTML = "text/html",
+    TEXT_MARKDOWN = "text/markdown",
+    TEXT_YAML = "text/yaml",
 }
 
 export var mediaTypeExtensionMap: Map<string, Array<string>> = new Map<string, Array<string>>(Object.entries({

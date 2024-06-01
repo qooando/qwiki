@@ -8,16 +8,19 @@ export class WikiDocument extends Entity {
 
     constructor(obj: any = {}) {
         super(obj);
+        this.annotations ??= new Map()
+        this.tags ??= []
+        this.fingerprints ??= []
     }
 
     project: any;
     title: string;
-    annotations: Map<string, string> = new Map();
-    tags: string[] = [];
+    annotations: Map<string, string>;
+    tags: string[];
     mediaType: string;
     contentPath: string;
     content: any;
-    fingerprints: string[] = [];
+    fingerprints: string[];
     // content: any;
     // ast: any;
 }
