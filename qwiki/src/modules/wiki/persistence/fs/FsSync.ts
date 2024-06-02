@@ -160,7 +160,7 @@ export class FsSync extends Base {
 
     async onFileEvent(event: INotifyWaitEvents, filePath: string, stats: any) {
         if (this.ignoreFileRegexp.test(filePath)) return; // avoid to manage unwanted files
-        if (path.basename(filePath).startsWith(".")) return; // ignore hidden files
+        if (path.basename(filePath).startsWith(".") || filePath.endsWith("~")) return; // ignore hidden files
         // filepath is relative to process.cwd()
         filePath = path.join(process.cwd(), filePath);
         let [relPath, absPath] = this._getRelAbsPaths(filePath);
@@ -252,7 +252,8 @@ export class FsSync extends Base {
             .filter(p => fs.statSync(p).isFile())
             .filter(p =>
                 !this.ignoreFileRegexp.test(p) &&
-                !path.basename(p).startsWith("."))
+                !path.basename(p).startsWith(".") &&
+                !p.endsWith("~"))
             .flatMap(files => files);
         await Promise.all(files.map(filePath => {
             /*

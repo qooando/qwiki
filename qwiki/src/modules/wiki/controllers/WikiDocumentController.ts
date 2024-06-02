@@ -34,34 +34,34 @@ export class WikiDocumentController extends ExpressController {
 
         app.get(/\/api\/wiki\/(.*)/,
             // app.get("/api/wiki/:wikiPath",
-            // this.openapi.middleware.path({
-            //     parameters: [
-            //         {
-            //             in: "path",
-            //             name: "wikiPath",
-            //             schema: {
-            //                 type: "string",
-            //                 pattern: "^.*$"
-            //             },
-            //             required: true,
-            //             description: "Document id, path or title"
-            //         }
-            //     ],
-            //     responses: {
-            //         200: {
-            //             content: {
-            //                 'application/json': {
-            //                     schema: {
-            //                         type: 'object',
-            //                         properties: {
-            //                             status: {type: 'string'}
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }),
+            this.openapi.middleware.path({
+                parameters: [
+                    {
+                        in: "path",
+                        name: "wikiPath",
+                        schema: {
+                            type: "string",
+                            pattern: "^.*$"
+                        },
+                        required: true,
+                        description: "Document id, path or title"
+                    }
+                ],
+                responses: {
+                    200: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        status: {type: 'string'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
             (request, response, next) => {
                 return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params[0])
                     .then(data => {
