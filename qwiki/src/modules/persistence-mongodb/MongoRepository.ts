@@ -57,7 +57,7 @@ export class MongoRepository {
         collection ??= (klazz as any).__entity__.collection;
         return this.db.collection(collection)
             .findOne(query)
-            .then(result => new klazz(result))
+            .then(result => result ? new klazz(result) : result)
             .catch(reason => null)
     }
 

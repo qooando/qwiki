@@ -1,17 +1,17 @@
 import {Base} from "./Base.js";
-import {Requests} from "./Requests.js";
+import {ApiClient} from "./ApiClient.js";
 import * as Handlebars from "handlebars";
 import {replaceOnPromise} from "./snippets/replaceOnPromise.js";
 
 export enum HelperNames {
     INCLUDE = "include",
     INCLUDE_STYLE = "include_style",
-    INCLUDE_IMAGE = "includ_image",
+    INCLUDE_IMAGE = "include_image",
 }
 
 export class TemplateEngine extends Base {
 
-    requests = new Requests();
+    apiClient = new ApiClient();
 
     postConstruct() {
         const templateEngine = this;
@@ -24,7 +24,7 @@ export class TemplateEngine extends Base {
             return replaceOnPromise(async function (): Promise<string> {
                 return await templateEngine.renderTemplateText(parentCtx.template.name, component);
             });
-        })
+        });
 
         // {{ include_style "main.css" }}
         Handlebars.registerHelper(HelperNames.INCLUDE_STYLE, function (component) {
@@ -61,14 +61,14 @@ export class TemplateEngine extends Base {
 
     }
 
-    async getTemplateComponent(templateName: string, templateComponent: string) {
-        return await this.requests.readTemplate(templateName, templateComponent); // FIXME read files from template directly
-    }
+    // async getTemplateComponent(templateName: string, templateComponent: string) {
+    //     return await this.requests.readTemplate(templateName, templateComponent); // FIXME read files from template directly
+    // }
 
     async getTemplateText(templateName: string, templateComponent: string) {
         console.assert(templateName);
         console.assert(templateComponent);
-        const templateDoc = await this.requests.readTemplateDocument(templateName, templateComponent);
+        const templateDoc = await this.apiClient.getDocument(`template/${templateName}/${templateComponent}`);
         const content = templateDoc.content;
         console.assert(content);
         return Handlebars.compile(content);
@@ -114,9 +114,7 @@ export class TemplateEngine extends Base {
          do related things
          */
         // console.debug("execCustomHooks", rootElementId, document.getElementById(rootElementId));
-
         let rootElement = document.getElementById(rootElementId);
-
         for (let element of document.querySelectorAll('[dispatchEvent]')) {
             const eventName = element.getAttribute("dispatchEvent");
             document.dispatchEvent(new CustomEvent(eventName, {detail: {origin: element}}));

@@ -1,7 +1,7 @@
 import {Base} from "./Base.js";
 import {WikiDocumentDto} from "./dto/WikiDocumentDto.js";
 
-export class Requests extends Base {
+export class ApiClient extends Base {
 
     pathPrefix = "/api"
 
@@ -41,19 +41,20 @@ export class Requests extends Base {
         // FIXME
     }
 
-    async readTemplate(templateName: string, componentPath: string): Promise<Response> {
-        let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
-        return await this.request(url, {
-            method: "GET"
-        })
-    }
+    // async readTemplate(templateName: string, componentPath: string): Promise<Response> {
+    //     let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
+    //     return await this.request(url, {
+    //         method: "GET"
+    //     })
+    // }
+    //
+    // async readTemplateDocument(templateName: string, componentPath: string): Promise<WikiDocumentDto> {
+    //     let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
+    //     return await this.request(url, {
+    //         method: "GET"
+    //     })
+    //         .then(response => response.json())
+    //         .then(jsonResponse => new WikiDocumentDto(jsonResponse));
+    // }
 
-    async readTemplateDocument(templateName: string, componentPath: string): Promise<WikiDocumentDto> {
-        let url = this.makeURL(`/templates/${templateName}/${componentPath}`);
-        return await this.request(url, {
-            method: "GET"
-        })
-            .then(response => response.json())
-            .then(jsonResponse => new WikiDocumentDto(jsonResponse));
-    }
 }

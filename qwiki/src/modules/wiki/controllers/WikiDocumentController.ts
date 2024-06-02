@@ -9,6 +9,7 @@ import {WikiService} from "@qwiki/modules/wiki/WikiService";
 import {ExpressController} from "@qwiki/modules/server-express/ExpressController";
 import {OpenApiMiddleware} from "@qwiki/modules/server-express/middleware/OpenApiMiddleware";
 import {WikiDocumentRepository} from "@qwiki/modules/wiki/persistence/WikiDocumentRepository";
+import {HttpStatus} from "@qwiki/modules/server-express/constants/HttpStatus";
 
 // var express = require('express')
 
@@ -31,38 +32,50 @@ export class WikiDocumentController extends ExpressController {
     register(app: Express) {
         assert(app);
 
-        // app.get(/\/api\/wiki\/(\w+)\/(.*)/,
-        app.get("/api/wiki/:wikiPath",
-            this.openapi.middleware.path({
-                parameters: [
-                    {
-                        in: "path",
-                        name: "wikiPath",
-                        schema: {
-                            type: "string"
-                        },
-                        required: true,
-                        description: "Document id, path or title"
-                    }
-                ],
-                responses: {
-                    200: {
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'object',
-                                    properties: {
-                                        status: {type: 'string'}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }),
+        app.get(/\/api\/wiki\/(.*)/,
+            // app.get("/api/wiki/:wikiPath",
+            // this.openapi.middleware.path({
+            //     parameters: [
+            //         {
+            //             in: "path",
+            //             name: "wikiPath",
+            //             schema: {
+            //                 type: "string",
+            //                 pattern: "^.*$"
+            //             },
+            //             required: true,
+            //             description: "Document id, path or title"
+            //         }
+            //     ],
+            //     responses: {
+            //         200: {
+            //             content: {
+            //                 'application/json': {
+            //                     schema: {
+            //                         type: 'object',
+            //                         properties: {
+            //                             status: {type: 'string'}
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }),
             (request, response, next) => {
-                return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params.wikiPath)
-                    .then(data => response.json(data))
+                return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params[0])
+                    .then(data => {
+                        if (!data) {
+                            response.status(HttpStatus.NOT_FOUND).send(
+                                {
+                                    error: "Document not found",
+                                    path: request.params[0]
+                                }
+                            )
+                        } else {
+                            response.json(data)
+                        }
+                    })
                     .catch(err => next(err));
             }
         );

@@ -1,46 +1,44 @@
 import {Base} from "./Base.js";
-import {Requests} from "./Requests.js";
+import {ApiClient} from "./ApiClient.js";
 import {TemplateEngine} from "./TemplateEngine.js";
+
+export interface QlientConfig {
+    templateName: string;
+    templateMainPage: string;
+    templateMainContainerId: string;
+}
 
 export class Qlient extends Base {
 
-    requests = new Requests();
+    apiClient = new ApiClient();
     templateEngine = new TemplateEngine();
-    config: any;
+    config: QlientConfig;
+    defaultConfigFile = "qlient.config.json";
 
     async boot() {
-        this.config = await this.getConfig();
+        this.config = Object.assign(
+            {
+                templateName: "default",
+                templateMainPage: "index.html",
+                templateMainContainerId: "main-container"
+            },
+            (await this.apiClient.getDocument(this.defaultConfigFile)).content ?? {}
+        );
 
         // refresh page if fragment changes
         addEventListener("hashchange", (event) => {
-            this.refresh();
+            this.render();
         });
 
         // first refresh
-        this.refresh();
+        this.render();
     }
 
-    async getConfig() {
-        let wikiname = "default"
-        let doc = await this.requests.getDocument(`${wikiname}/wiki.json`);
-        if (doc)
-            return doc.content;
-    }
-
-    async getRawTemplate() {
-        return await this.requests.getDocument(this.config.qlient.template.templateDocumentId)
-    }
-
-    async refresh() {
-        // await this.templateEngine.includeTemplateComponentAsStyle(
-        //     this.config.template.name,
-        //     "css/main.css"
-        // )
-
+    async render() {
         await this.templateEngine.renderTemplateComponentToElement(
-            this.config.template.name,
-            "main.html",
-            this.config.template.mainContainerId);
+            this.config.templateName,
+            this.config.templateMainPage,
+            this.config.templateMainContainerId);
 
         // let templateDoc = await this.requests.readTemplate(
         //     this.config.template.name,

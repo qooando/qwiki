@@ -1,0 +1,5 @@
+{
+  "templateName": "default",
+  "templateMainPage": "main.html",
+  "templateMainContainerId": "main-container"
+}
