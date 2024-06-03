@@ -10,7 +10,7 @@ import {Autowire} from "@qwiki/core/beans/Autowire";
 import {FilesRepository} from "@qwiki/modules/persistence-files/FilesRepository";
 import {__Bean__} from "@qwiki/core/beans/__Bean__";
 
-export class FsLoaderMarkdown extends FsLoader {
+export class FsLoaderHtml extends FsLoader {
     static __bean__: __Bean__ = {}
 
     mediaTypes: string[] = [
