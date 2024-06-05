@@ -32,7 +32,8 @@ export class WikiDocumentController extends ExpressController {
     register(app: Express) {
         assert(app);
 
-        app.get(/\/api\/wiki\/(.*)/,
+        // return document metadata
+        app.get(/\/api\/wiki\/(.*)\.meta/,
             // app.get("/api/wiki/:wikiPath",
             this.openapi.middleware.path({
                 parameters: [
@@ -64,8 +65,8 @@ export class WikiDocumentController extends ExpressController {
             }),
             (request, response, next) => {
                 return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params[0])
-                    .then(data => {
-                        if (!data) {
+                    .then(document => {
+                        if (!document) {
                             response.status(HttpStatus.NOT_FOUND).send(
                                 {
                                     error: "Document not found",
@@ -73,7 +74,51 @@ export class WikiDocumentController extends ExpressController {
                                 }
                             )
                         } else {
-                            response.json(data)
+                            response.json(document)
+                        }
+                    })
+                    .catch(err => next(err));
+            }
+        );
+
+        // return document content
+        app.get(/\/api\/wiki\/(.*)/,
+            // app.get("/api/wiki/:wikiPath",
+            this.openapi.middleware.path({
+                parameters: [
+                    {
+                        in: "path",
+                        name: "wikiPath",
+                        schema: {
+                            type: "string",
+                            pattern: "^.*$"
+                        },
+                        required: true,
+                        description: "Document id, path or title"
+                    }
+                ],
+                responses: {
+                    200: {
+                        content: {
+                            '*/*': {
+                                schema: {
+                                    type: "string",
+                                    format: "binary"
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+            (request, response, next) => {
+                return this.wikiDocumentRepository.findByIdOrTitleOrPath(request.params[0])
+                    .then(document => {
+                        if (!document) {
+                            response.sendStatus(HttpStatus.NOT_FOUND);
+                        } else {
+                            response
+                                .contentType(document.mediaType)
+                                .send(document.content)
                         }
                     })
                     .catch(err => next(err));

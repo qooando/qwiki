@@ -28,13 +28,32 @@ export class ApiClient extends Base {
         // FIXME
     }
 
-    async getDocument(identifier: string): Promise<WikiDocumentDto> {
+    async getDocumentContent(identifier: string): Promise<string> {
         let url = this.makeURL(`/wiki/${identifier}`);
-        return await this.request(url, {
+        let response = await this.request(url, {
             method: "GET"
         })
-            .then(response => response.json())
-            .then(jsonResponse => new WikiDocumentDto(jsonResponse));
+        if (response.status === 200) {
+            if (identifier.endsWith(".json") || identifier.endsWith(".yaml")) {
+                return response.json();
+            } else {
+                return response.blob().then(b => b.text());
+            }
+        } else {
+            return `<Doc not found: ${identifier}>`
+        }
+    }
+
+    async getDocumentMetadata(identifier: string): Promise<WikiDocumentDto> {
+        let url = this.makeURL(`/wiki/${identifier}.meta`);
+        let response = await this.request(url, {
+            method: "GET"
+        })
+        if (response.status === 200) {
+            return response.json().then(j => new WikiDocumentDto(j));
+        } else {
+            return null;
+        }
     }
 
     async writeDocument(identifier: string, document: WikiDocumentDto): Promise<void> {

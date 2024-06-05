@@ -39,6 +39,16 @@ export class TemplateEngine extends Base {
             // });
         })
 
+        // {{ include "test.html" }}
+        Handlebars.registerHelper(HelperNames.INCLUDE_IMAGE, function (component) {
+            console.assert(component, `handlebars helper ${HelperNames.INCLUDE_IMAGE}, argument not specified`);
+            // NOTE: this is the current context
+            const parentCtx = this;
+            return replaceOnPromise(async function (): Promise<string> {
+                return await templateEngine.renderImage(parentCtx.template.name, component);
+            });
+        });
+
         // // {{ include component="test.html" }}
         // Handlebars.registerHelper(HelperNames.INCLUDE, function (ctx) {
         //     // NOTE: this is the current context
@@ -68,8 +78,7 @@ export class TemplateEngine extends Base {
     async getTemplateText(templateName: string, templateComponent: string) {
         console.assert(templateName);
         console.assert(templateComponent);
-        const templateDoc = await this.apiClient.getDocument(`template/${templateName}/${templateComponent}`);
-        const content = templateDoc.content;
+        const content = await this.apiClient.getDocumentContent(`template/${templateName}/${templateComponent}`);
         console.assert(content);
         return Handlebars.compile(content);
     }
@@ -105,6 +114,16 @@ export class TemplateEngine extends Base {
         styles.innerHTML = content;
         // styles.href="./css/style.css";
         document.head.appendChild(styles);
+    }
+
+    async renderImage(templateName: string, templateComponent: string) {
+        // const content = await this.renderTemplateText(templateName, templateComponent);
+        const image = document.createElement('image');
+        image.setAttribute('src', `/api/wiki/${templateName}/${templateComponent}`);
+        // styles.innerHTML = content;
+        // styles.href="./css/style.css";
+        // document.head.appendChild(image);
+        return image.outerHTML;
     }
 
     async execCustomHooks(rootElementId: string = undefined) {

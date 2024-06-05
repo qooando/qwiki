@@ -10,6 +10,6 @@ export function replaceOnPromise(promiseSupplier: () => Promise<string>): Handle
         }) // FIXME on error ?
     });
     // leverage the execCustomHooks() in TemplateEngine
-    const html = `<div id=${uniqueId} dispatchEvent="${eventName}"></div>`
+    const html = `<element id=${uniqueId} dispatchEvent="${eventName}"></element>`
     return new Handlebars.SafeString(html);
 }

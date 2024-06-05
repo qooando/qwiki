@@ -4,6 +4,7 @@ set -e
 echo "Copy data"
 
 DIST_OUTDIR=../build/data
+rm -rf "$DIST_OUTDIR"
 mkdir -p "$DIST_OUTDIR"
 
 npx sass ./

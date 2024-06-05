@@ -22,7 +22,7 @@ export class Qlient extends Base {
                 templateMainPage: "index.html",
                 templateMainContainerId: "main-container"
             },
-            (await this.apiClient.getDocument(this.defaultConfigFile)).content ?? {}
+            (await this.apiClient.getDocumentContent(this.defaultConfigFile)) ?? {}
         );
 
         // refresh page if fragment changes

@@ -33,7 +33,7 @@ export class FsLoaderHtml extends FsLoader {
             title: metadata.title,
             tags: metadata.tags,
             annotations: metadata.annotations,
-            mediaType: MediaType.TEXT_MARKDOWN,
+            mediaType: MediaType.TEXT_HTML,
             contentPath: relPath,
             content: content
         });
