@@ -91,7 +91,13 @@ export class TemplateEngine extends Base {
             template: {
                 name: templateName,
                 component: templateComponent
+            },
+            window: {
+                location: {
+                    bookmark: window.location.hash.slice(1)
+                }
             }
+
         });
     }
 
