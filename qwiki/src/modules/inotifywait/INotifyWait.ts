@@ -82,6 +82,8 @@ export class INotifyWait extends Base {
             return
         }
 
+        this.log.debug(`🗲 Start monitoring ${this.watchPath}`)
+
         let args = [
             (this.options.recursive ? '-r' : ''),
             '--format',
@@ -207,6 +209,7 @@ export class INotifyWait extends Base {
         //     }
         // });
         if (this.process) {
+            this.log.debug(`🗲 Stop monitoring ${this.watchPath}`)
             this.process.kill();
             this.emit(INotifyWaitEvents.STOP, this.watchPath);
         }
