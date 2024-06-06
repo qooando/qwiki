@@ -31,6 +31,9 @@ export enum INotifyWaitEvents {
     CHANGE = "change",
     REMOVE = "remove",
     UNKNOWN = "unknown",
+    START = "start",
+    STOP = "stop",
+    RESTART = "restart",
     REMOVE_SELF = "remove_self"
 }
 
@@ -65,11 +68,14 @@ export class INotifyWait extends Base {
         this.on(INotifyWaitEvents.REMOVE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE, filePath, stats));
         this.on(INotifyWaitEvents.UNKNOWN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.UNKNOWN, filePath, stats));
         this.on(INotifyWaitEvents.REMOVE_SELF, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE_SELF, filePath, stats));
+        // this.on(INotifyWaitEvents.START, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.START, this.watchPath));
+        // this.on(INotifyWaitEvents.STOP, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.STOP, this.watchPath));
+        // this.on(INotifyWaitEvents.RESTART, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.RESTART, this.watchPath));
 
         this.start();
     }
 
-    start() {
+    start(isRestart: boolean = false) {
         // FIXME avoid polling
         if (this.options.ignoreMissingSelf && !fs.existsSync(this.watchPath)) {
             setTimeout(this.start, 1000);
@@ -114,6 +120,11 @@ export class INotifyWait extends Base {
         // run inotifywait command in background
         const self = this;
         this.process = spawn(this.options.bin, args, this.options.spawnArgs);
+        if (isRestart) {
+            this.emit(INotifyWaitEvents.RESTART, this.watchPath);
+        } else {
+            this.emit(INotifyWaitEvents.START, this.watchPath);
+        }
         this.process.on('close', (err: number) => {
             self.process = null;
             self.emit('close', err);
@@ -131,7 +142,7 @@ export class INotifyWait extends Base {
                     try {
                         return JSON.parse(x)
                     } catch (err) {
-                        this.emit('error', new Error(err + ' -> ' + x));
+                        self.emit('error', new Error(err + ' -> ' + x));
                         return {type: '', file: '', date: new Date()};
                     }
                 })
@@ -172,8 +183,7 @@ export class INotifyWait extends Base {
                             event.file === self.watchPath ||
                             event.file === self.watchPath + "/"
                         )) {
-                            self.stop();
-                            self.start();
+                            self.restart();
                         }
                     }
                 })
@@ -196,7 +206,15 @@ export class INotifyWait extends Base {
         //         return cb(err);
         //     }
         // });
-        this.process.kill();
+        if (this.process) {
+            this.process.kill();
+            this.emit(INotifyWaitEvents.STOP, this.watchPath);
+        }
         this.process = null;
+    }
+
+    restart() {
+        this.stop();
+        this.start(true);
     }
 }

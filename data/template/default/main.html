@@ -1,6 +1,22 @@
 {{ include_style "css/main.css" }}
 
-{{ include "header.html" }}
-{{ include "navigation.html" }}
-{{ include "view/document.html" }}
-{{ include "footer.html" }}
+<aside>
+    Sidebar
+</aside>
+<header>
+    Header
+</header>
+<nav>
+    Navigation
+</nav>
+<article>
+    <nav class="breadcrumb">: {{ window.location.bookmark }} :</nav>
+    <section>
+        <pre>
+        {{ include window.location.bookmark }}
+        </pre>
+    </section>
+</article>
+<footer>
+    <img src="/api/wiki/template/default/img/logo.png" alt="logo"/> © 2024 <a href="https://github.com/qooando/qwiki" target="_blank">qwiki</a>
+</footer>
