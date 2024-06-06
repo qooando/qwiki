@@ -18,7 +18,9 @@ export interface INotifyWaitOptions {
     excludes?: string[],
     files?: string[],
     events?: string[],
-    spawnArgs?: any
+    spawnArgs?: any,
+    restartOnDeleteSelf?: boolean,
+    ignoreMissingSelf?: boolean,
 }
 
 export enum INotifyWaitEvents {
@@ -29,11 +31,12 @@ export enum INotifyWaitEvents {
     CHANGE = "change",
     REMOVE = "remove",
     UNKNOWN = "unknown",
+    REMOVE_SELF = "remove_self"
 }
 
 export class INotifyWait extends Base {
 
-    wpath: string;
+    watchPath: string;
     options: INotifyWaitOptions;
     currentEvents: Map<string, [string, any]> = new Map();
     process: ChildProcess;
@@ -42,7 +45,7 @@ export class INotifyWait extends Base {
     constructor(wpath: string, options: INotifyWaitOptions) {
         super();
 
-        this.wpath = wpath;
+        this.watchPath = wpath;
         this.options = Object.assign({
             bin: 'inotifywait',
             recursive: true,
@@ -50,7 +53,9 @@ export class INotifyWait extends Base {
             excludes: [],
             files: [],
             events: [],
-            spawnArgs: {}
+            spawnArgs: {},
+            restartOnDeleteSelf: true,
+            ignoreMissingSelf: true,
         }, options);
 
         this.on(INotifyWaitEvents.CREATE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CREATE, filePath, stats));
@@ -59,11 +64,18 @@ export class INotifyWait extends Base {
         this.on(INotifyWaitEvents.CHANGE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.CHANGE, filePath, stats));
         this.on(INotifyWaitEvents.REMOVE, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE, filePath, stats));
         this.on(INotifyWaitEvents.UNKNOWN, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.UNKNOWN, filePath, stats));
+        this.on(INotifyWaitEvents.REMOVE_SELF, async (filePath: string, stats: any) => await this.emit(INotifyWaitEvents.ALL, INotifyWaitEvents.REMOVE_SELF, filePath, stats));
 
-        this.runProcess();
+        this.start();
     }
 
-    runProcess() {
+    start() {
+        // FIXME avoid polling
+        if (this.options.ignoreMissingSelf && !fs.existsSync(this.watchPath)) {
+            setTimeout(this.start, 1000);
+            return
+        }
+
         let args = [
             (this.options.recursive ? '-r' : ''),
             '--format',
@@ -97,7 +109,7 @@ export class INotifyWait extends Base {
         }
 
         //add path
-        args.push(this.wpath);
+        args.push(this.watchPath);
 
         // run inotifywait command in background
         const self = this;
@@ -154,27 +166,37 @@ export class INotifyWait extends Base {
                             stats.from = self.cookies.set(stats.cookie, event.file);
                         }
                         self.emit(INotifyWaitEvents.MOVE_FROM, event.file, stats);
+                    } else if (event.type.includes('DELETE_SELF')) {
+                        self.emit(INotifyWaitEvents.REMOVE_SELF, event.file, stats);
+                        if (self.options.restartOnDeleteSelf && (
+                            event.file === self.watchPath ||
+                            event.file === self.watchPath + "/"
+                        )) {
+                            self.stop();
+                            self.start();
+                        }
                     }
                 })
         });
     }
 
-    close(cb: Function): void {
+    stop(cb: Function = undefined): void {
         // if already killed
-        if (!this.process) {
-            if (cb) {
-                this._eventManager.removeAllListeners(); // cleanup
-                return cb(null);
-            }
-            return;
-        }
-        // if not already killed
-        this.on('close', function (err: Error) {
-            this.removeAllListeners(); // cleanup
-            if (cb) {
-                return cb(err);
-            }
-        });
+        // if (!this.process) {
+        //     if (cb) {
+        //         this._eventManager.removeAllListeners(); // cleanup
+        //         return cb(null);
+        //     }
+        //     return;
+        // }
+        // // if not already killed
+        // this.on('close', function (err: Error) {
+        //     this.removeAllListeners(); // cleanup
+        //     if (cb) {
+        //         return cb(err);
+        //     }
+        // });
         this.process.kill();
+        this.process = null;
     }
 }
