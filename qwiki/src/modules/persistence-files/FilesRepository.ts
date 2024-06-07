@@ -49,7 +49,7 @@ export class FilesRepository extends Base {
             recursive: true
         });
         this.watcher.on(INotifyWaitEvents.ALL,
-            (event: INotifyWaitEvents, relPath: string, stats: any) => {
+            async (event: INotifyWaitEvents, relPath: string, stats: any) => {
                 self.emit(event, relPath, stats);
                 self.emit(INotifyWaitEvents.ALL, event, relPath, stats);
             }

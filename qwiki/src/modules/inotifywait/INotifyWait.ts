@@ -78,11 +78,11 @@ export class INotifyWait extends Base {
     start(isRestart: boolean = false) {
         // FIXME avoid polling
         if (this.options.ignoreMissingSelf && !fs.existsSync(this.watchPath)) {
-            setTimeout(this.start, 1000);
+            setTimeout(() => this.start(isRestart), 1000);
             return
         }
 
-        this.log.debug(`🗲 Start monitoring ${this.watchPath}`)
+        this.log.debug(`Start monitoring ${this.watchPath}`)
 
         let args = [
             (this.options.recursive ? '-r' : ''),
@@ -209,7 +209,7 @@ export class INotifyWait extends Base {
         //     }
         // });
         if (this.process) {
-            this.log.debug(`🗲 Stop monitoring ${this.watchPath}`)
+            this.log.debug(`Stop monitoring ${this.watchPath}`)
             this.process.kill();
             this.emit(INotifyWaitEvents.STOP, this.watchPath);
         }
@@ -218,6 +218,11 @@ export class INotifyWait extends Base {
 
     restart() {
         this.stop();
-        this.start(true);
+        // wait for all callbacks to end before restart
+        this._eventManager.wait()
+            // FIXME: the timeout seems to fix it, but it has a race condition with something
+            .then(() => new Promise(resolve => setTimeout(resolve, 1000)))
+            .then(() => this.start(true))
+        // setTimeout(() => this.start(true), 10000);
     }
 }

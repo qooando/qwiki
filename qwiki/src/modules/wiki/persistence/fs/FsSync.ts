@@ -49,7 +49,7 @@ export class FsSync extends Base {
         this.wikiRepository.on(WikiDocumentRepositoryEvents.ALL, this.onDbEvent.bind(this));
         // this.log.debug(`Sync on filesystem events → database`)
         this.filesRepository.watcher.on(INotifyWaitEvents.ALL, this.onFileEvent.bind(this));
-        this.filesRepository.watcher.on(INotifyWaitEvents.RESTART, (p: string) => this.syncFilesToDb());
+        this.filesRepository.watcher.on(INotifyWaitEvents.RESTART, async (p: string) => await this.syncFilesToDb());
     }
 
     async _getMediaTypeAndFsLoader(absPath: string): Promise<[string, FsLoader]> {
@@ -100,7 +100,7 @@ export class FsSync extends Base {
                       then: (fromAbsPath: string, toAbsPath: string, doc: WikiDocument) => Promise<void> = undefined) {
         // we assume toAbsPath exists
         return await this._withFileLock(toAbsPath, async () => {
-            this.log.debug(`🖪 → 🖪 Moved ${fromAbsPath} → ${toAbsPath}`)
+            this.log.debug(`🖿 → 🖿 Moved ${fromAbsPath} → ${toAbsPath}`)
             const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(toAbsPath);
             const doc = await fsLoader.onMoved(fromAbsPath, toAbsPath);
             if (then) {
@@ -112,7 +112,7 @@ export class FsSync extends Base {
 
     async onDeletedFile(absPath: string, then: (absPath: string) => Promise<void> = undefined): Promise<void> {
         return await this._withFileLock(absPath, async () => {
-            this.log.debug(`🖪 → 🗙 Deleted ${absPath}`)
+            this.log.debug(`🖿 → 🗙 Deleted ${absPath}`)
             const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
             const doc = await fsLoader.onDeleted(absPath);
             if (then) {
@@ -285,12 +285,16 @@ export class FsSync extends Base {
                 save the doc to db (avoid signals)
                 save again to file (update metadata)
              */
-            this.log.debug(`🖪 → 🗄 [upsert ]: ${filePath}`);
-            return this.loadFile(filePath, async (absPath: string, doc: WikiDocument) => {
-                doc = await this.wikiRepository.upsert(doc, false);
-                const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
-                await fsLoader.save(absPath, doc);
-            });
+            try {
+                this.log.debug(`🖿 → 🗄  Update document from path ${filePath}`);
+                return this.loadFile(filePath, async (absPath: string, doc: WikiDocument) => {
+                    doc = await this.wikiRepository.upsert(doc, false);
+                    const [mediaType, fsLoader] = await this._getMediaTypeAndFsLoader(absPath);
+                    await fsLoader.save(absPath, doc);
+                });
+            } catch (e) {
+                this.log.warn(`Fail to update document from path ${filePath} ${e}`)
+            }
         }));
     }
 
@@ -304,12 +308,12 @@ export class FsSync extends Base {
                     // this.log.debug(`Sync db to file: ${absPath}`)
                     if (doc.deleted) {
                         // if document is flagged as deleted, just delete the related file
-                        this.log.debug(`🗄 → 🗙 Document marked as deleted, delete ${absPath}`);
+                        this.log.debug(`🗄 → 🗙  Document marked as deleted, delete ${absPath}`);
                         return await this.onDeletedFile(absPath);
                     } else {
                         // if document exists, save it to file, then update document itself if required (no content path)
                         // avoid to raise another db event to exit the loop
-                        this.log.debug(`🗄 → 🖪 Save document to ${absPath}`);
+                        this.log.debug(`🗄 → 🖪  Save document to ${absPath}`);
                         return await this.saveFile(absPath, doc, doc.contentPath ? undefined :
                             async (absPath: string, doc: WikiDocument) => {
                                 doc.contentPath = relPath;
