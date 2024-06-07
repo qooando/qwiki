@@ -1,0 +1,42 @@
+@import "attributes";
+
+@mixin flex-container() {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+@mixin flex-item($values) {
+  -webkit-box-flex: $values;
+  -moz-box-flex: $values;
+  -webkit-flex: $values;
+  -ms-flex: $values;
+  flex: $values;
+}
+
+@mixin flex-item-order($val) {
+  -webkit-box-ordinal-group: $val;
+  -moz-box-ordinal-group: $val;
+  -ms-flex-order: $val;
+  -webkit-order: $val;
+  order: $val;
+}
+
+q-layout-flex, *[\[q-layout-flex\]], *[\[q-layout\]="flex"] {
+  @include flex-container;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  align-content: stretch;
+  gap: 0px 0px;
+
+  @each $flex-direction in $flex-directions {
+    &[direction=#{$flex-direction}] {
+      flex-direction: $flex-direction;
+    }
+  }
+
+}

@@ -1,22 +1,26 @@
 {{ include_style "css/main.css" }}
 
-<aside>
-    Sidebar
-</aside>
-<header>
-    Header
-</header>
-<nav>
-    Navigation
-</nav>
-<article>
-    <nav class="breadcrumb">: {{ window.location.bookmark }} :</nav>
-    <section>
-        <pre>
-        {{ include window.location.bookmark }}
-        </pre>
-    </section>
-</article>
-<footer>
-    <img src="/api/wiki/template/default/img/logo.png" alt="logo"/> © 2024 <a href="https://github.com/qooando/qwiki" target="_blank">qwiki</a>
-</footer>
+<q-layout-flex id="main" direction="column">
+    <header>
+        Header
+    </header>
+    <q-layout-flex id="workspace" direction="row">
+        <aside>
+            Sidebar
+        </aside>
+        <q-layout-flex id="document" direction="column">
+            <nav>
+                {{ window.location.bookmark }}
+            </nav>
+            <article>
+                <section>
+                    {{ include window.location.bookmark }}
+                </section>
+            </article>
+        </q-layout-flex>
+    </q-layout-flex>
+    <footer>
+        <img src="/api/wiki/template/default/img/logo.png" alt="logo"/> © 2024 <a
+            href="https://github.com/qooando/qwiki" target="_blank">qwiki</a>
+    </footer>
+</q-layout-flex>

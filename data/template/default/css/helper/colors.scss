@@ -1,0 +1,15 @@
+$color-primary: rgb(255, 0, 0);
+$color-fg: rgb(30, 30, 30);
+$color-bg: rgb(225, 225, 225);
+$color-fg-alt: $color-bg;
+$color-bg-alt: $color-primary;
+
+@mixin color-box {
+  color: $color-fg;
+  background-color: $color-bg;
+}
+
+@mixin color-alt {
+  color: $color-fg-alt;
+  background-color: $color-bg-alt;
+}
