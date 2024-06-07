@@ -1,0 +1,57 @@
+@import "helper/colors";
+@import "helper/layout";
+
+// debug
+* {
+  box-shadow:inset 0px 0px 0px 1px #00f;
+}
+
+body {
+  @include color-box;
+  margin: 0;
+  border: 0;
+}
+
+#main {
+  min-height: 100vh;
+}
+
+#workspace {
+  @include flex-item(1);
+}
+
+#document {
+  @include flex-item(1);
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+header {
+  padding: 1em;
+}
+
+aside {
+  padding: 1em;
+  min-width: 12rem;
+}
+
+article {
+  @include flex-item(1);
+  padding: 1rem;
+}
+
+section {
+  padding: 1rem;
+}
+
+nav {
+  padding: 1rem;
+}
+
+footer {
+  @include color-alt;
+  padding: 1rem;
+}
+
+
+@import "./widget/breadcrumb";

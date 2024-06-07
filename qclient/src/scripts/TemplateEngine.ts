@@ -2,11 +2,26 @@ import {Base} from "./Base.js";
 import {ApiClient} from "./ApiClient.js";
 import * as Handlebars from "handlebars";
 import {replaceOnPromise} from "./snippets/replaceOnPromise.js";
+import {strings} from "./handlebars/helpers/strings.js";
 
 export enum HelperNames {
     INCLUDE = "include",
     INCLUDE_STYLE = "include_style",
     INCLUDE_IMAGE = "include_image",
+}
+
+export function registerHelper(fun: Handlebars.HelperDelegate) {
+    Handlebars.registerHelper(fun.name, fun);
+}
+
+export function registerHelpers(...funs: Handlebars.HelperDelegate[]) {
+    funs.forEach(registerHelper);
+}
+
+export function registerHelpersFromObject(obj: any) {
+    Object.entries(obj).forEach(([key, value]) => {
+        Handlebars.registerHelper(key, <Handlebars.HelperDelegate>value);
+    })
 }
 
 export class TemplateEngine extends Base {
@@ -16,13 +31,16 @@ export class TemplateEngine extends Base {
     postConstruct() {
         const templateEngine = this;
 
+        registerHelpersFromObject(strings);
+
         // {{ include "test.html" }}
-        Handlebars.registerHelper(HelperNames.INCLUDE, function (component) {
+        Handlebars.registerHelper(HelperNames.INCLUDE, function (component, ...args: any[]) {
             console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
             // NOTE: this is the current context
             const parentCtx = this;
+            // var parentCtx = Object.assign({}, this, ...args);
             return replaceOnPromise(async function (): Promise<string> {
-                return await templateEngine.renderTemplateText(parentCtx.template.name, component);
+                return await templateEngine.renderTemplateText(parentCtx.template.name, component, ctx);
             });
         });
 
@@ -83,11 +101,11 @@ export class TemplateEngine extends Base {
         return Handlebars.compile(content);
     }
 
-    async renderTemplateText(templateName: string, templateComponent: string) {
+    async renderTemplateText(templateName: string, templateComponent: string, ctx: any = {}) {
         console.assert(templateName);
         console.assert(templateComponent);
         const template = await this.getTemplateText(templateName, templateComponent);
-        return template({
+        return template(Object.assign({
             template: {
                 name: templateName,
                 component: templateComponent
@@ -97,8 +115,7 @@ export class TemplateEngine extends Base {
                     bookmark: window.location.hash.slice(1)
                 }
             }
-
-        });
+        }, ctx));
     }
 
     async renderTemplateComponentToElement(templateName: string, templateComponent: string, elementId: string) {

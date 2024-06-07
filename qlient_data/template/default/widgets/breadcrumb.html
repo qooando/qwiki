@@ -1,0 +1,5 @@
+<ol class="breadcrumb">
+    {{#each ( split window.location.bookmark "/" ) as |crumb| }}
+    <li>{{ crumb }}</li>
+    {{/each}}
+</ol>

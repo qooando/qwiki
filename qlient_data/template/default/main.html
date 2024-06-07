@@ -10,7 +10,13 @@
         </aside>
         <q-layout-flex id="document" direction="column">
             <nav>
-                {{ window.location.bookmark }}
+                {{ include "widgets/breadcrumb.html" }}
+                <!--                <ol class="breadcrumbs">-->
+                <!--                    {{#each crumbs as |crumb|}}-->
+                <!--                    {{> breadcrumb_single crumb=crumb}}-->
+                <!--                    {{/each}}-->
+                <!--                </ol>-->
+                <!--                {{ window.location.bookmark }}-->
             </nav>
             <article>
                 <section>

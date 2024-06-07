@@ -1,0 +1,19 @@
+@import "../helper/layout";
+
+.breadcrumb {
+  @include flex-container;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+
+    &:not(:last-child)::after {
+      content: "›";
+      margin: 0 0.5rem;
+      font-size: 1rem;
+    }
+  }
+}
