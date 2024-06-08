@@ -1,12 +1,20 @@
+@use "sass:color";
+
 $color-primary: rgb(255, 0, 0);
 $color-fg: rgb(30, 30, 30);
-$color-bg: rgb(225, 225, 225);
+$color-bg: rgb(245, 245, 245);
+$color-bg-96: color.mix($color-bg, rgb(0, 0, 0), 96%);
 $color-fg-alt: $color-bg;
 $color-bg-alt: $color-primary;
 
 @mixin color-box {
   color: $color-fg;
   background-color: $color-bg;
+}
+
+@mixin color-panel {
+  color: $color-fg;
+  background-color: $color-bg-96;
 }
 
 @mixin color-alt {

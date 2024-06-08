@@ -1,22 +1,15 @@
 {{ include_style "css/main.css" }}
 
 <q-layout-flex id="main" direction="column">
-    <header>
-        Header
-    </header>
+    <!--    <header>-->
+    <!--    </header>-->
     <q-layout-flex id="workspace" direction="row">
         <aside>
-            Sidebar
+            {{ include "widgets/docs-list.html" }}
         </aside>
         <q-layout-flex id="document" direction="column">
             <nav>
                 {{ include "widgets/breadcrumb.html" }}
-                <!--                <ol class="breadcrumbs">-->
-                <!--                    {{#each crumbs as |crumb|}}-->
-                <!--                    {{> breadcrumb_single crumb=crumb}}-->
-                <!--                    {{/each}}-->
-                <!--                </ol>-->
-                <!--                {{ window.location.bookmark }}-->
             </nav>
             <article>
                 <section>
@@ -25,8 +18,8 @@
             </article>
         </q-layout-flex>
     </q-layout-flex>
-    <footer>
-        <img src="/api/wiki/template/default/img/logo.png" alt="logo"/> © 2024 <a
-            href="https://github.com/qooando/qwiki" target="_blank">qwiki</a>
-    </footer>
+    <!--    <footer>-->
+    <!--        <img src="/api/wiki/template/default/img/logo.png" alt="logo"/> © 2024 <a-->
+    <!--            href="https://github.com/qooando/qwiki" target="_blank">qwiki</a>-->
+    <!--    </footer>-->
 </q-layout-flex>

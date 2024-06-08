@@ -38,6 +38,7 @@ export class TemplateEngine extends Base {
             console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
             // NOTE: this is the current context
             const parentCtx = this;
+            const ctx = Object.assign({}, parentCtx); // FIXME use args
             // var parentCtx = Object.assign({}, this, ...args);
             return replaceOnPromise(async function (): Promise<string> {
                 return await templateEngine.renderTemplateText(parentCtx.template.name, component, ctx);

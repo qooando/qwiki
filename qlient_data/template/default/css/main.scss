@@ -3,7 +3,7 @@
 
 // debug
 * {
-  box-shadow:inset 0px 0px 0px 1px #00f;
+  //box-shadow:inset 0px 0px 0px 1px #00f;
 }
 
 body {
@@ -31,21 +31,22 @@ header {
 }
 
 aside {
+  @include color-panel;
   padding: 1em;
   min-width: 12rem;
 }
 
 article {
   @include flex-item(1);
-  padding: 1rem;
+  padding: 2rem;
 }
 
 section {
-  padding: 1rem;
+  //padding: 1rem;
 }
 
 nav {
-  padding: 1rem;
+  padding: 1.618rem;
 }
 
 footer {
