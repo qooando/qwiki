@@ -28,8 +28,18 @@ export class ApiClient extends Base {
         // FIXME
     }
 
+    async getDocuments(): Promise<object> {
+        let url = this.makeURL(`/wiki/documents`);
+        let response = await this.request(url, {
+            method: "GET"
+        })
+        if (response.status === 200) {
+            return response.json();
+        }
+    }
+
     async getDocumentContent(identifier: string): Promise<string> {
-        let url = this.makeURL(`/wiki/${identifier}`);
+        let url = this.makeURL(`/wiki/documents/${identifier}`);
         let response = await this.request(url, {
             method: "GET"
         })
@@ -44,8 +54,8 @@ export class ApiClient extends Base {
         }
     }
 
-    async getDocumentMetadata(identifier: string): Promise<WikiDocumentDto> {
-        let url = this.makeURL(`/wiki/${identifier}.meta`);
+    async getDocument(identifier: string): Promise<WikiDocumentDto> {
+        let url = this.makeURL(`/wiki/documents/${identifier}.meta`);
         let response = await this.request(url, {
             method: "GET"
         })

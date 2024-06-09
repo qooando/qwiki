@@ -33,7 +33,48 @@ export class WikiDocumentController extends ExpressController {
         assert(app);
 
         // return document metadata
-        app.get(/\/api\/wiki\/(.*)\.meta/,
+        app.get(/\/api\/wiki\/documents\/?$/,
+            this.openapi.middleware.path({
+                // parameters: [
+                //     {
+                //         in: "query",
+                //         name: "",
+                //         schema: {
+                //             type: "string",
+                //             pattern: "^.*$"
+                //         },
+                //         required: true,
+                //         description: "Document id, path or title"
+                //     }
+                // ],
+                responses: {
+                    200: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+            (request, response, next) => {
+                return this.wikiDocumentRepository.findAll({
+                    content: 0
+                })
+                    .then(documents => {
+                        response.json(documents)
+                    })
+                    .catch(err => next(err));
+            }
+        );
+
+        // return document metadata
+        app.get(/\/api\/wiki\/documents\/(.*)\.meta/,
             // app.get("/api/wiki/:wikiPath",
             this.openapi.middleware.path({
                 parameters: [
@@ -82,7 +123,7 @@ export class WikiDocumentController extends ExpressController {
         );
 
         // return document content
-        app.get(/\/api\/wiki\/(.*)/,
+        app.get(/\/api\/wiki\/documents\/(.*)/,
             // app.get("/api/wiki/:wikiPath",
             this.openapi.middleware.path({
                 parameters: [

@@ -34,6 +34,12 @@ export class TemplateEngine extends Base {
         registerHelpersFromObject(strings);
 
         // {{ include "test.html" }}
+        Handlebars.registerHelper("documents", async function () {
+            // console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
+            return await templateEngine.apiClient.getDocuments();
+        });
+
+        // {{ include "test.html" }}
         Handlebars.registerHelper(HelperNames.INCLUDE, function (component, ...args: any[]) {
             console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
             // NOTE: this is the current context

@@ -108,6 +108,14 @@ export class WikiDocumentRepository extends Base {
         return doc;
     }
 
+    async findAll(project: object = undefined) {
+        return await this.mongo.find(
+            {},
+            WikiDocument,
+            null,
+            project);
+    }
+
     async findByIdOrTitleOrPath(identifier: string) {
         return await this.mongo.findOne(
             {

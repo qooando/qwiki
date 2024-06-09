@@ -45,12 +45,17 @@ export class MongoRepository {
         return this.find({}, klazz, collection);
     }
 
-    async find<T extends Entity>(query: any, klazz: ClassConstructor<T>, collection: string = undefined): Promise<T[]> {
+    async find<T extends Entity>(query: any, klazz: ClassConstructor<T>,
+                                 collection: string = undefined,
+                                 project: object = undefined): Promise<T[]> {
         collection ??= (klazz as any).__entity__.collection;
-        return this.db.collection(collection)
+        let cur = this.db.collection(collection)
             .find(query)
             .map(x => new klazz(x))
-            .toArray();
+        if (project) {
+            cur = cur.project(project);
+        }
+        return cur.toArray();
     }
 
     async findOne<T extends Entity>(query: any, klazz: ClassConstructor<T>, collection: string = undefined): Promise<T> {

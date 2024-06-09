@@ -1,5 +1,8 @@
 <ol class="breadcrumb">
-    {{#each ( split window.location.bookmark "/" ) as |crumb| }}
-    <li><a href="FIXME_WITH_FULL_PATH/#{{ crumb }}">{{ crumb }}</a></li>
-    {{/each}}
+<!--    {{#each breadcrumb}}-->
+<!--    <li><a href="{{this}}">{{@key}}</a></li>-->
+<!--    {{/each}}-->
+        {{#each ( split window.location.bookmark "/" ) as |crumb| }}
+        <li><a href="FIXME_WITH_FULL_PATH/#{{ crumb }}">{{ crumb }}</a></li>
+        {{/each}}
 </ol>

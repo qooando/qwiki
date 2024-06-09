@@ -1,7 +1,5 @@
 <ol>
-    <li>TODO</li>
-    <li>TODO</li>
-    <li>TODO</li>
-    <li>TODO</li>
-    <li>TODO</li>
+    {{#each (documents)}}
+    <li><a href="#{{this.contentPath}}">{{@key}}: {{this.contentPath}}</a></li>
+    {{/each}}
 </ol>
