@@ -34,9 +34,12 @@ export class TemplateEngine extends Base {
         registerHelpersFromObject(strings);
 
         // {{ include "test.html" }}
-        Handlebars.registerHelper("documents", async function () {
+        Handlebars.registerHelper("documents", function () {
             // console.assert(component, `handlebars helper ${HelperNames.INCLUDE}, argument not specified`);
-            return await templateEngine.apiClient.getDocuments();
+            // return replaceOnPromise(async function (): Promise<any> {
+            return templateEngine.apiClient.getDocuments();
+
+            // });
         });
 
         // {{ include "test.html" }}
