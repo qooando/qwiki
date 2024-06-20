@@ -1,7 +1,7 @@
 export namespace tokenizer {
 
     export interface Token {
-        label: string
+        name: string
         content: string
 
         [x: string]: any
@@ -120,11 +120,11 @@ export namespace tokenizer {
         export function concatSameLabel(ctx: tokenizer.Context) {
             let top = ctx.tokenBuffer[ctx.tokenBuffer.length - 1];
             let label = ctx.rule.label;
-            if (top && top.label === label) {
+            if (top && top.name === label) {
                 top.content += ctx.matches[0];
             } else {
                 ctx.tokenBuffer.push({
-                    label: label,
+                    name: label,
                     content: ctx.matches[0]
                 });
             }

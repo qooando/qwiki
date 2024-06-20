@@ -44,23 +44,23 @@ export namespace quaqua {
         }
     ];
 
-    // let symbols: parser.grammar.Grammar = {
-    //     startSymbol: parser.grammar.toRule("_START", "_STATEMENT"),
-    //     symbols: parser.grammar.toRules([
-    //         ["statement", "block statement?"],
-    //         ["inline_statement", ""],
-    //         ["block", "if | for | with"],
-    //         ["if", "IF GROUP_START inline_statement GROUP_END statement ( ELSE statement )? END"],
-    //         ["for", "FOR GROUP_START inline_statement GROUP_END"],
-    //         ["with", "WITH"],
-    //         ["variable", "IDENTIFIER"],
-    //         ["constant", "TEXT+"]
-    //     ])
-    // }
-    //
+    let symbols: parser.grammar.Grammar = {
+        startRule: parser.grammar.toRule("start", "statement*"),
+        rules: parser.grammar.toRules([
+            ["statement", "block"],
+            ["inline_statement", ""],
+            ["block", "if | for | with"],
+            ["if", "IF GROUP_START inline_statement GROUP_END statement ( ELSE statement )? END"],
+            ["for", "FOR GROUP_START inline_statement GROUP_END"],
+            ["with", "WITH"],
+            ["variable", "IDENTIFIER"],
+            ["constant", "TEXT+"]
+        ])
+    }
+
     // let renderRules: renderer.Rule[] = [];
 
     export let Tokenizer = tokenizer.tokenizer(tokenizerRules);
-    // export let Parser = parser.parser(Tokenizer, symbols);
+    export let Parser = parser.parser(Tokenizer, symbols);
     // export let Renderer = renderer.renderer(renderRules);
 }
