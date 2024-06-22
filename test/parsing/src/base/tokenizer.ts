@@ -78,7 +78,7 @@ export namespace tokenizer {
                         rule.onMatch(context)
                     } else if (rule.label) {
                         context.tokenBuffer.push({
-                            label: rule.label,
+                            name: rule.label,
                             content: matches[0]
                         });
                     } else {

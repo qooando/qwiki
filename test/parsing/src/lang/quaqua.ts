@@ -45,15 +45,16 @@ export namespace quaqua {
     ];
 
     let symbols: parser.grammar.Grammar = {
-        startRule: parser.grammar.toRule("start", "statement*"),
         rules: parser.grammar.toRules([
+            ["__START__", "statement*"],
             ["statement", "block"],
             ["inline_statement", ""],
-            ["block", "if | for | with"],
+            ["block", "if | for | with | echo"],
             ["if", "IF GROUP_START inline_statement GROUP_END statement ( ELSE statement )? END"],
             ["for", "FOR GROUP_START inline_statement GROUP_END"],
             ["with", "WITH"],
-            ["variable", "IDENTIFIER"],
+            ["echo", "variable | constant"],
+            ["variable", "VARIABLE_IDENTIFIER"],
             ["constant", "TEXT+"]
         ])
     }

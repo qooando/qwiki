@@ -110,7 +110,6 @@ export namespace parser {
         }
 
         export interface Grammar {
-            startRule: Rule;
             rules: Rule[];
             rulesByFrom?: Map<string, Rule>;
         }
@@ -131,8 +130,7 @@ export namespace parser {
             let _ruleToString = (rule: Rule) => {
                 return rule.from + " ::= " + _nodeToString(rule.to);
             }
-            return _ruleToString(grammar.startRule) + "\n"
-                + grammar.rules.map(x => _ruleToString(x)).join("\n");
+            return grammar.rules.map(x => _ruleToString(x)).join("\n");
         }
 
     }
@@ -178,15 +176,16 @@ export namespace parser {
         parse(raw: string): AST {
             let tokensToParse: iterators.BufferedIterator<tokenizer.Token> = iterators.buffered(this.tokenizer.tokenize(raw));
 
-            let rootNode: AST = null;
+            let rootNode: AST = NO_AST;
             let isValidMatch = false;
             let nextToken = tokensToParse.nextValue();
+            let nextTraceId = 0;
 
             const _makeEmptyNode = (rule: grammar.Rule): AstNode => {
                 return {
                     name: rule.from,
                     children: [],
-                    content: null,
+                    content: undefined,
                 }
             }
 
@@ -200,6 +199,7 @@ export namespace parser {
 
             type Context = {
                 node: AstNode,
+                traceId: number,
                 symbols: grammar.Symbol[],
                 operator: "or" | "and",
                 modifier: "?" | "*" | "+",
@@ -208,14 +208,133 @@ export namespace parser {
             const _makeNewContext = (rule: grammar.Rule): Context => {
                 return {
                     node: _makeEmptyNode(rule),
+                    traceId: ++nextTraceId,
                     symbols: [rule.to],
                     operator: "and",
-                    modifier: null
+                    modifier: undefined
+                }
+            }
+
+            const _symbolToString = (symbol: grammar.Symbol): string => {
+                if (!symbol) {
+                    return "NoSymbol"
+                }
+                if ((symbol as any).name) {
+                    let ref = symbol as grammar.SymbolRef;
+                    return `${ref.name}${ref.modifier ?? ""}`
+                } else {
+                    let group = symbol as grammar.SymbolGroup
+                    let separator = group.operator === "or" ? "|" : " "
+                    return `(${group.symbols.map(_symbolToString).join(separator)})${group.modifier ?? ""}`
                 }
             }
 
             let parents: Context[] = [];
-            let current: Context = _makeNewContext(this.grammar.startRule);
+            let current: Context = _makeNewContext(this.grammar.rulesByFrom.get("__START__"));
+
+            const _closeCurrentContext = () => {
+
+                /*
+                 * no more symbols at this level
+                 * isValidMatch has a value true|false, propagate to upper level
+                 */
+                const parent = parents.pop();
+                if (!parent) {
+                    // end
+                    rootNode = isValidMatch ? current.node : NO_AST;
+                    current = null;
+                    return false;
+                }
+                if (isValidMatch) {
+                    if (parent.traceId !== current.traceId) { // add children only if parent is another node
+                        parent.node.children.push(current.node);
+                    }
+                    switch (current.modifier) {
+                        case "+":
+                        case "*":
+                            // leave current symbol, note, current symbol should be the child we already exit
+                            break;
+                        default:
+                        case "?":
+                            parent.symbols.shift(); // consume used child
+                            break;
+                    }
+                } else {
+                    switch (current.modifier) {
+                        case "?":
+                        case "*":
+                            isValidMatch = true;
+                            break;
+                        case "+":
+                            let previous = parent.node.children[parent.node.children.length - 1] as AstNode;
+                            isValidMatch = previous && previous.name === current.node.name;
+                            break;
+                    }
+                    parent.symbols.shift(); // consume current symbol, it is invalid
+                }
+                if ((isValidMatch && parent.operator === "or") ||
+                    (!isValidMatch && parent.operator === "and")) {
+                    // skip other symbols
+                    parent.symbols = [];
+                }
+                current = parent;
+            }
+
+            const _expandSymbolRule = (reference: grammar.SymbolRef) => {
+                const newRule = this.grammar.rulesByFrom.get(reference.name);
+                parents.push(current);
+                current = _makeNewContext(newRule);
+                current.modifier = reference.modifier;
+            }
+
+            const _matchSymbolToToken = (reference: grammar.SymbolRef) => {
+                isValidMatch = reference.name === nextToken.name;
+
+                if (isValidMatch) {
+                    current.node.children.push(_makeLeaf(nextToken));
+                    nextToken = tokensToParse.nextValue();
+
+                    switch (reference.modifier) {
+                        case "+":
+                        case "*":
+                            // leave current symbol
+                            break;
+                        default:
+                        case "?":
+                            current.symbols.shift(); // consume current symbol, it is used
+                            break;
+                    }
+                } else {
+                    switch (reference.modifier) {
+                        case "?":
+                        case "*":
+                            isValidMatch = true;
+                            break;
+                        case "+":
+                            let previous = current.node.children[current.node.children.length - 1] as AstNode;
+                            isValidMatch = previous && previous.name === reference.name;
+                            break;
+                    }
+                    // new symbol to parse
+                    current.symbols.shift();
+                }
+                if ((isValidMatch && current.operator === "or") ||
+                    (!isValidMatch && current.operator === "and")) {
+                    // consume all symbols
+                    current.symbols = [];
+                }
+            }
+
+            const _expandSymbolGroup = (group: grammar.SymbolGroup) => {
+                parents.push(current);
+                current = {
+                    traceId: current.traceId,
+                    node: current.node,
+                    symbols: group.symbols.slice(),
+                    operator: group.operator,
+                    modifier: group.modifier
+                }
+            }
 
             while (current) {
                 /*
@@ -224,132 +343,42 @@ export namespace parser {
                  * for every group or rule we go down a level,
                  * if there is no more symbols for this rule, go up one level,
                  */
-                const symbol: grammar.Symbol = current.symbols[0];
-                const resolveCurrent = current.symbols.length === 0;
-
-                if (resolveCurrent) {
-                    /*
-                     * no more symbols at this level
-                     * isValidMatch has a value true|false, propagate to upper level
-                     */
-                    const childNode = current.node;
-                    current = parents.pop();
-                    if (isValidMatch) {
-                        current.node.children.push(childNode);
-                        switch (current.modifier) {
-                            case "+":
-                            case "*":
-                                // leave current symbol, note, current symbol should be the child we already exit
-                                break;
-                            default:
-                            case "?":
-                                current.symbols.shift(); // consume used child
-                                break;
-                        }
-                    } else {
-                        switch (current.modifier) {
-                            case "?":
-                            case "*":
-                                isValidMatch = true;
-                                break;
-                            case "+":
-                                let previous = current.node.children[current.node.children.length - 1] as AstNode;
-                                isValidMatch = previous && previous.name === nextToken.name;
-                                break;
-                        }
-                        current.symbols.shift(); // consume current symbol, it is invalid
-                    }
-                    if ((isValidMatch && current.operator === "or") ||
-                        (!isValidMatch && current.operator === "and")) {
-                        // skip other symbols
-                        current.symbols = [];
-                        continue;
-                    }
+                const
+                    symbol: grammar.Symbol = current.symbols[0];
+                this.log.debug(`${" ".repeat(parents.length)} `
+                    + ` [${current.node.name} ${current.traceId}]`
+                    + ` previousMatch=${isValidMatch}`
+                    + ` token=${nextToken ? nextToken.name : "NoToken"}`
+                    + ` symbol=${_symbolToString(symbol)}`
+                    + ` operator=${current.operator}`
+                    + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
+                    + ` modifier=${current.modifier}`
+                );
+                if (current.symbols.length === 0 || !nextToken) {
+                    _closeCurrentContext();
                     continue;
                 }
-
-                const isSymbolRef = (symbol as any).name;
-                const isSymbolGroup = !isSymbolRef;
-
+                const isSymbolRef = !!(symbol as any).name;
                 if (isSymbolRef) {
-                    let reference = symbol as grammar.SymbolRef;
-
-                    let newRule = this.grammar.rulesByFrom.get(reference.name);
-
-                    if (newRule) {
-                        // a new rule, go down one level
-                        parents.push(current);
-                        current.symbols.shift(); // remove current symbol from front
-                        current = _makeNewContext(newRule);
-                        continue;
+                    const reference = symbol as grammar.SymbolRef;
+                    if (this.grammar.rulesByFrom.has(reference.name)) {
+                        _expandSymbolRule(reference);
                     } else {
-                        // a terminal symbol,
-                        isValidMatch = reference.name === nextToken.name;
-
-                        if (isValidMatch) {
-                            current.node.children.push(_makeLeaf(nextToken));
-                            nextToken = tokensToParse.nextValue();
-
-                            switch (reference.modifier) {
-                                case "+":
-                                case "*":
-                                    // leave current symbol
-                                    break;
-                                default:
-                                case "?":
-                                    current.symbols.shift(); // consume current symbol, it is used
-                                    break;
-                            }
-                        } else {
-                            switch (reference.modifier) {
-                                case "?":
-                                case "*":
-                                    isValidMatch = true;
-                                    break;
-                                case "+":
-                                    let previous = current.node.children[current.node.children.length - 1] as AstNode;
-                                    isValidMatch = previous && previous.name === nextToken.name;
-                                    break;
-                            }
-                            // new symbol to parse
-                            current.symbols.shift();
-                            continue
-                        }
-                        if ((isValidMatch && current.operator === "or") ||
-                            (!isValidMatch && current.operator === "and")) {
-                            // consume all symbols
-                            current.symbols = [];
-                            continue;
-                        }
-                        continue;
+                        _matchSymbolToToken(reference);
                     }
-                    throw new Error(`Not reachable`);
+                } else {
+                    _expandSymbolGroup(symbol as grammar.SymbolGroup)
                 }
-
-                if (isSymbolGroup) {
-                    // it's a group, go down a level
-                    const group = symbol as grammar.SymbolGroup;
-                    parents.push(current);
-                    current = {
-                        node: current.node,
-                        symbols: group.symbols,
-                        operator: group.operator,
-                        modifier: group.modifier
-                    }
-                    continue;
-                }
-
-                throw new Error(`Not reachable`);
             }
-
+            // if (isValidMatch) {
+            //     rootNode = parents ? parents[0].node : current.node;
+            // }
             if (!isValidMatch) {
-                this.log.warn(`Invalid parse`);
+                this.log.warn(`Parse failed`);
             }
-
-            if (nextToken != null) {
+            if (nextToken) {
                 this.log.warn(`Parsing stops at token: ${nextToken.name}`);
             }
-
             return rootNode;
         }
 

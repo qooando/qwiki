@@ -34,7 +34,7 @@ export namespace iterators {
             if (this.marks.length) {
                 this.cursor++;
             } else {
-                this.buffer.unshift();
+                this.buffer.shift();
             }
             return x;
         }
