@@ -1,50 +1,51 @@
-import {parser} from "../base/parser.js"
-import {tokenizer} from "../base/tokenizer.js";
+import {grammar} from "../base/grammar.js"
+import {lexer} from "../base/lexicon.js";
+import {ast} from "../base/ast.js";
 import {renderer} from "../base/renderer.js"
 
 /*
  * parser for quaqua template language
  */
 export namespace quaqua {
-    let enableIfIsCode = (ctx: tokenizer.Context) => ctx.captureCode
-    let enableIfIsNotCode = (ctx: tokenizer.Context) => !ctx.captureCode
+    let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
+    let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
 
-    let tokenizerRules: tokenizer.Rule[] = [
+    let lexerRules: lexer.TermDefinition[] = [
         {
-            label: "CODE_START",
+            term: "CODE_START",
             regex: /\{\{/y,
-            onMatch: (ctx: tokenizer.Context) => {
+            onMatch: (ctx: lexer.LexerContext) => {
                 ctx.captureCode = true;
             }
         },
         {
-            label: "CODE_END",
+            term: "CODE_END",
             regex: /}}/y,
-            onMatch: (ctx: tokenizer.Context) => {
+            onMatch: (ctx: lexer.LexerContext) => {
                 ctx.captureCode = false;
             }
         },
-        {enable: enableIfIsCode, label: "GROUP_START", regex: /\(/},
-        {enable: enableIfIsCode, label: "GROUP_END", regex: /\)/},
-        {enable: enableIfIsCode, label: "IF", regex: /if/},
-        {enable: enableIfIsCode, label: "FOREACH", regex: /foreach/},
-        {enable: enableIfIsCode, label: "FOR", regex: /for/},
-        {enable: enableIfIsCode, label: "ELSE", regex: /else/},
-        {enable: enableIfIsCode, label: "END", regex: /end/},
-        {enable: enableIfIsCode, label: "WITH", regex: /with/},
-        {enable: enableIfIsCode, label: "VARIABLE_IDENTIFIER", regex: /\$[_a-zA-Z0-9]+/},
-        {enable: enableIfIsCode, label: "IDENTIFIER", regex: /[_a-zA-Z0-9]+/},
-        {enable: enableIfIsCode, label: "PIPE", regex: /\|/},
-        {enable: enableIfIsCode, label: "SPACE", regex: /\s+/, onMatch: tokenizer.onMatch.ignore},
+        {enable: enableIfIsCode, term: "GROUP_START", regex: /\(/},
+        {enable: enableIfIsCode, term: "GROUP_END", regex: /\)/},
+        {enable: enableIfIsCode, term: "IF", regex: /if/},
+        {enable: enableIfIsCode, term: "FOREACH", regex: /foreach/},
+        {enable: enableIfIsCode, term: "FOR", regex: /for/},
+        {enable: enableIfIsCode, term: "ELSE", regex: /else/},
+        {enable: enableIfIsCode, term: "END", regex: /end/},
+        {enable: enableIfIsCode, term: "WITH", regex: /with/},
+        {enable: enableIfIsCode, term: "VARIABLE_IDENTIFIER", regex: /\$[_a-zA-Z0-9]+/},
+        {enable: enableIfIsCode, term: "IDENTIFIER", regex: /[_a-zA-Z0-9]+/},
+        {enable: enableIfIsCode, term: "PIPE", regex: /\|/},
+        {enable: enableIfIsCode, term: "SPACE", regex: /\s+/, onMatch: lexer.onMatch.ignore},
         {
             enable: enableIfIsNotCode,
-            label: "TEXT",
+            term: "TEXT",
             regex: /(.(?!\{\{|}}))*./sy,
-            onMatch: tokenizer.onMatch.concatSameLabel
+            onMatch: lexer.onMatch.concatSameTerm
         }
     ];
 
-    let rules = [
+    let grammarRules = [
         ["__START__", "statement*"],
         ["statement", "block"],
         ["inline_statement", ""],
@@ -57,7 +58,8 @@ export namespace quaqua {
         ["constant", "TEXT+"]
     ];
 
-    export let Tokenizer = tokenizer.tokenizer(tokenizerRules);
-    export let Parser = parser.fromRules(Tokenizer, rules);
+    // export let Tokenizer = lexer.tokenizer(lexerRules);
+    // export let Grammar = grammar.grammar(grammarRules)
+    export let parser = ast.parser(lexerRules, grammarRules)
 
 }

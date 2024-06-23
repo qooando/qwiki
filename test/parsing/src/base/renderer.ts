@@ -1,33 +1,30 @@
-import {parser} from "./parser";
+import {ast} from "./ast.js";
 
 export namespace renderer {
 
-    export type RuleFun = (node: parser.AstNode, ctx: object) => any;
+    export type NodeVisitorFun = (node: ast.Node, ctx: object) => any;
 
-    export interface Rule {
+    export interface NodeVisitor {
         event: string
-        visit?: RuleFun
-        before?: RuleFun
-        after?: RuleFun
+        visit?: NodeVisitorFun
+        before?: NodeVisitorFun
+        after?: NodeVisitorFun
     }
 
     export class GenericRenderer {
 
-        rules: Map<string, Rule>
+        rules: Map<string, NodeVisitor>
 
-        constructor(rules: Rule[]) {
+        constructor(rules: NodeVisitor[]) {
             rules.forEach(rule => {
                 this.rules.set(rule.event, rule);
             });
         }
 
-        render(ast: parser.AST, ctx: object = {}): any {
-            let _visit = (ast: parser.AST, ctx: object = {}) => {
-                if (ast === parser.NO_AST) {
+        render(ast: ast.Node, ctx: object = {}): any {
+            let _visit = (ast: ast.Node, ctx: object = {}) => {
+                if (ast === null) {
                     throw new Error(`No ast provided`);
-                }
-                if (ast === parser.EMPTY_AST) {
-                    return;
                 }
                 let rule = this.rules.get(ast.name);
                 if (rule && rule.before) {
@@ -47,7 +44,8 @@ export namespace renderer {
 
     }
 
-    export function renderer(rules: Rule[]) {
+    export function renderer(rules: NodeVisitor[]) {
         return new GenericRenderer(rules);
     }
+    
 }

@@ -1,16 +1,16 @@
-export namespace tokenizer {
+export namespace lexer {
 
-    export interface Token {
+    export interface Term {
         name: string
         content: string
 
         [x: string]: any
     }
 
-    export interface Context {
-        tokenBuffer: Token[]
-        tokenBufferMaxLength: number
-        rule?: Rule
+    export interface LexerContext {
+        termsBuffer?: Term[]
+        termsBufferMaxLength?: number
+        rule?: TermDefinition
         matches?: any[]
 
         [x: string]: any
@@ -20,29 +20,30 @@ export namespace tokenizer {
      * Rules are a simple set of regex and relative things to do on match
      * you must specify the regex and the label/onMatch
      */
-    export interface Rule {
-        label?: string
+    export interface TermDefinition {
+        term: string
         regex: RegExp
-        enable?: (ctx: Context) => boolean
-        onMatch?: (ctx: Context) => void
+        enable?: (ctx: LexerContext) => boolean
+        onMatch?: (ctx: LexerContext) => void
     }
 
-    export class GenericTokenizer {
+    export class Lexer {
         log = console;
-        rulesInInsertionOrder: Rule[];
+        rulesInInsertionOrder: TermDefinition[];
 
-        constructor(rules: Rule[]) {
+        constructor(rules: TermDefinition[]) {
             this.rulesInInsertionOrder = rules;
         }
 
-        * tokenize(raw: string, context: any = {}): Generator<Token> {
+        * tokenize(raw: string, context: LexerContext = null): Generator<Term> {
             let toTokenize = raw.slice();
 
             let prevIndex = null;
             let nextIndex = 0;
 
-            context.tokenBuffer ??= [];
-            context.tokenBufferMaxLength ??= 1;
+            context ??= {termsBuffer: [], termsBufferMaxLength: 1}
+            context.termsBuffer ??= [];
+            context.termsBufferMaxLength ??= 1;
 
             /*
              * continue to tokenize until the complete string is tokenized
@@ -76,9 +77,9 @@ export namespace tokenizer {
                         context.rule = rule;
                         context.matches = matches;
                         rule.onMatch(context)
-                    } else if (rule.label) {
-                        context.tokenBuffer.push({
-                            name: rule.label,
+                    } else if (rule.term) {
+                        context.termsBuffer.push({
+                            name: rule.term,
                             content: matches[0]
                         });
                     } else {
@@ -90,16 +91,16 @@ export namespace tokenizer {
                 /*
                  * if buffer grows, just output older tokens
                  */
-                while (context.tokenBuffer.length > context.tokenBufferMaxLength) {
-                    yield context.tokenBuffer.shift();
+                while (context.termsBuffer.length > context.termsBufferMaxLength) {
+                    yield context.termsBuffer.shift();
                 }
             }
 
             /*
              * output remaining tokens
              */
-            while (context.tokenBuffer.length) {
-                yield context.tokenBuffer.shift();
+            while (context.termsBuffer.length) {
+                yield context.termsBuffer.shift();
             }
 
             if (nextIndex < toTokenize.length) {
@@ -108,22 +109,24 @@ export namespace tokenizer {
         }
     }
 
-    export function tokenizer(rules: Rule[]) {
-        return new GenericTokenizer(rules);
+    export function lexer(rules: TermDefinition[]) {
+        return new Lexer(rules);
     }
 
+    export let tokenizer = lexer;
+
     export namespace onMatch {
-        export function ignore(ctx: tokenizer.Context) {
+        export function ignore(ctx: lexer.LexerContext) {
 
         }
 
-        export function concatSameLabel(ctx: tokenizer.Context) {
-            let top = ctx.tokenBuffer[ctx.tokenBuffer.length - 1];
-            let label = ctx.rule.label;
+        export function concatSameTerm(ctx: lexer.LexerContext) {
+            let top = ctx.termsBuffer[ctx.termsBuffer.length - 1];
+            let label = ctx.rule.term;
             if (top && top.name === label) {
                 top.content += ctx.matches[0];
             } else {
-                ctx.tokenBuffer.push({
+                ctx.termsBuffer.push({
                     name: label,
                     content: ctx.matches[0]
                 });
