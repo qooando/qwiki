@@ -6,9 +6,9 @@ export namespace renderer {
 
     export interface Rule {
         event: string
-        visit: RuleFun
-        before: RuleFun
-        after: RuleFun
+        visit?: RuleFun
+        before?: RuleFun
+        after?: RuleFun
     }
 
     export class GenericRenderer {

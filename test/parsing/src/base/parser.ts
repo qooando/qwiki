@@ -28,7 +28,9 @@ export namespace parser {
             // toNode?: NodeFactoryFun; // if rule matches, call toNode
         }
 
-        export function toRules(rules: ([string, string] | [string, string, NodeFactoryFun])[]): Rule[] {
+        export type InlineRule = ([string, string] | [string, string, NodeFactoryFun]);
+
+        export function toRules(rules: InlineRule[]): Rule[] {
             return rules.map(rule => {
                 return toRule(rule[0], rule[1], rule[2]);
             })
@@ -172,6 +174,14 @@ export namespace parser {
                 }
                 this.grammar.rulesByFrom.set(rule.from, rule);
             })
+        }
+
+        static fromRules(tokenizer: tokenizer.GenericTokenizer, rules: grammar.InlineRule[]) {
+            return new GenericParser(
+                tokenizer,
+                {
+                    rules: grammar.toRules(rules)
+                });
         }
 
         parse(raw: string): AST {
@@ -389,5 +399,13 @@ export namespace parser {
 
     export function parser(tokenizer: tokenizer.GenericTokenizer, grammar: grammar.Grammar) {
         return new GenericParser(tokenizer, grammar);
+    }
+
+    export function fromRules(tokenizer: tokenizer.GenericTokenizer, rules: string[][] | grammar.InlineRule[]) {
+        return new GenericParser(
+            tokenizer,
+            {
+                rules: grammar.toRules(rules as grammar.InlineRule[])
+            });
     }
 }
