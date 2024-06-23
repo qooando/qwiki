@@ -18,9 +18,9 @@ export namespace grammar {
         to: Symbol
     }
 
-    export type StringRule = ([string, string] | [string, string, any]);
+    export type RuleTuple = ([string, string] | [string, string, any]);
 
-    export function _makeRules(rules: StringRule[]): Rule[] {
+    export function _makeRules(rules: RuleTuple[]): Rule[] {
         return rules.map(rule => _makeRule(rule[0], rule[1], rule[2]));
     }
 
@@ -122,9 +122,9 @@ export namespace grammar {
         }
     }
 
-    export function grammar(rules: Rule[] | string[][] | StringRule[]) {
+    export function grammar(rules: Rule[] | string[][] | RuleTuple[]) {
         if (Array.isArray(rules[0])) {
-            rules = _makeRules(rules as StringRule[]);
+            rules = _makeRules(rules as RuleTuple[]);
         }
         return new Grammar(rules as Rule[]);
     }

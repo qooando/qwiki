@@ -1,7 +1,8 @@
 import {grammar} from "../base/grammar.js"
 import {lexer} from "../base/lexicon.js";
 import {ast} from "../base/ast.js";
-import {renderer} from "../base/renderer.js"
+import {render} from "../base/render.js"
+import {language} from "../base/language";
 
 /*
  * parser for quaqua template language
@@ -10,7 +11,7 @@ export namespace quaqua {
     let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
     let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
 
-    let lexerRules: lexer.TermDefinition[] = [
+    let _lexicon: lexer.Lexicon = [
         {
             term: "CODE_START",
             regex: /\{\{/y,
@@ -45,7 +46,7 @@ export namespace quaqua {
         }
     ];
 
-    let grammarRules = [
+    let _grammar = [
         ["__START__", "statement*"],
         ["statement", "block"],
         ["inline_statement", ""],
@@ -58,8 +59,7 @@ export namespace quaqua {
         ["constant", "TEXT+"]
     ];
 
-    // export let Tokenizer = lexer.tokenizer(lexerRules);
-    // export let Grammar = grammar.grammar(grammarRules)
-    export let parser = ast.parser(lexerRules, grammarRules)
+    let _rendering: render.NodeVisitorTuple[] = []
 
+    export let lang = language.language(_lexicon, _grammar, _rendering);
 }

@@ -241,7 +241,7 @@ export namespace ast {
     }
 
     export function parser(_tokenizer: lexer.Lexer | lexer.TermDefinition[],
-                           _grammar: grammar.Grammar | string[][] | grammar.Rule[] | grammar.StringRule[]) {
+                           _grammar: grammar.Grammar | string[][] | grammar.Rule[] | grammar.RuleTuple[]) {
         if (Array.isArray(_tokenizer)) {
             _tokenizer = lexer.lexer(_tokenizer);
         }

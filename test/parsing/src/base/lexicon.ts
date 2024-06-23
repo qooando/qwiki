@@ -27,6 +27,8 @@ export namespace lexer {
         onMatch?: (ctx: LexerContext) => void
     }
 
+    export type Lexicon = TermDefinition[];
+
     export class Lexer {
         log = console;
         rulesInInsertionOrder: TermDefinition[];
