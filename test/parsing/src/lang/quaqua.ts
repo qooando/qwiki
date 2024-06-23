@@ -2,7 +2,7 @@ import {grammar} from "../base/grammar.js"
 import {lexer} from "../base/lexicon.js";
 import {ast} from "../base/ast.js";
 import {render} from "../base/render.js"
-import {language} from "../base/language";
+import {language} from "../base/language.js";
 
 /*
  * parser for quaqua template language
