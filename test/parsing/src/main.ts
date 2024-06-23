@@ -21,6 +21,3 @@ console.log(parser.grammar.grammarToString(p.grammar))
 let ast = p.parse(content);
 console.log(JSON.stringify(ast))
 
-// let tokens = [...quaqua.Tokenizer.tokenize(content)];
-//
-// console.log(JSON.stringify(tokens, null, 2));

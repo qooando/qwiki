@@ -158,6 +158,7 @@ export namespace parser {
         log = console
         tokenizer: tokenizer.GenericTokenizer;
         grammar: grammar.Grammar;
+        debug = false;
 
         constructor(tokenizer: tokenizer.GenericTokenizer, grammar: grammar.Grammar) {
             this.tokenizer = tokenizer
@@ -345,15 +346,17 @@ export namespace parser {
                  */
                 const
                     symbol: grammar.Symbol = current.symbols[0];
-                this.log.debug(`${" ".repeat(parents.length)} `
-                    + ` [${current.node.name} ${current.traceId}]`
-                    + ` previousMatch=${isValidMatch}`
-                    + ` token=${nextToken ? nextToken.name : "NoToken"}`
-                    + ` symbol=${_symbolToString(symbol)}`
-                    + ` operator=${current.operator}`
-                    + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
-                    + ` modifier=${current.modifier}`
-                );
+                if (this.debug) {
+                    this.log.debug(`${" ".repeat(parents.length)} `
+                        + ` [${current.node.name} ${current.traceId}]`
+                        + ` previousMatch=${isValidMatch}`
+                        + ` token=${nextToken ? nextToken.name : "NoToken"}`
+                        + ` symbol=${_symbolToString(symbol)}`
+                        + ` operator=${current.operator}`
+                        + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
+                        + ` modifier=${current.modifier}`
+                    );
+                }
                 if (current.symbols.length === 0 || !nextToken) {
                     _closeCurrentContext();
                     continue;
