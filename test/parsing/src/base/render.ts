@@ -38,21 +38,22 @@ export namespace render {
 
     export class Renderer {
 
-        rules: Map<string, NodeVisitor>
+        visitors: Map<string, NodeVisitor>
 
         constructor(rules: NodeVisitor[]) {
+            this.visitors = new Map<string, NodeVisitor>();
             rules.forEach(rule => {
-                this.rules.set(rule.event, rule);
+                this.visitors.set(rule.event, rule);
             });
         }
 
-        render(ast: ast.Node, ctx: RenderingContext = null): void {
-            ctx ??= {depth: 0};
+        render<T extends RenderingContext>(ast: ast.Node, ctx: T = null): T {
+            ctx ??= {depth: 0} as T;
             ctx.depth ??= 0;
             if (ast === null) {
                 throw new Error(`No ast provided`);
             }
-            let rule = this.rules.get(ast.name);
+            let rule = this.visitors.get(ast.name);
             if (rule && rule.before) {
                 rule.before(ast, ctx);
             }
@@ -66,6 +67,7 @@ export namespace render {
             if (rule && rule.after) {
                 rule.after(ast, ctx);
             }
+            return ctx;
         }
     }
 

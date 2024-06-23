@@ -18,8 +18,8 @@ export namespace language {
             return this.parser.parse(raw);
         }
 
-        render(node: ast.Node, ctx: render.RenderingContext = null): void {
-            return this.renderer.render(node, ctx);
+        render<T extends render.RenderingContext>(node: ast.Node, ctx: T = null): T {
+            return this.renderer.render<T>(node, ctx);
         }
     }
 
