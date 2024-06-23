@@ -54,6 +54,7 @@ export namespace render {
                 throw new Error(`No ast provided`);
             }
             let rule = this.visitors.get(ast.name);
+            rule ??= this.visitors.get("*")
             if (rule && rule.before) {
                 rule.before(ast, ctx);
             }
@@ -72,7 +73,7 @@ export namespace render {
     }
 
     export function renderer(visitors: NodeVisitor[] | NodeVisitorTuple[]) {
-        if (typeof visitors[0] === "string") {
+        if (Array.isArray(visitors[0])) {
             visitors = _makeNodeVisitors(visitors as NodeVisitorTuple[]);
         }
         return new Renderer(visitors as NodeVisitor[]);
@@ -84,24 +85,28 @@ export namespace render {
             node.children.forEach(c => this.render(c, ctx));
             ctx.depth--;
         }
+
+        export function content(node: ast.Node, ctx: StringRenderingContext) {
+            ctx.output += node.content;
+        }
     }
 
     export namespace onBefore {
         export function constant(value: string, indent: boolean = true) {
             return (node: ast.Node, ctx: StringRenderingContext): void => {
-                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + value;
+                ctx.output += (indent ? " ".repeat(ctx.depth) : "") + value + "\n";
             }
         }
 
-        export function name(value: string, indent: boolean = true) {
+        export function name(indent: boolean = true) {
             return (node: ast.Node, ctx: StringRenderingContext): void => {
-                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + node.name;
+                ctx.output += (indent ? " ".repeat(ctx.depth) : "") + node.name + "\n";
             }
         }
 
-        export function startName(value: string, indent: boolean = true) {
+        export function startName(indent: boolean = true) {
             return (node: ast.Node, ctx: StringRenderingContext): void => {
-                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + "START " + node.name;
+                ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "START " + node.name + "\n";
             }
         }
     }
@@ -110,9 +115,9 @@ export namespace render {
         export let constant = onBefore.constant;
         export let name = onBefore.name;
 
-        export function endName(value: string, indent: boolean = true) {
+        export function endName(indent: boolean = true) {
             return (node: ast.Node, ctx: StringRenderingContext): void => {
-                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + "END " + node.name;
+                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + "END " + node.name + "\n";
             }
         }
     }

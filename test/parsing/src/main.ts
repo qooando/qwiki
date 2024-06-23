@@ -55,7 +55,10 @@ let _grammar = [
     ["constant", "TEXT+"]
 ];
 
-let _rendering: render.NodeVisitorTuple[] = []
+let _rendering: render.NodeVisitorTuple[] = [
+    ["*", render.onBefore.name(), null]
+    // ["TEXT", render.onVisit.content]
+]
 
 let lang = language.language(_lexicon, _grammar, _rendering);
 
@@ -80,7 +83,7 @@ let ast = parser.parse(content);
 console.log(JSON.stringify(ast, null));
 
 console.log("\nRENDERED")
-let out = lang.render(ast, {
+let out: render.StringRenderingContext = lang.render(ast, {
     output: ""
 });
 console.log(out.output);
