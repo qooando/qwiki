@@ -25,7 +25,7 @@ export namespace language {
 
     export function language(_parser: ast.Parser,
                              _renderer: render.Renderer | render.NodeVisitor[] | render.NodeVisitorTuple[]): Language;
-    export function language(_lexer: lexer.Lexer | lexer.Lexicon,
+    export function language(_lexer: lexer.Lexer | lexer.TermDefinition[],
                              _grammar: grammar.Grammar | grammar.RuleTuple[] | string[][] | grammar.Rule[][],
                              _renderer: render.Renderer | render.NodeVisitor[] | render.NodeVisitorTuple[]): Language;
     export function language(...args: any[]): Language {

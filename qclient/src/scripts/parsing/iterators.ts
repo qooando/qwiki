@@ -14,12 +14,17 @@ export namespace iterators {
             this.iterator = iterator;
             this.cursor = 0;
             this.marks = [];
+            this.buffer = [];
+        }
+
+        nextValue(...args: [] | [TNext]): T | TReturn {
+            return this.next(...args).value;
         }
 
         next(...args: [] | [TNext]): IteratorResult<T, TReturn> {
             let x: IteratorResult<T, TReturn> = null;
             if (this.buffer.length === this.cursor) {
-                x = this.iterator.next();
+                x = this.iterator.next(...args);
                 this.buffer.push(x);
             } else {
                 x = this.buffer.at(this.cursor);
@@ -29,7 +34,7 @@ export namespace iterators {
             if (this.marks.length) {
                 this.cursor++;
             } else {
-                this.buffer.unshift();
+                this.buffer.shift();
             }
             return x;
         }

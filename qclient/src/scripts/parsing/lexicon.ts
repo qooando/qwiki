@@ -1,9 +1,4 @@
-import {grammar} from "./grammar";
-import {escapeRegExp} from "lodash";
-
 export namespace lexer {
-
-    import _makeRules = grammar._makeRules;
 
     export interface Term {
         name: string
@@ -32,11 +27,7 @@ export namespace lexer {
         onMatch?: (ctx: LexerContext) => void
     }
 
-    export type TermDefinitionTuple =
-        [string, RegExp, (ctx: LexerContext) => void]
-        | [string, RegExp, (ctx: LexerContext) => void, (ctx: LexerContext) => boolean];
-
-    export type Lexicon = TermDefinition[] | TermDefinitionTuple[];
+    export type Lexicon = TermDefinition[];
 
     export class Lexer {
         log = console;
@@ -120,19 +111,8 @@ export namespace lexer {
         }
     }
 
-    export function lexer(lexicon: Lexicon) {
-        if (Array.isArray(lexicon[0])) {
-            lexicon = (lexicon as TermDefinitionTuple[])
-                .map(x => {
-                    return {
-                        term: x[0],
-                        regex: x[1],
-                        onMatch: x[2],
-                        enable: x[3]
-                    }
-                });
-        }
-        return new Lexer(lexicon as TermDefinition[]);
+    export function lexer(rules: TermDefinition[]) {
+        return new Lexer(rules);
     }
 
     export let tokenizer = lexer;

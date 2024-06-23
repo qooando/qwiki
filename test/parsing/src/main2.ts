@@ -8,25 +8,38 @@ let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
 let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
 
 let _lexicon: lexer.Lexicon = [
-    ["CODE_START", /\{\{/y, (ctx: lexer.LexerContext) => {
-        ctx.captureCode = true;
-    }],
-    ["CODE_END", /}}/y, (ctx: lexer.LexerContext) => {
-        ctx.captureCode = false;
-    }],
-    ["GROUP_START", /\(/, null, enableIfIsCode],
-    ["GROUP_END", /\)/, null, enableIfIsCode],
-    ["IF", /if/, null, enableIfIsCode],
-    ["FOREACH", /foreach/, null, enableIfIsCode],
-    ["FOR", /for/, null, enableIfIsCode],
-    ["ELSE", /else/, null, enableIfIsCode],
-    ["END", /end/, null, enableIfIsCode],
-    ["WITH", /with/, null, enableIfIsCode],
-    ["VARIABLE_IDENTIFIER", /\$[_a-zA-Z0-9]+/, null, enableIfIsCode],
-    ["IDENTIFIER", /[_a-zA-Z0-9]+/, null, enableIfIsCode],
-    ["PIPE", /\|/, null, enableIfIsCode],
-    ["SPACE", /\s+/, lexer.onMatch.ignore, enableIfIsCode],
-    ["TEXT", /(.(?!\{\{|}}))*./sy, lexer.onMatch.concatSameTerm, enableIfIsNotCode]
+    {
+        term: "CODE_START",
+        regex: /\{\{/y,
+        onMatch: (ctx: lexer.LexerContext) => {
+            ctx.captureCode = true;
+        }
+    },
+    {
+        term: "CODE_END",
+        regex: /}}/y,
+        onMatch: (ctx: lexer.LexerContext) => {
+            ctx.captureCode = false;
+        }
+    },
+    {enable: enableIfIsCode, term: "GROUP_START", regex: /\(/},
+    {enable: enableIfIsCode, term: "GROUP_END", regex: /\)/},
+    {enable: enableIfIsCode, term: "IF", regex: /if/},
+    {enable: enableIfIsCode, term: "FOREACH", regex: /foreach/},
+    {enable: enableIfIsCode, term: "FOR", regex: /for/},
+    {enable: enableIfIsCode, term: "ELSE", regex: /else/},
+    {enable: enableIfIsCode, term: "END", regex: /end/},
+    {enable: enableIfIsCode, term: "WITH", regex: /with/},
+    {enable: enableIfIsCode, term: "VARIABLE_IDENTIFIER", regex: /\$[_a-zA-Z0-9]+/},
+    {enable: enableIfIsCode, term: "IDENTIFIER", regex: /[_a-zA-Z0-9]+/},
+    {enable: enableIfIsCode, term: "PIPE", regex: /\|/},
+    {enable: enableIfIsCode, term: "SPACE", regex: /\s+/, onMatch: lexer.onMatch.ignore},
+    {
+        enable: enableIfIsNotCode,
+        term: "TEXT",
+        regex: /(.(?!\{\{|}}))*./sy,
+        onMatch: lexer.onMatch.concatSameTerm
+    }
 ];
 
 let _grammar = [
