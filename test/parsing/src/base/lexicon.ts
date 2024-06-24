@@ -6,7 +6,7 @@ export namespace lexer {
     import _makeRules = grammar._makeRules;
 
     export interface Term {
-        name: string
+        term: string
         content: string
 
         [x: string]: any
@@ -90,7 +90,7 @@ export namespace lexer {
                         rule.onMatch(context)
                     } else if (rule.term) {
                         context.termsBuffer.push({
-                            name: rule.term,
+                            term: rule.term,
                             content: matches[0]
                         });
                     } else {
@@ -145,11 +145,11 @@ export namespace lexer {
         export function concatSameTerm(ctx: lexer.LexerContext) {
             let top = ctx.termsBuffer[ctx.termsBuffer.length - 1];
             let label = ctx.rule.term;
-            if (top && top.name === label) {
+            if (top && top.term === label) {
                 top.content += ctx.matches[0];
             } else {
                 ctx.termsBuffer.push({
-                    name: label,
+                    term: label,
                     content: ctx.matches[0]
                 });
             }

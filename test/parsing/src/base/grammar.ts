@@ -96,10 +96,12 @@ export namespace grammar {
     }
 
     export class Grammar {
-        rules?: Map<string, Rule>;
+        rules: Map<string, Rule>;
+        startRule: Rule;
 
         constructor(rules: Rule[]) {
             this.rules = new Map(rules.map(r => [r.from, r]));
+            this.startRule = this.rules.get("__START__") ?? rules[0];
         }
 
         toString(): string {

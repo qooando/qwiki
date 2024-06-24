@@ -10,36 +10,48 @@ let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
 let _lexicon: lexer.Lexicon = [
     ["CODE_START", /\{\{/y, (ctx: lexer.LexerContext) => {
         ctx.captureCode = true;
+        ctx.termsBuffer.push({
+            term: ctx.rule.term,
+            content: ctx.matches[0]
+        });
     }],
     ["CODE_END", /}}/y, (ctx: lexer.LexerContext) => {
         ctx.captureCode = false;
+        ctx.termsBuffer.push({
+            term: ctx.rule.term,
+            content: ctx.matches[0]
+        });
     }],
-    ["GROUP_START", /\(/, null, enableIfIsCode],
-    ["GROUP_END", /\)/, null, enableIfIsCode],
+    ["GROUP_OPEN", /\(/, null, enableIfIsCode],
+    ["GROUP_CLOSE", /\)/, null, enableIfIsCode],
     ["IF", /if/, null, enableIfIsCode],
-    ["FOREACH", /foreach/, null, enableIfIsCode],
-    ["FOR", /for/, null, enableIfIsCode],
-    ["ELSE", /else/, null, enableIfIsCode],
-    ["END", /end/, null, enableIfIsCode],
-    ["WITH", /with/, null, enableIfIsCode],
-    ["VARIABLE_IDENTIFIER", /\$[_a-zA-Z0-9]+/, null, enableIfIsCode],
-    ["IDENTIFIER", /[_a-zA-Z0-9]+/, null, enableIfIsCode],
+    // ["FOREACH", /foreach/, null, enableIfIsCode],
+    // ["FOR", /for/, null, enableIfIsCode],
+    // ["ELSE", /else/, null, enableIfIsCode],
+    // ["END", /end/, null, enableIfIsCode],
+    // ["WITH", /with/, null, enableIfIsCode],
+    ["REFERENCE", /\$/, null, enableIfIsCode],
+    ["IDENTIFIER", /[_a-zA-Z0-9]\S*/, null, enableIfIsCode],
+    ["STRING", /"([^"]|\\")*"|'([^"]|\\')*'/, null, enableIfIsCode],
+    ["NULL", /Null|None/, null, enableIfIsCode],
+    ["TRUE", /True/, null, enableIfIsCode],
+    ["FALSE", /False/, null, enableIfIsCode],
+    ["NUMBER", /[0-9.]+/, null, enableIfIsCode],
+    ["SEPARATOR", /(?!\\);/, null, enableIfIsCode],
     ["PIPE", /\|/, null, enableIfIsCode],
     ["SPACE", /\s+/, lexer.onMatch.ignore, enableIfIsCode],
-    ["TEXT", /(.(?!\{\{|}}))*./sy, lexer.onMatch.concatSameTerm, enableIfIsNotCode]
+    ["CONTENT", /(.(?!\{\{|}}))*./sy, lexer.onMatch.concatSameTerm, enableIfIsNotCode]
 ];
 
 let _grammar = [
-    ["__START__", "statement*"],
-    ["statement", "block"],
-    ["inline_statement", ""],
-    ["block", "if | for | with | echo"],
-    ["if", "IF GROUP_START inline_statement GROUP_END statement ( ELSE statement )? END"],
-    ["for", "FOR GROUP_START inline_statement GROUP_END"],
-    ["with", "WITH"],
+    ["document", "( CONTENT | code )*"],
+    ["code", "CODE_START statement CODE_END?"],
+    ["end_statement", "SEPARATOR | CODE_END"], // non capturing rules ?
+    ["statement", "( echo ) end_statement"],
     ["echo", "variable | constant"],
-    ["variable", "VARIABLE_IDENTIFIER"],
-    ["constant", "TEXT+"]
+    ["variable", "REFERENCE IDENTIFIER"],
+    ["constant", "STRING | NUMBER | boolean | NULL"],
+    ["boolean", "TRUE | FALSE"]
 ];
 
 let _rendering: render.NodeVisitorTuple[] = [
@@ -65,7 +77,11 @@ while (true) {
 console.log("\nGRAMMAR")
 console.log(parser.grammar.toString())
 
+console.log("\nTOKENIZATION")
+console.log([...parser.tokenizer.tokenize(content)]);
+
 console.log("\nAST")
+parser.debug = true
 let ast = parser.parse(content);
 console.log(JSON.stringify(ast, null));
 

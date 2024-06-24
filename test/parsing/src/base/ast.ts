@@ -35,7 +35,7 @@ export namespace ast {
 
             let rootNode: Node = null;
             let isValidMatch = false;
-            let nextToken = tokensToParse.nextValue();
+            let nextToken: lexer.Term = tokensToParse.nextValue();
             let nextTraceId = 0;
 
             const _makeEmptyNode = (rule: grammar.Rule): Node => {
@@ -48,7 +48,7 @@ export namespace ast {
 
             const _makeLeaf = (token: lexer.Term): Node => {
                 return {
-                    name: token.name,
+                    name: token.term,
                     children: [],
                     content: token.content,
                 }
@@ -87,7 +87,7 @@ export namespace ast {
             }
 
             let parents: Context[] = [];
-            let current: Context = _makeNewContext(this.grammar.rules.get("__START__"));
+            let current: Context = _makeNewContext(this.grammar.startRule);
 
             const _closeCurrentContext = () => {
 
@@ -145,7 +145,7 @@ export namespace ast {
             }
 
             const _matchSymbolToToken = (reference: grammar.Reference) => {
-                isValidMatch = reference.name === nextToken.name;
+                isValidMatch = reference.name === nextToken.term;
 
                 if (isValidMatch) {
                     current.node.children.push(_makeLeaf(nextToken));
@@ -206,7 +206,7 @@ export namespace ast {
                     this.log.debug(`${" ".repeat(parents.length)} `
                         + ` [${current.node.name} ${current.traceId}]`
                         + ` previousMatch=${isValidMatch}`
-                        + ` token=${nextToken ? nextToken.name : "NoToken"}`
+                        + ` token=${nextToken ? nextToken.term : "NoToken"}`
                         + ` symbol=${_symbolToString(symbol)}`
                         + ` operator=${current.operator}`
                         + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
@@ -233,7 +233,7 @@ export namespace ast {
                 this.log.warn(`Parse failed`);
             }
             if (nextToken) {
-                this.log.warn(`Parsing stops at token: ${nextToken.name}`);
+                this.log.warn(`Parsing stops at token: ${nextToken.term}`);
             }
             return rootNode;
         }
