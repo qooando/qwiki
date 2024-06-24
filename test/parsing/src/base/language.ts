@@ -24,10 +24,10 @@ export namespace language {
     }
 
     export function language(_parser: ast.Parser,
-                             _renderer: render.Renderer | render.NodeVisitor[] | render.NodeVisitorTuple[]): Language;
+                             _renderer: render.Renderer | render.NodeVisitors): Language;
     export function language(_lexer: lexer.Lexer | lexer.Lexicon,
-                             _grammar: grammar.Grammar | grammar.RuleTuple[] | string[][] | grammar.Rule[][],
-                             _renderer: render.Renderer | render.NodeVisitor[] | render.NodeVisitorTuple[]): Language;
+                             _grammar: grammar.Grammar | grammar.Rules,
+                             _renderer: render.Renderer | render.NodeVisitors): Language;
     export function language(...args: any[]): Language {
         switch (args.length) {
             case 2:

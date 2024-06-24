@@ -3,6 +3,8 @@ import {grammar} from "./base/grammar.js"
 import {lexer} from "./base/lexicon.js";
 import {render} from "./base/render.js";
 import {language} from "./base/language.js";
+import {ast} from "./base/ast.js";
+import {stringify} from "./base/lang/stringify.js";
 
 let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
 let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
@@ -43,31 +45,38 @@ let _lexicon: lexer.Lexicon = [
     ["CONTENT", /(.(?!\{\{|}}))*./sy, lexer.onMatch.concatSameTerm, enableIfIsNotCode]
 ];
 
-let _grammar = [
-    ["document", "( CONTENT | code )*"],
-    ["code", "CODE_START statement CODE_END?"],
-    ["end_statement", "SEPARATOR | CODE_END"], // non capturing rules ?
+let _grammar: grammar.Rules = [
+    ["document", "CONTENT? code* CONTENT?"],
+    ["code", "code_start statement code_end?", ast.nodeFactory.mergeUp], // custom node factory skipping current node and moving all children to upper level?
+    ["code_start", "CODE_START", ast.nodeFactory.ignore],
+    ["code_end", "CODE_END", ast.nodeFactory.ignore],
+    ["end_statement", "SEPARATOR | code_end", ast.nodeFactory.ignore], // non capturing rules ?
     ["statement", "( echo ) end_statement"],
-    ["echo", "variable | constant"],
-    ["variable", "REFERENCE IDENTIFIER"],
+    ["echo", "variable | constant | code_end? CONTENT+ code_start?"], // look behind and look forward symbols to avoid capturing code end and code start in this symbol?
+    ["variable", "REFERENCE IDENTIFIER", (ctx): ast.Node => {
+        return {name: ctx.node.name, children: [], content: ctx.node.children[1].content}
+    }], // add a custom function that returns a custom node
     ["constant", "STRING | NUMBER | boolean | NULL"],
     ["boolean", "TRUE | FALSE"]
 ];
 
-let _rendering: render.NodeVisitorTuple[] = [
-    ["*", render.onBefore.name(), null]
-    // ["TEXT", render.onVisit.content]
+let _rendering: render.NodeVisitors = [
+    // ["*", render.onBefore.name(), null],
+    ["variable", (node: ast.Node, ctx: render.StringRenderingContext) => {
+        ctx.output += ctx.vars[node.content];
+    }, null],
+    ["CONTENT", render.onVisit.content]
 ]
 
 let lang = language.language(_lexicon, _grammar, _rendering);
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
-let parser = lang.parser;
-let tokens = parser.tokenizer.tokenize(content);
+let _parser = lang.parser;
+let _tokens = _parser.tokenizer.tokenize(content);
 
 console.log("LEXICAL TOKENS")
 while (true) {
-    let token = tokens.next().value;
+    let token = _tokens.next().value;
     if (!token) {
         break;
     }
@@ -75,19 +84,25 @@ while (true) {
 }
 
 console.log("\nGRAMMAR")
-console.log(parser.grammar.toString())
+console.log(_parser.grammar.toString())
 
 console.log("\nTOKENIZATION")
-console.log([...parser.tokenizer.tokenize(content)]);
+console.log([..._parser.tokenizer.tokenize(content)]);
 
 console.log("\nAST")
-parser.debug = true
-let ast = parser.parse(content);
-console.log(JSON.stringify(ast, null));
+// _parser.debug = true
+let _ast = _parser.parse(content);
+console.log(JSON.stringify(_ast, null));
+
+console.log("\nRENDERED test")
+console.log(stringify(_ast));
 
 console.log("\nRENDERED")
-let out: render.StringRenderingContext = lang.render(ast, {
-    output: ""
+let out: render.StringRenderingContext = lang.render(_ast, {
+    output: "",
+    vars: {
+        foo: "Hello world!"
+    }
 });
 console.log(out.output);
 

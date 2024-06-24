@@ -11,7 +11,8 @@ export namespace render {
         after?: NodeVisitorFun
     }
 
-    export type NodeVisitorTuple = [string, NodeVisitorFun, NodeVisitorFun] | [string, NodeVisitorFun]
+    export type NodeVisitorTuple = [string, NodeVisitorFun, NodeVisitorFun] | [string, NodeVisitorFun];
+    export type NodeVisitors = NodeVisitor[] | NodeVisitorTuple[];
 
     export function _makeNodeVisitor(visitor: NodeVisitorTuple): NodeVisitor {
         return {

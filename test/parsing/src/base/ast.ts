@@ -13,11 +13,11 @@ export namespace ast {
     }
 
     export interface NodeFactoryContext {
-        rule?: grammar.Rule
-        ast?: Node
+        node?: Node,
+        traceId: number,
     }
 
-    // export type NodeFactoryFun = (ctx: NodeFactoryContext) => Node;
+    export type NodeFactoryFun = (ctx: NodeFactoryContext) => Node | Node[];
 
     export class Parser {
         log = console
@@ -60,6 +60,7 @@ export namespace ast {
                 symbols: grammar.Symbol[],
                 operator: "or" | "and",
                 modifier: "?" | "*" | "+",
+                nodeFactory: NodeFactoryFun
             }
 
             const _makeNewContext = (rule: grammar.Rule): Context => {
@@ -68,7 +69,8 @@ export namespace ast {
                     traceId: ++nextTraceId,
                     symbols: [rule.to],
                     operator: "and",
-                    modifier: undefined
+                    modifier: undefined,
+                    nodeFactory: rule.nodeFactory
                 }
             }
 
@@ -104,7 +106,15 @@ export namespace ast {
                 }
                 if (isValidMatch) {
                     if (parent.traceId !== current.traceId) { // add children only if parent is another node
-                        parent.node.children.push(current.node);
+                        const actualNode = !!current.nodeFactory ? current.nodeFactory(current) : current.node;
+                        if (actualNode) {
+                            if (Array.isArray(actualNode)) {
+                                parent.node.children.push(...actualNode);
+                            } else {
+                                parent.node.children.push(actualNode);
+                            }
+                        }
+                        // parent.node.children.push(current.node);
                     }
                     switch (current.modifier) {
                         case "+":
@@ -189,7 +199,8 @@ export namespace ast {
                     node: current.node,
                     symbols: group.symbols.slice(),
                     operator: group.operator,
-                    modifier: group.modifier
+                    modifier: group.modifier,
+                    nodeFactory: null
                 }
             }
 
@@ -251,4 +262,19 @@ export namespace ast {
         return new Parser(_tokenizer as lexer.Lexer, _grammar as grammar.Grammar);
     }
 
+    export namespace nodeFactory {
+
+        export function identity(ctx: NodeFactoryContext): Node | Node[] {
+            return ctx.node;
+        }
+
+        export function mergeUp(ctx: NodeFactoryContext): Node | Node[] {
+            return ctx.node.children;
+        }
+
+        export function ignore(ctx: NodeFactoryContext): Node | Node[] {
+            return null;
+        }
+
+    }
 }

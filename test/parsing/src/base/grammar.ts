@@ -1,3 +1,5 @@
+import {ast} from "./ast.js"
+
 export namespace grammar {
 
     export interface Reference {
@@ -16,15 +18,17 @@ export namespace grammar {
     export interface Rule {
         from: string
         to: Symbol
+        nodeFactory: ast.NodeFactoryFun
     }
 
-    export type RuleTuple = ([string, string] | [string, string, any]);
+    export type RuleTuple = ([string, string] | [string, string, ast.NodeFactoryFun] | [string, string, ast.NodeFactoryFun]);
+    export type Rules = Rule[] | RuleTuple[] | string[][];
 
     export function _makeRules(rules: RuleTuple[]): Rule[] {
         return rules.map(rule => _makeRule(rule[0], rule[1], rule[2]));
     }
 
-    export function _makeRule(from: string, to: string | string[], additionalFields: any = {}): Rule {
+    export function _makeRule(from: string, to: string | string[], nodeFactory: ast.NodeFactoryFun = null): Rule {
         const _parse = (tokens: string | string[]): Symbol => {
             if (!Array.isArray(tokens)) {
                 tokens = tokens.split(/\s+|(?=[()*+?|])/).filter(x => !/^\s*$/.test(x));
@@ -92,7 +96,7 @@ export namespace grammar {
             return result;
         };
 
-        return Object.assign({from: from, to: _parse(to)}, additionalFields);
+        return {from: from, to: _parse(to), nodeFactory: nodeFactory};
     }
 
     export class Grammar {
