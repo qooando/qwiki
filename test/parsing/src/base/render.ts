@@ -27,8 +27,12 @@ export namespace render {
         return visitors.map(_makeNodeVisitor);
     }
 
+    export type RenderFun = (<T extends RenderingContext>(ast: ast.Node, ctx: T) => T);
+
     export interface RenderingContext {
         depth?: number
+        render?: RenderFun
+        renderChildren?: RenderFun
 
         [x: string]: any
     }
@@ -48,9 +52,19 @@ export namespace render {
             });
         }
 
+        renderChildren<T extends RenderingContext>(ast: ast.Node, ctx: T = null): T {
+            ctx.depth++;
+            ast.children.forEach(c => this.render(c, ctx));
+            ctx.depth--;
+            return ctx;
+        }
+
         render<T extends RenderingContext>(ast: ast.Node, ctx: T = null): T {
             ctx ??= {depth: 0} as T;
             ctx.depth ??= 0;
+            ctx.render ??= this.render.bind(this);
+            ctx.renderChildren ??= this.renderChildren.bind(this);
+
             if (ast === null) {
                 throw new Error(`No ast provided`);
             }
@@ -62,9 +76,7 @@ export namespace render {
             if (rule && rule.visit) {
                 rule.visit(ast, ctx);
             } else {
-                ctx.depth++;
-                ast.children.forEach(c => this.render(c, ctx));
-                ctx.depth--;
+                ctx.renderChildren(ast, ctx);
             }
             if (rule && rule.after) {
                 rule.after(ast, ctx);
@@ -89,6 +101,20 @@ export namespace render {
 
         export function content(node: ast.Node, ctx: StringRenderingContext) {
             ctx.output += node.content;
+        }
+
+        export function delegate(delegated: any) {
+            return function (node: ast.Node, ctx: StringRenderingContext) {
+                let methodName = `on_${node.name}`;
+                if (!delegated[methodName]) {
+                    console.warn(`No delegate method found: ${methodName}`);
+                    methodName = `_on_fallback`;
+                }
+                if (!delegated[methodName]) {
+                    throw new Error(`No delegate method found: ${methodName}`);
+                }
+                return delegated[methodName](node, ctx);
+            }
         }
     }
 

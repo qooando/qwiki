@@ -5,6 +5,7 @@ import {render} from "./base/render.js";
 import {language} from "./base/language.js";
 import {ast} from "./base/ast.js";
 import {stringify} from "./base/lang/stringify.js";
+import StringRenderingContext = render.StringRenderingContext;
 
 let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
 let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
@@ -60,14 +61,47 @@ let _grammar: grammar.Rules = [
     ["boolean", "TRUE | FALSE"]
 ];
 
-let _rendering: render.NodeVisitors = [
-    // ["*", render.onBefore.name(), null],
-    ["variable", (node: ast.Node, ctx: render.StringRenderingContext) => {
-        ctx.output += ctx.vars[node.content];
-    }, null],
-    ["CONTENT", render.onVisit.content]
-]
+// let _rendering: render.NodeVisitors = [
+//     // ["*", render.onBefore.name(), null],
+//     ["echo", (node: ast.Node, ctx: render.StringRenderingContext) => {
+//         for (let child of node.children) {
+//             switch (child.name) {
+//                 case "variable":
+//                     ctx.output += ctx.vars[node.content];
+//                     break;
+//                 case "constant":
+//                     break;
+//
+//             }
+//         }
+//     }, null],
+//     ["variable", (node: ast.Node, ctx: render.StringRenderingContext) => {
+//         ctx.output += ctx.vars[node.content];
+//     }, null],
+//     ["CONTENT", render.onVisit.content]
+// ]
 
+class RenderDelegate {
+    on_document = this._on_fallback;
+    on_statement = this._on_fallback;
+
+    _on_fallback(node: ast.Node, ctx: StringRenderingContext) {
+        return ctx.renderChildren(node, ctx);
+    }
+
+    on_CONTENT(node: ast.Node, ctx: StringRenderingContext) {
+        ctx.output += node.content;
+    }
+
+    on_echo(node: ast.Node, ctx: StringRenderingContext) {
+        ctx.output += "ECHO (TODO)"
+        return ctx;
+    }
+
+}
+
+let renderDelegate = new RenderDelegate();
+let _rendering: render.NodeVisitors = [["*", render.onVisit.delegate(renderDelegate)]];
 let lang = language.language(_lexicon, _grammar, _rendering);
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
