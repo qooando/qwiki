@@ -1,24 +1,22 @@
 import * as fs from "node:fs";
 import {grammar} from "./base/grammar.js"
-import {lexer} from "./base/lexicon.js";
+import {lexicon} from "./base/lexicon.js";
 import {render} from "./base/render.js";
-import {language} from "./base/language.js";
 import {ast} from "./base/ast.js";
 import {stringify} from "./base/lang/stringify.js";
-import StringRenderingContext = render.StringRenderingContext;
 
-let enableIfIsCode = (ctx: lexer.LexerContext) => ctx.captureCode
-let enableIfIsNotCode = (ctx: lexer.LexerContext) => !ctx.captureCode
+let enableIfIsCode = (ctx: lexicon.LexerContext) => ctx.captureCode
+let enableIfIsNotCode = (ctx: lexicon.LexerContext) => !ctx.captureCode
 
-let _lexicon: lexer.Lexicon = [
-    ["CODE_START", /\{\{/y, (ctx: lexer.LexerContext) => {
+let _lexicon: lexicon.Lexicon = [
+    ["CODE_START", /\{\{/y, (ctx: lexicon.LexerContext) => {
         ctx.captureCode = true;
         ctx.termsBuffer.push({
             term: ctx.rule.term,
             content: ctx.matches[0]
         });
     }],
-    ["CODE_END", /}}/y, (ctx: lexer.LexerContext) => {
+    ["CODE_END", /}}/y, (ctx: lexicon.LexerContext) => {
         ctx.captureCode = false;
         ctx.termsBuffer.push({
             term: ctx.rule.term,
@@ -42,8 +40,8 @@ let _lexicon: lexer.Lexicon = [
     ["NUMBER", /[0-9.]+/, null, enableIfIsCode],
     ["SEPARATOR", /(?!\\);/, null, enableIfIsCode],
     ["PIPE", /\|/, null, enableIfIsCode],
-    ["SPACE", /\s+/, lexer.onMatch.ignore, enableIfIsCode],
-    ["CONTENT", /(.(?!\{\{|}}))*./sy, lexer.onMatch.concatSameTerm, enableIfIsNotCode]
+    ["SPACE", /\s+/, lexicon.onMatch.ignore, enableIfIsCode],
+    ["CONTENT", /(.(?!\{\{|}}))*./sy, lexicon.onMatch.concatSameTerm, enableIfIsNotCode]
 ];
 
 let _grammar: grammar.Rules = [
@@ -61,51 +59,22 @@ let _grammar: grammar.Rules = [
     ["boolean", "TRUE | FALSE"]
 ];
 
-// let _rendering: render.NodeVisitors = [
-//     // ["*", render.onBefore.name(), null],
-//     ["echo", (node: ast.Node, ctx: render.StringRenderingContext) => {
-//         for (let child of node.children) {
-//             switch (child.name) {
-//                 case "variable":
-//                     ctx.output += ctx.vars[node.content];
-//                     break;
-//                 case "constant":
-//                     break;
-//
-//             }
-//         }
-//     }, null],
-//     ["variable", (node: ast.Node, ctx: render.StringRenderingContext) => {
-//         ctx.output += ctx.vars[node.content];
-//     }, null],
-//     ["CONTENT", render.onVisit.content]
-// ]
-
-class RenderDelegate {
-    on_document = this._on_fallback;
-    on_statement = this._on_fallback;
-
-    _on_fallback(node: ast.Node, ctx: StringRenderingContext) {
-        return ctx.renderChildren(node, ctx);
-    }
-
-    on_CONTENT(node: ast.Node, ctx: StringRenderingContext) {
+class RenderDelegate implements render.RenderingDelegate<string> {
+    on_CONTENT(node: ast.Node, ctx: render.RenderingContext<string>) {
         ctx.output += node.content;
     }
 
-    on_echo(node: ast.Node, ctx: StringRenderingContext) {
+    on_echo(node: ast.Node, ctx: render.RenderingContext<string>) {
         ctx.output += "ECHO (TODO)"
         return ctx;
     }
-
 }
 
 let renderDelegate = new RenderDelegate();
-let _rendering: render.NodeVisitors = [["*", render.onVisit.delegate(renderDelegate)]];
-let lang = language.language(_lexicon, _grammar, _rendering);
+let _renderer: render.Renderer<string> = render.renderer(renderDelegate);
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
-let _parser = lang.parser;
+let _parser = ast.parser(_lexicon, _grammar);
 let _tokens = _parser.tokenizer.tokenize(content);
 
 console.log("LEXICAL TOKENS")
@@ -132,7 +101,7 @@ console.log("\nRENDERED test")
 console.log(stringify(_ast));
 
 console.log("\nRENDERED")
-let out: render.StringRenderingContext = lang.render(_ast, {
+let out: render.RenderingContext<string> = _renderer.render(_ast, {
     output: "",
     vars: {
         foo: "Hello world!"

@@ -1,4 +1,4 @@
-import {lexer} from "./lexicon.js";
+import {lexicon} from "./lexicon.js";
 import {grammar} from "./grammar.js";
 import {iterators} from "./iterators.js";
 
@@ -21,21 +21,21 @@ export namespace ast {
 
     export class Parser {
         log = console
-        tokenizer: lexer.Lexer;
+        tokenizer: lexicon.Lexer;
         grammar: grammar.Grammar;
         debug = false;
 
-        constructor(tokenizer: lexer.Lexer, grammar: grammar.Grammar) {
+        constructor(tokenizer: lexicon.Lexer, grammar: grammar.Grammar) {
             this.tokenizer = tokenizer;
             this.grammar = grammar;
         }
 
         parse(raw: string): Node {
-            let tokensToParse: iterators.BufferedIterator<lexer.Term> = iterators.buffered(this.tokenizer.tokenize(raw));
+            let tokensToParse: iterators.BufferedIterator<lexicon.Term> = iterators.buffered(this.tokenizer.tokenize(raw));
 
             let rootNode: Node = null;
             let isValidMatch = false;
-            let nextToken: lexer.Term = tokensToParse.nextValue();
+            let nextToken: lexicon.Term = tokensToParse.nextValue();
             let nextTraceId = 0;
 
             const _makeEmptyNode = (rule: grammar.Rule): Node => {
@@ -46,7 +46,7 @@ export namespace ast {
                 }
             }
 
-            const _makeLeaf = (token: lexer.Term): Node => {
+            const _makeLeaf = (token: lexicon.Term): Node => {
                 return {
                     name: token.term,
                     children: [],
@@ -251,15 +251,15 @@ export namespace ast {
 
     }
 
-    export function parser(_tokenizer: lexer.Lexer | lexer.TermDefinition[],
+    export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
                            _grammar: grammar.Grammar | string[][] | grammar.Rule[] | grammar.RuleTuple[]) {
         if (Array.isArray(_tokenizer)) {
-            _tokenizer = lexer.lexer(_tokenizer);
+            _tokenizer = lexicon.lexer(_tokenizer);
         }
         if (Array.isArray(_grammar)) {
             _grammar = grammar.grammar(_grammar);
         }
-        return new Parser(_tokenizer as lexer.Lexer, _grammar as grammar.Grammar);
+        return new Parser(_tokenizer as lexicon.Lexer, _grammar as grammar.Grammar);
     }
 
     export namespace nodeFactory {

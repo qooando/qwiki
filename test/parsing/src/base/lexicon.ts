@@ -1,9 +1,4 @@
-import {grammar} from "./grammar";
-import {escapeRegExp} from "lodash";
-
-export namespace lexer {
-
-    import _makeRules = grammar._makeRules;
+export namespace lexicon {
 
     export interface Term {
         term: string
@@ -21,6 +16,9 @@ export namespace lexer {
         [x: string]: any
     }
 
+    export type LexerConsumer = (ctx: LexerContext) => void;
+    export type LexerPredicate = (ctx: LexerContext) => boolean;
+
     /*
      * Rules are a simple set of regex and relative things to do on match
      * you must specify the regex and the label/onMatch
@@ -28,22 +26,40 @@ export namespace lexer {
     export interface TermDefinition {
         term: string
         regex: RegExp
-        enable?: (ctx: LexerContext) => boolean
-        onMatch?: (ctx: LexerContext) => void
+        enable?: LexerPredicate
+        onMatch?: LexerConsumer
     }
 
     export type TermDefinitionTuple =
-        [string, RegExp, (ctx: LexerContext) => void]
-        | [string, RegExp, (ctx: LexerContext) => void, (ctx: LexerContext) => boolean];
+        [string, RegExp, LexerConsumer]
+        | [string, RegExp, LexerConsumer, LexerPredicate];
 
     export type Lexicon = TermDefinition[] | TermDefinitionTuple[];
 
+    export let isTermDefinition = (x: any) => "term" in x && "regex" in x;
+    export let isArrayOfTermDefinition = (x: any) => Array.isArray(x) && isTermDefinition(x[0]);
+    export let isTermDefinitionTuple =
+        (x: any) => Array.isArray(x) && x.length >= 2 && x.length <= 3
+            && typeof x[0] === "string" && typeof x[1] === "function"
+
     export class Lexer {
         log = console;
-        rulesInInsertionOrder: TermDefinition[];
+        definitionsInInsertionOrder: TermDefinition[];
 
-        constructor(rules: TermDefinition[]) {
-            this.rulesInInsertionOrder = rules;
+        constructor(lexicon: Lexicon) {
+            if (isArrayOfTermDefinition(lexicon)) {
+                this.definitionsInInsertionOrder = (lexicon as TermDefinitionTuple[])
+                    .map(x => {
+                        return {
+                            term: x[0],
+                            regex: x[1],
+                            onMatch: x[2],
+                            enable: x[3]
+                        }
+                    });
+            } else {
+                this.definitionsInInsertionOrder = lexicon as TermDefinition[];
+            }
         }
 
         * tokenize(raw: string, context: LexerContext = null): Generator<Term> {
@@ -63,7 +79,7 @@ export namespace lexer {
             while (nextIndex < toTokenize.length && nextIndex != prevIndex) {
                 prevIndex = nextIndex;
 
-                for (const rule of this.rulesInInsertionOrder) {
+                for (const rule of this.definitionsInInsertionOrder) {
                     if (rule.enable && !rule.enable(context)) {
                         continue;
                     }
@@ -121,28 +137,16 @@ export namespace lexer {
     }
 
     export function lexer(lexicon: Lexicon) {
-        if (Array.isArray(lexicon[0])) {
-            lexicon = (lexicon as TermDefinitionTuple[])
-                .map(x => {
-                    return {
-                        term: x[0],
-                        regex: x[1],
-                        onMatch: x[2],
-                        enable: x[3]
-                    }
-                });
-        }
-        return new Lexer(lexicon as TermDefinition[]);
+        return new Lexer(lexicon);
     }
 
     export let tokenizer = lexer;
 
     export namespace onMatch {
-        export function ignore(ctx: lexer.LexerContext) {
-
+        export function ignore(ctx: lexicon.LexerContext) {
         }
 
-        export function concatSameTerm(ctx: lexer.LexerContext) {
+        export function concatSameTerm(ctx: lexicon.LexerContext) {
             let top = ctx.termsBuffer[ctx.termsBuffer.length - 1];
             let label = ctx.rule.term;
             if (top && top.term === label) {

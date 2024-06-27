@@ -2,65 +2,101 @@ import {ast} from "./ast.js";
 
 export namespace render {
 
-    export type NodeVisitorFun = (node: ast.Node, ctx: object) => any;
+    export type RenderNodeFunction<Result> = (node: ast.Node, ctx: RenderingContext<Result>) => any;
 
-    export interface NodeVisitor {
+    export interface RenderingRule<Result> {
         event: string
-        visit?: NodeVisitorFun
-        before?: NodeVisitorFun
-        after?: NodeVisitorFun
+        visit?: RenderNodeFunction<Result>
+        before?: RenderNodeFunction<Result>
+        after?: RenderNodeFunction<Result>
     }
 
-    export type NodeVisitorTuple = [string, NodeVisitorFun, NodeVisitorFun] | [string, NodeVisitorFun];
-    export type NodeVisitors = NodeVisitor[] | NodeVisitorTuple[];
+    export let isVisitor = (x: any) => "event" in x;
+    export let isArrayOfVisitors = (x: any) => isVisitor(x[0]);
 
-    export function _makeNodeVisitor(visitor: NodeVisitorTuple): NodeVisitor {
-        return {
-            event: visitor[0],
-            visit: visitor.length === 2 ? visitor[1] : undefined,
-            before: visitor.length === 3 ? visitor[1] : undefined,
-            after: visitor.length === 3 ? visitor[2] : undefined
-        }
+    export interface RenderingDelegate<Result> {
+        // _default?: VisitNodeFunction;
+        // [key: string]: ((node: ast.Node, ctx: object) => any);
+        // x(node: ast.Node, ctx: object): any
+        [key: string]: RenderNodeFunction<Result>
     }
 
-    export function _makeNodeVisitors(visitors: NodeVisitorTuple[]): NodeVisitor[] {
-        return visitors.map(_makeNodeVisitor);
-    }
+    export type RenderingRuleAsTuple<Result> =
+        [string, RenderNodeFunction<Result>]
+        | [string, RenderNodeFunction<Result>, RenderNodeFunction<Result>]
+        | [string, RenderNodeFunction<Result>, RenderNodeFunction<Result>, RenderNodeFunction<Result>];
+    export let isVisitorAsTuple = (x: any) => Array.isArray(x) && typeof x[1] === "function" && x.length >= 2 && x.length <= 4;
+    export let isArrayOfVisitorAsTuple = (x: any) => Array.isArray(x) && isVisitorAsTuple(x[0]);
 
-    export type RenderFun = (<T extends RenderingContext>(ast: ast.Node, ctx: T) => T);
+    export type RenderingRules<Result> =
+        RenderingRule<Result>[]
+        | RenderingRuleAsTuple<Result>[]
+        | RenderingDelegate<Result>;
 
-    export interface RenderingContext {
+    export type RenderFunction<Output> = (<Context extends RenderingContext<Output>>(ast: ast.Node, ctx: Context) => Context);
+
+    export interface RenderingContext<Output> {
+        output: Output
         depth?: number
-        render?: RenderFun
-        renderChildren?: RenderFun
+        render?: RenderFunction<Output>
+        renderChildren?: RenderFunction<Output>
 
         [x: string]: any
     }
 
-    export interface StringRenderingContext extends RenderingContext {
-        output: string;
-    }
+    export class Renderer<Result> {
 
-    export class Renderer {
+        renderingRules: Map<string, RenderingRule<Result>>
+        renderingDelegate: RenderingDelegate<Result>
 
-        visitors: Map<string, NodeVisitor>
-
-        constructor(rules: NodeVisitor[]) {
-            this.visitors = new Map<string, NodeVisitor>();
-            rules.forEach(rule => {
-                this.visitors.set(rule.event, rule);
-            });
+        constructor(rules: RenderingRules<Result>) {
+            if (isArrayOfVisitorAsTuple(rules)) {
+                this.renderingRules = new Map<string, RenderingRule<Result>>((rules as RenderingRuleAsTuple<Result>[])
+                    .map((x: RenderingRuleAsTuple<Result>) => {
+                        switch (x.length) {
+                            case 2:
+                                return [x[0], {event: x[0], visit: x[1]} as RenderingRule<Result>];
+                            case 3:
+                                return [x[0], {event: x[0], before: x[1], after: x[2]} as RenderingRule<Result>];
+                            case 4:
+                                return [x[0], {
+                                    event: x[0],
+                                    visit: x[1],
+                                    before: x[2],
+                                    after: x[3]
+                                } as RenderingRule<Result>];
+                        }
+                    })
+                    .map((e: [string, RenderingRule<Result>]) => {
+                        e[1].visit ??= this.renderChildren.bind(this)
+                        return e;
+                    })
+                );
+                this.renderingDelegate = null;
+            } else if (isArrayOfVisitors(rules)) {
+                this.renderingRules = new Map<string, RenderingRule<Result>>((rules as RenderingRule<Result>[])
+                    .map(x => [x.event, x])
+                    .map((e: [string, RenderingRule<Result>]) => {
+                        e[1].visit ??= this.renderChildren.bind(this)
+                        return e;
+                    })
+                );
+                this.renderingDelegate = null;
+            } else {
+                this.renderingRules = null;
+                this.renderingDelegate = rules as RenderingDelegate<Result>;
+            }
         }
 
-        renderChildren<T extends RenderingContext>(ast: ast.Node, ctx: T = null): T {
+        renderChildren(ast: ast.Node, ctx: RenderingContext<Result> = null): RenderingContext<Result> {
             ctx.depth++;
             ast.children.forEach(c => this.render(c, ctx));
             ctx.depth--;
             return ctx;
         }
 
-        render<T extends RenderingContext>(ast: ast.Node, ctx: T = null): T {
-            ctx ??= {depth: 0} as T;
+        render(ast: ast.Node, ctx: RenderingContext<Result> = null): RenderingContext<Result> {
+            ctx ??= {depth: 0} as RenderingContext<Result>;
             ctx.depth ??= 0;
             ctx.render ??= this.render.bind(this);
             ctx.renderChildren ??= this.renderChildren.bind(this);
@@ -68,84 +104,74 @@ export namespace render {
             if (ast === null) {
                 throw new Error(`No ast provided`);
             }
-            let rule = this.visitors.get(ast.name);
-            rule ??= this.visitors.get("*")
-            if (rule && rule.before) {
-                rule.before(ast, ctx);
-            }
-            if (rule && rule.visit) {
-                rule.visit(ast, ctx);
+            if (this.renderingRules) {
+                let rule = this.renderingRules.get(ast.name) ?? this.renderingRules.get("*");
+                if (rule && rule.before) {
+                    rule.before(ast, ctx);
+                }
+                if (rule && rule.visit) {
+                    rule.visit(ast, ctx);
+                } else {
+                    ctx.renderChildren(ast, ctx);
+                }
+                if (rule && rule.after) {
+                    rule.after(ast, ctx);
+                }
             } else {
-                ctx.renderChildren(ast, ctx);
-            }
-            if (rule && rule.after) {
-                rule.after(ast, ctx);
+                let rule: RenderNodeFunction<Result> = null;
+                if (!!(rule = this.renderingDelegate[`on_${ast.name}_before`])) {
+                    rule(ast, ctx);
+                }
+                if (!!(rule = this.renderingDelegate[`on_${ast.name}`] ?? this.renderingDelegate["_default"] ?? ctx.renderChildren)) {
+                    rule(ast, ctx);
+                }
+                if (!!(rule = this.renderingDelegate[`on_${ast.name}_after`])) {
+                    rule(ast, ctx);
+                }
             }
             return ctx;
         }
     }
 
-    export function renderer(visitors: NodeVisitor[] | NodeVisitorTuple[]) {
-        if (Array.isArray(visitors[0])) {
-            visitors = _makeNodeVisitors(visitors as NodeVisitorTuple[]);
-        }
-        return new Renderer(visitors as NodeVisitor[]);
+    export function renderer<Result>(rules: RenderingRules<Result>) {
+        return new Renderer(rules);
     }
 
-    export namespace onVisit {
-        export function renderChildren(node: ast.Node, ctx: RenderingContext) {
-            ctx.depth++;
-            node.children.forEach(c => this.render(c, ctx));
-            ctx.depth--;
-        }
-
-        export function content(node: ast.Node, ctx: StringRenderingContext) {
+    export namespace visitor {
+        export function appendContent(node: ast.Node, ctx: RenderingContext<string>) {
             ctx.output += node.content;
         }
 
-        export function delegate(delegated: any) {
-            return function (node: ast.Node, ctx: StringRenderingContext) {
-                let methodName = `on_${node.name}`;
-                if (!delegated[methodName]) {
-                    console.warn(`No delegate method found: ${methodName}`);
-                    methodName = `_on_fallback`;
-                }
-                if (!delegated[methodName]) {
-                    throw new Error(`No delegate method found: ${methodName}`);
-                }
-                return delegated[methodName](node, ctx);
+        export function delegate(delegateObj: any) {
+            return function (node: ast.Node, ctx: RenderingContext<string>) {
+                const method = delegateObj[`on_${node.name}`] ?? delegateObj["_default"]
+                return method(node, ctx);
             }
         }
-    }
 
-    export namespace onBefore {
-        export function constant(value: string, indent: boolean = true) {
-            return (node: ast.Node, ctx: StringRenderingContext): void => {
+        export function appendConstant(value: string, indent: boolean = true) {
+            return (node: ast.Node, ctx: RenderingContext<string>): void => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + value + "\n";
             }
         }
 
-        export function name(indent: boolean = true) {
-            return (node: ast.Node, ctx: StringRenderingContext): void => {
+        export function appendName(indent: boolean = true) {
+            return (node: ast.Node, ctx: RenderingContext<string>): void => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + node.name + "\n";
             }
         }
 
-        export function startName(indent: boolean = true) {
-            return (node: ast.Node, ctx: StringRenderingContext): void => {
+        export function appendNameStart(indent: boolean = true) {
+            return (node: ast.Node, ctx: RenderingContext<string>): void => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "START " + node.name + "\n";
             }
         }
-    }
 
-    export namespace onAfter {
-        export let constant = onBefore.constant;
-        export let name = onBefore.name;
-
-        export function endName(indent: boolean = true) {
-            return (node: ast.Node, ctx: StringRenderingContext): void => {
+        export function appendNameEnd(indent: boolean = true) {
+            return (node: ast.Node, ctx: RenderingContext<string>): void => {
                 ctx.output += (indent ? " ".repeat(ctx.indent) : "") + "END " + node.name + "\n";
             }
         }
     }
+
 }
