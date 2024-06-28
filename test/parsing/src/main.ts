@@ -44,7 +44,7 @@ let _lexicon: lexicon.Lexicon = [
     ["CONTENT", /(.(?!\{\{|}}))*./sy, lexicon.onMatch.concatSameTerm, enableIfIsNotCode]
 ];
 
-let _grammar: grammar.Rules = [
+let _grammar: grammar.Grammar = [
     ["document", "CONTENT? code* CONTENT?"],
     ["code", "code_start statement code_end?", ast.nodeFactory.mergeUp], // custom node factory skipping current node and moving all children to upper level?
     ["code_start", "CODE_START", ast.nodeFactory.ignore],

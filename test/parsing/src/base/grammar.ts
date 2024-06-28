@@ -15,20 +15,66 @@ export namespace grammar {
 
     export type Symbol = Reference | Group;
 
-    export interface Rule {
+    export interface ParsingRule {
         from: string
         to: Symbol
         nodeFactory: ast.NodeFactoryFun
     }
 
-    export type RuleTuple = ([string, string] | [string, string, ast.NodeFactoryFun] | [string, string, ast.NodeFactoryFun]);
-    export type Rules = Rule[] | RuleTuple[] | string[][];
+    export let isParsingRule = (x: any) => x && "from" in x && "to" in x && "nodeFactory" in x;
+    export let isArrayOfParsingRule = (x: any) => x && Array.isArray(x) && isParsingRule(x[0]);
 
-    export function _makeRules(rules: RuleTuple[]): Rule[] {
-        return rules.map(rule => _makeRule(rule[0], rule[1], rule[2]));
+    export type ParsingRuleAsTuple = ([string, string] | [string, string, ast.NodeFactoryFun] | [string, string, ast.NodeFactoryFun]);
+    export let isParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && x.length >= 2 && x.length <= 3;
+    export let isArrayOfPArsingRuleAsTuple = (x: any) => x && Array.isArray(x) && isParsingRuleAsTuple(x[0]);
+
+    export type Grammar = ParsingRule[] | ParsingRuleAsTuple[] | string[][];
+
+    export class GrammarParser {
+        grammar: Map<string, ParsingRule>;
+        startRule: ParsingRule;
+
+        constructor(rules: Grammar) {
+            if (isArrayOfParsingRule(rules)) {
+                this.grammar = new Map((rules as ParsingRule[]).map(r => [r.from, r]));
+            } else {
+                this.grammar = new Map(_makeParsingRules(rules as ParsingRuleAsTuple[]).map(r => [r.from, r]));
+            }
+            this.startRule = this.grammar.get("__START__") ?? rules[0] as ParsingRule;
+        }
+
+        toString(): string {
+            let _symbolToString = (node: Symbol): string => {
+                if ((node as any).name) {
+                    return (node as Reference).name + (node.modifier ?? "");
+                } else {
+                    let x = node as Group
+                    let sep = (x.operator == "or") ? " | " : " "; // missing OR
+                    return (x.symbols.length === 1 ? "" : "( ") +
+                        x.symbols.map((y: Symbol) => _symbolToString(y)).join(sep) +
+                        (x.symbols.length === 1 ? "" : " )") +
+                        (node.modifier ?? "");
+                }
+            }
+            let _ruleToString = (rule: ParsingRule) => {
+                return rule.from + " ::= " + _symbolToString(rule.to);
+            }
+            return [...this.grammar.values()].map(x => _ruleToString(x)).join("\n");
+        }
     }
 
-    export function _makeRule(from: string, to: string | string[], nodeFactory: ast.NodeFactoryFun = null): Rule {
+    export function parser(rules: Grammar) {
+        return new GrammarParser(rules);
+    }
+
+    export let grammarParser = parser;
+    export let syntaxAnalyzer = parser;
+
+    function _makeParsingRules(rules: ParsingRuleAsTuple[]): ParsingRule[] {
+        return rules.map(rule => _makeParsingRule(rule[0], rule[1], rule[2]));
+    }
+
+    function _makeParsingRule(from: string, to: string | string[], nodeFactory: ast.NodeFactoryFun = null): ParsingRule {
         const _parse = (tokens: string | string[]): Symbol => {
             if (!Array.isArray(tokens)) {
                 tokens = tokens.split(/\s+|(?=[()*+?|])/).filter(x => !/^\s*$/.test(x));
@@ -97,42 +143,6 @@ export namespace grammar {
         };
 
         return {from: from, to: _parse(to), nodeFactory: nodeFactory};
-    }
-
-    export class Grammar {
-        rules: Map<string, Rule>;
-        startRule: Rule;
-
-        constructor(rules: Rule[]) {
-            this.rules = new Map(rules.map(r => [r.from, r]));
-            this.startRule = this.rules.get("__START__") ?? rules[0];
-        }
-
-        toString(): string {
-            let _symbolToString = (node: Symbol): string => {
-                if ((node as any).name) {
-                    return (node as Reference).name + (node.modifier ?? "");
-                } else {
-                    let x = node as Group
-                    let sep = (x.operator == "or") ? " | " : " "; // missing OR
-                    return (x.symbols.length === 1 ? "" : "( ") +
-                        x.symbols.map((y: Symbol) => _symbolToString(y)).join(sep) +
-                        (x.symbols.length === 1 ? "" : " )") +
-                        (node.modifier ?? "");
-                }
-            }
-            let _ruleToString = (rule: Rule) => {
-                return rule.from + " ::= " + _symbolToString(rule.to);
-            }
-            return [...this.rules.values()].map(x => _ruleToString(x)).join("\n");
-        }
-    }
-
-    export function grammar(rules: Rule[] | string[][] | RuleTuple[]) {
-        if (Array.isArray(rules[0])) {
-            rules = _makeRules(rules as RuleTuple[]);
-        }
-        return new Grammar(rules as Rule[]);
     }
 
 }

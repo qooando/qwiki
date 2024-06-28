@@ -22,10 +22,10 @@ export namespace ast {
     export class Parser {
         log = console
         tokenizer: lexicon.Lexer;
-        grammar: grammar.Grammar;
+        grammar: grammar.GrammarParser;
         debug = false;
 
-        constructor(tokenizer: lexicon.Lexer, grammar: grammar.Grammar) {
+        constructor(tokenizer: lexicon.Lexer, grammar: grammar.GrammarParser) {
             this.tokenizer = tokenizer;
             this.grammar = grammar;
         }
@@ -38,7 +38,7 @@ export namespace ast {
             let nextToken: lexicon.Term = tokensToParse.nextValue();
             let nextTraceId = 0;
 
-            const _makeEmptyNode = (rule: grammar.Rule): Node => {
+            const _makeEmptyNode = (rule: grammar.ParsingRule): Node => {
                 return {
                     name: rule.from,
                     children: [],
@@ -63,7 +63,7 @@ export namespace ast {
                 nodeFactory: NodeFactoryFun
             }
 
-            const _makeNewContext = (rule: grammar.Rule): Context => {
+            const _makeNewContext = (rule: grammar.ParsingRule): Context => {
                 return {
                     node: _makeEmptyNode(rule),
                     traceId: ++nextTraceId,
@@ -148,7 +148,7 @@ export namespace ast {
             }
 
             const _expandSymbolRule = (reference: grammar.Reference) => {
-                const newRule = this.grammar.rules.get(reference.name);
+                const newRule = this.grammar.grammar.get(reference.name);
                 parents.push(current);
                 current = _makeNewContext(newRule);
                 current.modifier = reference.modifier;
@@ -231,7 +231,7 @@ export namespace ast {
                 const isSymbolRef = !!(symbol as any).name;
                 if (isSymbolRef) {
                     const reference = symbol as grammar.Reference;
-                    if (this.grammar.rules.has(reference.name)) {
+                    if (this.grammar.grammar.has(reference.name)) {
                         _expandSymbolRule(reference);
                     } else {
                         _matchSymbolToToken(reference);
@@ -252,14 +252,14 @@ export namespace ast {
     }
 
     export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
-                           _grammar: grammar.Grammar | string[][] | grammar.Rule[] | grammar.RuleTuple[]) {
+                           _grammar: grammar.GrammarParser | string[][] | grammar.ParsingRule[] | grammar.ParsingRuleAsTuple[]) {
         if (Array.isArray(_tokenizer)) {
             _tokenizer = lexicon.lexer(_tokenizer);
         }
         if (Array.isArray(_grammar)) {
-            _grammar = grammar.grammar(_grammar);
+            _grammar = grammar.parser(_grammar);
         }
-        return new Parser(_tokenizer as lexicon.Lexer, _grammar as grammar.Grammar);
+        return new Parser(_tokenizer as lexicon.Lexer, _grammar as grammar.GrammarParser);
     }
 
     export namespace nodeFactory {
