@@ -25,9 +25,16 @@ export namespace ast {
         grammar: grammar.GrammarParser;
         debug = false;
 
-        constructor(tokenizer: lexicon.Lexer, grammar: grammar.GrammarParser) {
-            this.tokenizer = tokenizer;
-            this.grammar = grammar;
+        constructor(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
+                    _grammar: grammar.GrammarParser | grammar.Grammar) {
+            if (Array.isArray(_tokenizer)) {
+                _tokenizer = lexicon.lexer(_tokenizer);
+            }
+            if (Array.isArray(_grammar)) {
+                _grammar = grammar.parser(_grammar);
+            }
+            this.tokenizer = _tokenizer as lexicon.Lexer;
+            this.grammar = _grammar as grammar.GrammarParser;
         }
 
         parse(raw: string): Node {
@@ -252,14 +259,8 @@ export namespace ast {
     }
 
     export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
-                           _grammar: grammar.GrammarParser | string[][] | grammar.ParsingRule[] | grammar.ParsingRuleAsTuple[]) {
-        if (Array.isArray(_tokenizer)) {
-            _tokenizer = lexicon.lexer(_tokenizer);
-        }
-        if (Array.isArray(_grammar)) {
-            _grammar = grammar.parser(_grammar);
-        }
-        return new Parser(_tokenizer as lexicon.Lexer, _grammar as grammar.GrammarParser);
+                           _grammar: grammar.GrammarParser | grammar.Grammar) {
+        return new Parser(_tokenizer, _grammar);
     }
 
     export namespace nodeFactory {
