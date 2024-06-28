@@ -11,8 +11,8 @@ export namespace render {
         after?: RenderNodeFunction<Result>
     }
 
-    export let isVisitor = (x: any) => "event" in x;
-    export let isArrayOfVisitors = (x: any) => isVisitor(x[0]);
+    export let isVisitor = (x: any) => x && "event" in x;
+    export let isArrayOfVisitors = (x: any) => x && isVisitor(x[0]);
 
     export interface RenderingDelegate<Result> {
         // _default?: VisitNodeFunction;

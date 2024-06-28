@@ -59,18 +59,16 @@ let _grammar: grammar.Rules = [
     ["boolean", "TRUE | FALSE"]
 ];
 
-class RenderDelegate implements render.RenderingDelegate<string> {
+const renderDelegate: render.RenderingDelegate<string> = {
     on_CONTENT(node: ast.Node, ctx: render.RenderingContext<string>) {
         ctx.output += node.content;
-    }
-
+    },
     on_echo(node: ast.Node, ctx: render.RenderingContext<string>) {
         ctx.output += "ECHO (TODO)"
         return ctx;
     }
 }
 
-let renderDelegate = new RenderDelegate();
 let _renderer: render.Renderer<string> = render.renderer(renderDelegate);
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");

@@ -36,18 +36,19 @@ export namespace lexicon {
 
     export type Lexicon = TermDefinition[] | TermDefinitionTuple[];
 
-    export let isTermDefinition = (x: any) => "term" in x && "regex" in x;
-    export let isArrayOfTermDefinition = (x: any) => Array.isArray(x) && isTermDefinition(x[0]);
+    export let isTermDefinition = (x: any) => x && "term" in x && "regex" in x;
+    export let isArrayOfTermDefinition = (x: any) => x && Array.isArray(x) && isTermDefinition(x[0]);
     export let isTermDefinitionTuple =
-        (x: any) => Array.isArray(x) && x.length >= 2 && x.length <= 3
-            && typeof x[0] === "string" && typeof x[1] === "function"
+        (x: any) => x && Array.isArray(x) && x.length >= 2 && x.length <= 3
+            && typeof x[0] === "string" && x[1].constructor.name === "RegExp"
+    export let isArrayOfTermDefinitionTuple = (x: any) => x && Array.isArray(x) && isTermDefinitionTuple(x[0]);
 
     export class Lexer {
         log = console;
         definitionsInInsertionOrder: TermDefinition[];
 
         constructor(lexicon: Lexicon) {
-            if (isArrayOfTermDefinition(lexicon)) {
+            if (isArrayOfTermDefinitionTuple(lexicon)) {
                 this.definitionsInInsertionOrder = (lexicon as TermDefinitionTuple[])
                     .map(x => {
                         return {
