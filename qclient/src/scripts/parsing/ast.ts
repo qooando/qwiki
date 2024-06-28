@@ -233,7 +233,7 @@ export namespace ast {
                 this.log.warn(`Parse failed`);
             }
             if (nextToken) {
-                this.log.warn(`Parsing stops at token: ${nextToken.name}`);
+                this.log.warn(`Parsing stops at token: ${nextToken.name}, ${tokensToParse.nextValue()}, ${tokensToParse.nextValue()}, ${tokensToParse.nextValue()}`);
             }
             return rootNode;
         }

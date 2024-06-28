@@ -59,14 +59,16 @@ let _grammar: grammar.Grammar = [
     ["boolean", "TRUE | FALSE"]
 ];
 
+const _echoRenderer = render.renderer({
+    _default: render.visitor.appendPlaceholder(),
+    on_variable: render.visitor.appendContextVariableValue
+});
+
 const renderDelegate: render.RenderingDelegate<string> = {
     on_CONTENT(node: ast.Node, ctx: render.RenderingContext<string>) {
         ctx.output += node.content;
     },
-    on_echo(node: ast.Node, ctx: render.RenderingContext<string>) {
-        ctx.output += "ECHO (TODO)"
-        return ctx;
-    }
+    on_echo: render.visitor.delegateChildrenTo(_echoRenderer)
 }
 
 let _renderer: render.Renderer<string> = render.renderer(renderDelegate);
@@ -101,7 +103,7 @@ console.log(stringify(_ast));
 console.log("\nRENDERED")
 let out: render.RenderingContext<string> = _renderer.render(_ast, {
     output: "",
-    vars: {
+    contextVariables: {
         foo: "Hello world!"
     }
 });

@@ -26,7 +26,7 @@ export namespace grammar {
 
     export type ParsingRuleAsTuple = ([string, string] | [string, string, ast.NodeFactoryFun] | [string, string, ast.NodeFactoryFun]);
     export let isParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && x.length >= 2 && x.length <= 3;
-    export let isArrayOfPArsingRuleAsTuple = (x: any) => x && Array.isArray(x) && isParsingRuleAsTuple(x[0]);
+    export let isArrayOfParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && isParsingRuleAsTuple(x[0]);
 
     export type Grammar = ParsingRule[] | ParsingRuleAsTuple[] | string[][];
 
@@ -35,12 +35,14 @@ export namespace grammar {
         startRule: ParsingRule;
 
         constructor(rules: Grammar) {
-            if (isArrayOfParsingRule(rules)) {
-                this.grammar = new Map((rules as ParsingRule[]).map(r => [r.from, r]));
-            } else {
-                this.grammar = new Map(_makeParsingRules(rules as ParsingRuleAsTuple[]).map(r => [r.from, r]));
+            if (isArrayOfParsingRuleAsTuple(rules)) {
+                rules = _makeParsingRules(rules as ParsingRuleAsTuple[]);
             }
+            this.grammar = new Map((rules as ParsingRule[]).map(r => [r.from, r]));
             this.startRule = this.grammar.get("__START__") ?? rules[0] as ParsingRule;
+            if (!isParsingRule(this.startRule)) {
+                throw new Error(`Wrong format for startRule: ${JSON.stringify(this.startRule)}`);
+            }
         }
 
         toString(): string {

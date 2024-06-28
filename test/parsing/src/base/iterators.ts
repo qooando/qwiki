@@ -4,7 +4,8 @@ export namespace iterators {
         return new BufferedIterator(iterator);
     }
 
-    export class BufferedIterator<T, TReturn = any, TNext = undefined> implements Iterator<T, TReturn, TNext> {
+    export class BufferedIterator<T, TReturn = any, TNext = undefined>
+        implements Iterator<T, TReturn, TNext>, Iterable<T | TReturn> {
         iterator: Iterator<T, TReturn, TNext>;
         buffer: IteratorResult<T, TReturn>[];
         cursor: number;
@@ -60,63 +61,10 @@ export namespace iterators {
                 this.buffer.shift()
             }
         }
-    }
 
-    // (function () {
-    //
-    //     const assert = require("assert");
-    //
-    //     exports.bufferedIterator = function (iterator) {
-    //         assert(iterator.next, `iterator argument must be an iterator, not ${typeof iterator}`);
-    //         let self = {
-    //             history: [],
-    //             cursor: 0,
-    //             savedCursor: [],
-    //             next: () =>{
-    //                 let x = null;
-    //                 if (self.history.length === self.cursor) {
-    //                     x = iterator.next();
-    //                     self.history.push(x)
-    //                 } else {
-    //                     x = self.history[self.cursor];
-    //                 }
-    //                 self.cursor++;
-    //                 return x;
-    //             },
-    //             rewind: (steps = 1) => {
-    //                 self.cursor = Math.max(0, self.cursor - steps);
-    //             },
-    //             previous: () => {
-    //                 self.rewind();
-    //                 return self.history[self.cursor];
-    //             },
-    //             seek: (i) => {
-    //                 assert(i >= 0 && i <= self.history.length, `index out of bounds`)
-    //                 self.cursor = i;
-    //             },
-    //             position: () => {
-    //                 return self.cursor;
-    //             },
-    //             reset: () => {
-    //                 self.seek(0);
-    //             },
-    //             saveCursor: () => {
-    //                 self.savedCursor.push(self.cursor)
-    //             },
-    //             restoreCursor: () => {
-    //                 if (self.savedCursor.length) {
-    //                     self.cursor = self.savedCursor.pop();
-    //                 }
-    //             },
-    //             discardSavedCursor: () => {
-    //                 self.savedCursor.pop()
-    //             },
-    //             [Symbol.iterator]() {
-    //                 return self;
-    //             }
-    //         }
-    //         return self;
-    //     }
-    // })();
+        [Symbol.iterator](): Iterator<T | TReturn> {
+            return this;
+        }
+    }
 
 }

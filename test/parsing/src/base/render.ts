@@ -40,8 +40,7 @@ export namespace render {
         depth?: number
         render?: RenderFunction<Output>
         renderChildren?: RenderFunction<Output>
-
-        [x: string]: any
+        contextVariables?: any
     }
 
     export class Renderer<Result> {
@@ -98,6 +97,7 @@ export namespace render {
         render(ast: ast.Node, ctx: RenderingContext<Result> = null): RenderingContext<Result> {
             ctx ??= {depth: 0} as RenderingContext<Result>;
             ctx.depth ??= 0;
+            ctx.contextVariables ??= {};
             ctx.render ??= this.render.bind(this);
             ctx.renderChildren ??= this.renderChildren.bind(this);
 
@@ -138,38 +138,64 @@ export namespace render {
     }
 
     export namespace visitor {
-        export function appendContent(node: ast.Node, ctx: RenderingContext<string>) {
-            ctx.output += node.content;
+        export function appendContextVariableValue(node: ast.Node, ctx: RenderingContext<string>) {
+            ctx.output += ctx.contextVariables[node.content];
+            return ctx;
         }
 
-        export function delegate(delegateObj: any) {
-            return function (node: ast.Node, ctx: RenderingContext<string>) {
-                const method = delegateObj[`on_${node.name}`] ?? delegateObj["_default"]
-                return method(node, ctx);
+        export function renderChildren<Result>(node: ast.Node, ctx: RenderingContext<Result>) {
+            return ctx.renderChildren(node, ctx);
+        }
+
+        export function appendContent(node: ast.Node, ctx: RenderingContext<string>) {
+            ctx.output += node.content;
+            return ctx;
+        }
+
+        export function delegateTo<Result>(renderer: Renderer<Result>) {
+            return function (node: ast.Node, ctx: RenderingContext<Result>) {
+                return renderer.render(node, ctx);
+            }
+        }
+
+        export function delegateChildrenTo<Result>(renderer: Renderer<Result>) {
+            return function (node: ast.Node, ctx: RenderingContext<Result>) {
+                return renderer.renderChildren(node, ctx);
             }
         }
 
         export function appendConstant(value: string, indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>): void => {
+            return (node: ast.Node, ctx: RenderingContext<string>) => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + value + "\n";
+                return ctx;
+            }
+        }
+
+        export function appendPlaceholder(indent: boolean = true) {
+            return (node: ast.Node, ctx: RenderingContext<string>) => {
+                ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "[[" + node.name + "]]\n";
+                return ctx;
             }
         }
 
         export function appendName(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>): void => {
+            return (node: ast.Node, ctx: RenderingContext<string>) => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + node.name + "\n";
+                return ctx;
             }
         }
 
         export function appendNameStart(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>): void => {
+            return (node: ast.Node, ctx: RenderingContext<string>) => {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "START " + node.name + "\n";
+                return ctx;
             }
         }
 
         export function appendNameEnd(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>): void => {
-                ctx.output += (indent ? " ".repeat(ctx.indent) : "") + "END " + node.name + "\n";
+            return (node: ast.Node, ctx: RenderingContext<string>) => {
+                ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "END " + node.name + "\n";
+                return ctx;
             }
         }
     }

@@ -218,8 +218,7 @@ export namespace ast {
                  * for every group or rule we go down a level,
                  * if there is no more symbols for this rule, go up one level,
                  */
-                const
-                    symbol: grammar.Symbol = current.symbols[0];
+                const symbol: grammar.Symbol = current.symbols[0];
                 if (this.debug) {
                     this.log.debug(`${" ".repeat(parents.length)} `
                         + ` [${current.node.name} ${current.traceId}]`
@@ -251,7 +250,8 @@ export namespace ast {
                 this.log.warn(`Parse failed`);
             }
             if (nextToken) {
-                this.log.warn(`Parsing stops at token: ${nextToken.term}`);
+                let nextTokens = [...tokensToParse].slice(0, 3).map(x => JSON.stringify(x)).join("\n ");
+                this.log.warn(`Parsing stops at token: ${JSON.stringify(nextToken)}\n ${nextTokens}`);
             }
             return rootNode;
         }
