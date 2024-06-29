@@ -222,12 +222,12 @@ export namespace ast {
                 if (this.debug) {
                     this.log.debug(`${" ".repeat(parents.length)} `
                         + ` [${current.node.name} ${current.traceId}]`
-                        + ` previousMatch=${isValidMatch}`
+                        // + ` previousMatch=${isValidMatch}`
                         + ` token=${nextToken ? nextToken.term : "NoToken"}`
                         + ` symbol=${_symbolToString(symbol)}`
-                        + ` operator=${current.operator}`
-                        + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
-                        + ` modifier=${current.modifier}`
+                        // + ` operator=${current.operator}`
+                        // + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
+                        // + ` modifier=${current.modifier}`
                     );
                 }
                 if (current.symbols.length === 0 || !nextToken) {

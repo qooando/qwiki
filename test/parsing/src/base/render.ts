@@ -43,12 +43,17 @@ export namespace render {
         contextVariables?: any
     }
 
-    export class Renderer<Result> {
+    export interface RendererOptions {
+        debug?: boolean
+    }
 
+    export class Renderer<Result> {
+        debug: boolean
         renderingRules: Map<string, RenderingRule<Result>>
         renderingDelegate: RenderingDelegate<Result>
 
-        constructor(rules: RenderingRules<Result>) {
+        constructor(rules: RenderingRules<Result>, options: RendererOptions = undefined) {
+            this.debug = options.debug ?? false;
             if (isArrayOfVisitorAsTuple(rules)) {
                 this.renderingRules = new Map<string, RenderingRule<Result>>((rules as RenderingRuleAsTuple<Result>[])
                     .map((x: RenderingRuleAsTuple<Result>) => {
@@ -118,14 +123,34 @@ export namespace render {
                     rule.after(ast, ctx);
                 }
             } else {
-                let rule: RenderNodeFunction<Result> = null;
-                if (!!(rule = this.renderingDelegate[`on_${ast.name}_before`])) {
+                let ruleName: string = `on_${ast.name}_before`;
+                let rule: RenderNodeFunction<Result> = this.renderingDelegate[ruleName];
+                if (rule) {
                     rule(ast, ctx);
                 }
-                if (!!(rule = this.renderingDelegate[`on_${ast.name}`] ?? this.renderingDelegate["_default"] ?? ctx.renderChildren)) {
-                    rule(ast, ctx);
+                ruleName = `on_${ast.name}`;
+                rule = this.renderingDelegate[ruleName];
+                if (!rule) {
+                    if (this.debug) {
+                        console.log(`${" ".repeat(ctx.depth)}${ast.name} → ${ruleName} not found`);
+                    }
+                    ruleName = `_default`;
+                    rule = this.renderingDelegate[ruleName];
                 }
-                if (!!(rule = this.renderingDelegate[`on_${ast.name}_after`])) {
+                if (!rule) {
+                    if (this.debug) {
+                        console.log(`${" ".repeat(ctx.depth)}${ast.name} → ${ruleName} not found`);
+                    }
+                    ruleName = `*fallback*`
+                    rule = ctx.renderChildren
+                }
+                if (this.debug) {
+                    console.log(`${" ".repeat(ctx.depth)}${ast.name} → ${ruleName} → ${rule.name || rule.constructor.name || rule}`);
+                }
+                rule(ast, ctx);
+                ruleName = `on_${ast.name}_after`;
+                rule = this.renderingDelegate[ruleName];
+                if (rule) {
                     rule(ast, ctx);
                 }
             }
@@ -133,8 +158,8 @@ export namespace render {
         }
     }
 
-    export function renderer<Result>(rules: RenderingRules<Result>) {
-        return new Renderer(rules);
+    export function renderer<Result>(rules: RenderingRules<Result>, options: RendererOptions = undefined) {
+        return new Renderer(rules, options);
     }
 
     export namespace visitor {
@@ -153,47 +178,57 @@ export namespace render {
         }
 
         export function delegateTo<Result>(renderer: Renderer<Result>) {
-            return function (node: ast.Node, ctx: RenderingContext<Result>) {
-                return renderer.render(node, ctx);
+            return function _delegateTo(node: ast.Node, ctx: RenderingContext<Result>) {
+                let subctx = Object.assign({}, ctx);
+                subctx.render = null;
+                subctx.renderChildren = null;
+                subctx = renderer.render(node, subctx); // context switch and back
+                ctx.output = subctx.output;
+                return ctx;
             }
         }
 
         export function delegateChildrenTo<Result>(renderer: Renderer<Result>) {
-            return function (node: ast.Node, ctx: RenderingContext<Result>) {
-                return renderer.renderChildren(node, ctx);
+            return function _delegateChildrenTo(node: ast.Node, ctx: RenderingContext<Result>) {
+                let subctx = Object.assign({}, ctx);
+                subctx.render = null;
+                subctx.renderChildren = null;
+                subctx = renderer.renderChildren(node, subctx); // context switch and back
+                ctx.output = subctx.output;
+                return ctx;
             }
         }
 
         export function appendConstant(value: string, indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>) => {
+            return function _appendConstant(node: ast.Node, ctx: RenderingContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + value + "\n";
                 return ctx;
             }
         }
 
         export function appendPlaceholder(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>) => {
+            return function _appendPlaceholder(node: ast.Node, ctx: RenderingContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "[[" + node.name + "]]\n";
                 return ctx;
             }
         }
 
         export function appendName(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>) => {
+            return function _appendName(node: ast.Node, ctx: RenderingContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + node.name + "\n";
                 return ctx;
             }
         }
 
         export function appendNameStart(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>) => {
+            return function _appendNameStart(node: ast.Node, ctx: RenderingContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "START " + node.name + "\n";
                 return ctx;
             }
         }
 
         export function appendNameEnd(indent: boolean = true) {
-            return (node: ast.Node, ctx: RenderingContext<string>) => {
+            return function _appendNameEnd(node: ast.Node, ctx: RenderingContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "END " + node.name + "\n";
                 return ctx;
             }
