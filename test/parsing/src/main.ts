@@ -54,8 +54,8 @@ let _lexicon: lexicon.Lexicon = [
 let _grammar: grammar.Grammar = [
     ["document", "statement_block*"],
     ["branch", "statement_block*"],
-    ["statement_block", "CONTENT+ | code_start statement+"],
-    ["statement_end", "SEPARATOR | code_end", ast.nodeFactory.ignore],
+    ["statement_block", "CONTENT+ | code_start? statement+"],
+    ["statement_end", "SEPARATOR | CODE_END", ast.nodeFactory.ignore],
     ["code_start", "CODE_START", ast.nodeFactory.ignore],
     ["code_end", "CODE_END", ast.nodeFactory.ignore],
     ["statement", "( if | echo ) statement_end"],
@@ -67,13 +67,13 @@ let _grammar: grammar.Grammar = [
     ["boolean", "TRUE | FALSE"],
     ["if", "IF GROUP_OPEN boolean_expression GROUP_CLOSE statement_end branch else? END"],
     ["boolean_expression", "expression"],
-    ["else", "ELSE statement_end branch"],
+    ["else", "ELSE statement_end? branch"],
     ["expression", "variable"]
 ];
 // TODO look behind and look forward symbols to avoid capturing code end and code start in this symbol?
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
-let _templateParser = ast.parser(_lexicon, _grammar);
+let _templateParser = ast.parser(_lexicon, _grammar, {debug: false});
 
 // let _tokens = _templateParser.tokenizer.tokenize(content);
 
@@ -92,13 +92,15 @@ let _ast = _templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 
-// console.log("\nAST STRUCTURE")
-// console.log(stringify(_ast));
+console.log("\nAST STRUCTURE")
+console.log(stringify(_ast));
 
 interface ExpressionContext extends SimpleContext<any> {
     expr_stack: []
     expr_result: any
 }
+
+let debug = false;
 
 const _expressionEvaluator: render.Renderer<ExpressionContext> = render.renderer({
     _default: render.visitor.renderChildren,
@@ -113,7 +115,7 @@ const _expressionEvaluator: render.Renderer<ExpressionContext> = render.renderer
     }
     // FIXME si fa il parsing della espressione e si risolve di conseguenza
     // serve un stack per il calcolo annidato e si risolve il risultato sulla _after
-}, {debug: true});
+}, {debug: debug});
 
 const _echoRenderer = render.renderer<render.context.SimpleContext<string>>({
     _default: render.visitor.appendPlaceholder(),
@@ -125,7 +127,7 @@ const _echoRenderer = render.renderer<render.context.SimpleContext<string>>({
     on_STRING: render.visitor.appendContent,
     on_NUMBER: render.visitor.appendContent,
     on_CONTENT: render.visitor.appendContent,
-}, {debug: true});
+}, {debug: debug});
 
 let _mainRenderer = render.renderer<render.context.SimpleContext<string>>({
     _default: render.visitor.appendPlaceholder(),
@@ -153,13 +155,12 @@ let _mainRenderer = render.renderer<render.context.SimpleContext<string>>({
             let subctx = ctx.render(true_branch, ctx);
             ctx.output = subctx.output;
         }
-
         return ctx;
     },
     on_expression: render.visitor.delegateTo(_expressionEvaluator),
     on_ELSE: render.visitor.ignore,
     on_else: render.visitor.renderChildren
-}, {debug: true});
+}, {debug: debug});
 
 console.log("\nRENDER TO HTML")
 let out = _mainRenderer.render(_ast, {

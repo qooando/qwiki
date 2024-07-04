@@ -19,6 +19,10 @@ export namespace ast {
 
     export type NodeFactoryFun = (ctx: NodeFactoryContext) => Node | Node[];
 
+    export interface ParserOptions {
+        debug?: boolean
+    }
+
     export class Parser {
         log = console
         tokenizer: lexicon.Lexer;
@@ -26,7 +30,9 @@ export namespace ast {
         debug = false;
 
         constructor(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
-                    _grammar: grammar.GrammarParser | grammar.Grammar) {
+                    _grammar: grammar.GrammarParser | grammar.Grammar,
+                    options: ParserOptions = undefined) {
+            this.debug = options?.debug ?? false;
             if (Array.isArray(_tokenizer)) {
                 _tokenizer = lexicon.lexer(_tokenizer);
             }
@@ -44,6 +50,9 @@ export namespace ast {
             let isValidMatch = false;
             let nextToken: lexicon.Term = tokensToParse.nextValue();
             let nextTraceId = 0;
+            let trace: any = {
+                nodes: []
+            } // trace parsing for debugging
 
             const _makeEmptyNode = (rule: grammar.ParsingRule): Node => {
                 return {
@@ -122,6 +131,7 @@ export namespace ast {
                             }
                         }
                         // parent.node.children.push(current.node);
+                        // add node to stack trace
                     }
                     switch (current.modifier) {
                         case "+":
@@ -231,6 +241,9 @@ export namespace ast {
                     );
                 }
                 if (current.symbols.length === 0 || !nextToken) {
+                    if (isValidMatch) {
+                        trace.nodes.pop();
+                    }
                     _closeCurrentContext();
                     continue;
                 }
@@ -238,11 +251,13 @@ export namespace ast {
                 if (isSymbolRef) {
                     const reference = symbol as grammar.Reference;
                     if (this.grammar.grammar.has(reference.name)) {
+                        trace.nodes.push(current.node);
                         _expandSymbolRule(reference);
                     } else {
                         _matchSymbolToToken(reference);
                     }
                 } else {
+                    trace.nodes.push(current.node);
                     _expandSymbolGroup(symbol as grammar.Group)
                 }
             }
@@ -251,7 +266,7 @@ export namespace ast {
             }
             if (nextToken) {
                 let nextTokens = [...tokensToParse].slice(0, 3).map(x => JSON.stringify(x)).join("\n ");
-                this.log.warn(`Parsing stops at token: ${JSON.stringify(nextToken)}\n ${nextTokens}`);
+                this.log.warn(`Parsing stops while populating node: ${trace.nodes?.[trace.nodes.length - 1]?.name} \n ${JSON.stringify(nextToken)}\n ${nextTokens}`);
             }
             return rootNode;
         }
@@ -259,8 +274,9 @@ export namespace ast {
     }
 
     export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
-                           _grammar: grammar.GrammarParser | grammar.Grammar) {
-        return new Parser(_tokenizer, _grammar);
+                           _grammar: grammar.GrammarParser | grammar.Grammar,
+                           options: ParserOptions = undefined) {
+        return new Parser(_tokenizer, _grammar, options);
     }
 
     export namespace nodeFactory {
