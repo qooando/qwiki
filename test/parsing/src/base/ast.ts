@@ -219,15 +219,15 @@ export namespace ast {
                  * if there is no more symbols for this rule, go up one level,
                  */
                 const symbol: grammar.Symbol = current.symbols[0];
-                if (this.debug) {
+                if (this.debug && symbol) {
                     this.log.debug(`${" ".repeat(parents.length)} `
                         + ` [${current.node.name} ${current.traceId}]`
-                        // + ` previousMatch=${isValidMatch}`
+                        + ` previousMatch=${isValidMatch}`
                         + ` token=${nextToken ? nextToken.term : "NoToken"}`
                         + ` symbol=${_symbolToString(symbol)}`
-                        // + ` operator=${current.operator}`
-                        // + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
-                        // + ` modifier=${current.modifier}`
+                        + ` operator=${current.operator}`
+                        + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
+                        + ` modifier=${current.modifier}`
                     );
                 }
                 if (current.symbols.length === 0 || !nextToken) {
