@@ -30,7 +30,10 @@ let _lexicon: lexicon.Lexicon = [
     ["IF", /if/, null, enableIfIsCode],
     ["ELSE", /else/, null, enableIfIsCode],
     ["END", /end/, null, enableIfIsCode],
-    // ["FOREACH", /foreach/, null, enableIfIsCode],
+    ["FOREACH", /foreach/, null, enableIfIsCode],
+    ["OF", /of/, null, enableIfIsCode],
+    ["EQ_ASSIGN", /:=/, null, enableIfIsCode],
+    ["EQ_COALESCE", /\?\?=/, null, enableIfIsCode],
     // ["FOR", /for/, null, enableIfIsCode],
     // ["WITH", /with/, null, enableIfIsCode],
     ["REFERENCE", /\$/, null, enableIfIsCode],
@@ -58,7 +61,7 @@ let _grammar: grammar.Grammar = [
     ["statement_end", "SEPARATOR | CODE_END", ast.nodeFactory.ignore],
     ["code_start", "CODE_START", ast.nodeFactory.ignore],
     ["code_end", "CODE_END", ast.nodeFactory.ignore],
-    ["statement", "( if | echo ) statement_end"],
+    ["statement", "( if | foreach | echo ) statement_end"],
     ["echo", "variable | constant"],
     ["variable", "REFERENCE IDENTIFIER", (ctx): ast.Node => {
         return {name: ctx.node.name, children: [], content: ctx.node.children[1].content}
@@ -68,17 +71,33 @@ let _grammar: grammar.Grammar = [
     ["if", "IF GROUP_OPEN boolean_expression GROUP_CLOSE statement_end branch else? END"],
     ["boolean_expression", "expression"],
     ["else", "ELSE statement_end? branch"],
-    ["expression", "variable"]
+    ["expression", "expr_assign | expr_value | GROUP_OPEN expression GROUP_CLOSE"],
+    ["expr_assign", "expr_assign_left expr_assign_op expression"],
+    ["expr_assign_left", "variable"],
+    ["expr_assign_op", "EQ_ASSIGN | EQ_COALESCE | OF"],
+    ["expr_value", "variable | constant"],
+    ["foreach", "FOREACH GROUP_OPEN expr_assign_of GROUP_CLOSE statement_end branch END"],
+    ["expr_assign_of", "expr_assign_left OF expression"],
 ];
+// FIXME current implementation is not properly optimized but it is enough simple
+// TODO precompile grammar with optimization, e.g. if a rule does not contain X avoid to visit it at all
+//   avoid o visit not useful branches
+// TODO maybe transform the grammar in a decision tree to make parsing and ast generation faster ?
+//   the tree leaves/nodes are the grammar rules, edges are token terms. A node can be assigned to a rule or be a
+//   a middle node with more of a rule we need to discern. IF more rules match, assign the first.
+//   how to covert *?= in a decision tree? (a decision graph, better?) --> we need to create the parsing graph
+//   with the correct amount of nodes and edges. (primitives to add a new rule in the correct position, a rule can be more than one node)
 // TODO look behind and look forward symbols to avoid capturing code end and code start in this symbol?
 
 let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
-let _templateParser = ast.parser(_lexicon, _grammar, {debug: false});
+let _templateParser = ast.parser(_lexicon, _grammar, {debug: true});
 
 // let _tokens = _templateParser.tokenizer.tokenize(content);
 
 console.log("LEXICAL TOKENIZATION")
-console.log([..._templateParser.tokenizer.tokenize(content)]);
+for (let t of [..._templateParser.tokenizer.tokenize(content)]) {
+    console.log(t);
+}
 
 // console.log("\nGRAMMAR")
 // console.log(_parser.grammar.toString())
@@ -92,8 +111,8 @@ let _ast = _templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 
-console.log("\nAST STRUCTURE")
-console.log(stringify(_ast));
+// console.log("\nAST STRUCTURE")
+// console.log(stringify(_ast));
 
 interface ExpressionContext extends SimpleContext<any> {
     expr_stack: []
@@ -112,7 +131,11 @@ const _expressionEvaluator: render.Renderer<ExpressionContext> = render.renderer
     on_boolean_expression: render.visitor.renderChildren,
     on_boolean_expression_after(node, ctx) {
         ctx.expr_result = !!ctx.expr_result;
-    }
+    },
+    on_of_expression: render.visitor.renderChildren,
+    on_of_expression_after(node, ctx) {
+        // ctx.expr_result = !!ctx.expr_result;
+    },
     // FIXME si fa il parsing della espressione e si risolve di conseguenza
     // serve un stack per il calcolo annidato e si risolve il risultato sulla _after
 }, {debug: debug});

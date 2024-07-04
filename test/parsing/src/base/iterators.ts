@@ -22,6 +22,16 @@ export namespace iterators {
             return this.next(...args).value;
         }
 
+        // next but without pop
+        peekValue(...args:[] | [TNext]): T | TReturn {
+            try {
+                this.mark();
+                return this.nextValue(...args);
+            } finally {
+                this.reset();
+            }
+        }
+
         next(...args: [] | [TNext]): IteratorResult<T, TReturn> {
             let x: IteratorResult<T, TReturn> = null;
             if (this.buffer.length === this.cursor) {

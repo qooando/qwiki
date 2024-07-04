@@ -45,14 +45,39 @@ export namespace ast {
 
         parse(raw: string): Node {
             let tokensToParse: iterators.BufferedIterator<lexicon.Term> = iterators.buffered(this.tokenizer.tokenize(raw));
+            tokensToParse.mark(); // we call nextValue just below, mark tokensToParse to be sure we can call reset if no match was found
 
             let rootNode: Node = null;
             let isValidMatch = false;
-            let nextToken: lexicon.Term = tokensToParse.nextValue();
+            let nextToken: lexicon.Term = tokensToParse.peekValue();
             let nextTraceId = 0;
             let trace: any = {
-                nodes: []
-            } // trace parsing for debugging
+                failsStack: [],
+                lastFail: null
+            } // trace for debugging
+
+            const _resetTraceOnMatch = () => {
+                trace.failsStack = [];
+                if (trace.lastFail) {
+                    trace.lastFail.beforeAValidMatch = true;
+                }
+            }
+
+            const _addTraceOnFailedMatch = () => {
+                let lastFail = Object.assign({
+                    nextToken: nextToken,
+                    nextTokenIndex: tokensToParse.cursor,
+                    beforeAValidMatch: false
+                }, current);
+                if (trace.lastFail?.beforeAValidMatch ?? true) {
+                    trace.lastFail = lastFail;
+                }
+                trace.failsStack.push(lastFail);
+            }
+
+            const _addToTrace = () => {
+
+            }
 
             const _makeEmptyNode = (rule: grammar.ParsingRule): Node => {
                 return {
@@ -108,7 +133,6 @@ export namespace ast {
             let current: Context = _makeNewContext(this.grammar.startRule);
 
             const _closeCurrentContext = () => {
-
                 /*
                  * no more symbols at this level
                  * isValidMatch has a value true|false, propagate to upper level
@@ -161,12 +185,29 @@ export namespace ast {
                     // skip other symbols
                     parent.symbols = [];
                 }
+                if (isValidMatch) {
+                    _resetTraceOnMatch();
+                    tokensToParse.unmark();
+                } else {
+                    _addTraceOnFailedMatch();
+                    tokensToParse.reset();
+                    nextToken = tokensToParse.peekValue();
+
+                    if (this.debug) {
+                        this.log.debug(`${" ".repeat(parents.length)} `
+                            + ` ${isValidMatch ? "✓" : "⨉"}`
+                            + ` [${current.node.name} ${current.traceId}]`
+                            + ` reset tokens buffer to ${nextToken.term}`
+                        );
+                    }
+                }
                 current = parent;
             }
 
             const _expandSymbolRule = (reference: grammar.Reference) => {
                 const newRule = this.grammar.grammar.get(reference.name);
                 parents.push(current);
+                tokensToParse.mark();
                 current = _makeNewContext(newRule);
                 current.modifier = reference.modifier;
             }
@@ -176,7 +217,8 @@ export namespace ast {
 
                 if (isValidMatch) {
                     current.node.children.push(_makeLeaf(nextToken));
-                    nextToken = tokensToParse.nextValue();
+                    tokensToParse.nextValue(); // pop current peek value
+                    nextToken = tokensToParse.peekValue(); // get the actual next token
 
                     switch (reference.modifier) {
                         case "+":
@@ -210,6 +252,7 @@ export namespace ast {
             }
 
             const _expandSymbolGroup = (group: grammar.Group) => {
+                tokensToParse.mark();
                 parents.push(current);
                 current = {
                     traceId: current.traceId,
@@ -225,25 +268,25 @@ export namespace ast {
                 /*
                  * current context describes the current rule and the symbols we are parsing
                  * we visit all symbols and resolve them.
-                 * for every group or rule we go down a level,
+                 * for every group or rule we go down a level, and mark the current tokens buffer
                  * if there is no more symbols for this rule, go up one level,
+                 *      if a match is valid, just unmark the tokens buffer
+                 *      if a match is invalid, reset the tokens buffer
                  */
                 const symbol: grammar.Symbol = current.symbols[0];
                 if (this.debug && symbol) {
                     this.log.debug(`${" ".repeat(parents.length)} `
+                        + ` ${isValidMatch ? "✓" : "⨉"}`
                         + ` [${current.node.name} ${current.traceId}]`
-                        + ` previousMatch=${isValidMatch}`
-                        + ` token=${nextToken ? nextToken.term : "NoToken"}`
-                        + ` symbol=${_symbolToString(symbol)}`
-                        + ` operator=${current.operator}`
-                        + ` symbols=${current.symbols.map(_symbolToString).join(",")}`
-                        + ` modifier=${current.modifier}`
+                        + ` ${nextToken ? nextToken.term : "NoToken"}`
+                        + ` =? ${current.symbols.map(_symbolToString).join(",")}`
+                        // + ` symbol=${_symbolToString(symbol)}`
+                        // + ` ${current.operator ?? ""}`
+                        // + ` ${current.modifier ?? ""}`
+                        // + ` previousMatch=${isValidMatch}`
                     );
                 }
                 if (current.symbols.length === 0 || !nextToken) {
-                    if (isValidMatch) {
-                        trace.nodes.pop();
-                    }
                     _closeCurrentContext();
                     continue;
                 }
@@ -251,13 +294,13 @@ export namespace ast {
                 if (isSymbolRef) {
                     const reference = symbol as grammar.Reference;
                     if (this.grammar.grammar.has(reference.name)) {
-                        trace.nodes.push(current.node);
+                        _addToTrace();
                         _expandSymbolRule(reference);
                     } else {
                         _matchSymbolToToken(reference);
                     }
                 } else {
-                    trace.nodes.push(current.node);
+                    _addToTrace()
                     _expandSymbolGroup(symbol as grammar.Group)
                 }
             }
@@ -266,7 +309,14 @@ export namespace ast {
             }
             if (nextToken) {
                 let nextTokens = [...tokensToParse].slice(0, 3).map(x => JSON.stringify(x)).join("\n ");
-                this.log.warn(`Parsing stops while populating node: ${trace.nodes?.[trace.nodes.length - 1]?.name} \n ${JSON.stringify(nextToken)}\n ${nextTokens}`);
+                // this.log.warn(`Parsing stops while populating node: ${trace.nodes?.[trace.nodes.length - 1]?.name} \n ${nextTokens}`);
+                let trace_info = {
+                    node: trace.lastFail?.node?.name,
+                    traceId: trace.lastFail?.traceId,
+                    nextToken: trace.lastFail?.nextToken?.term,
+                    nextTokenIndex: trace.lastFail?.nextTokenIndex
+                }
+                this.log.warn(`Parsing stops: \n${JSON.stringify(trace_info, null, 2)}`)
             }
             return rootNode;
         }

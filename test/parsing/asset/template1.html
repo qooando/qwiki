@@ -26,5 +26,17 @@
 <p>
     cond1 is {{ if ( $cond1 ); "OK"; else; "NOT OK"; end }}
 </p>
+<h1>Foreach</h1>
+<ul>
+    {{ foreach ( $item of $items ) }}
+    <li>{{ $item }}</li>
+    {{ end }}
+</ul>
+<h1>Foreach with nested if</h1>
+<ul>
+    {{ foreach ( $item of $items ) }}
+    <li>{{ if ( $item ); $item; "OK"; else; $item; "NOT OK"; end }}</li>
+    {{ end }}
+</ul>
 </body>
 </html>
