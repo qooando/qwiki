@@ -21,6 +21,7 @@ export namespace ast {
 
     export interface ParserOptions {
         debug?: boolean
+        debugAll?: boolean
     }
 
     export class Parser {
@@ -28,11 +29,13 @@ export namespace ast {
         tokenizer: lexicon.Lexer;
         grammar: grammar.GrammarParser;
         debug = false;
+        debugAll = false;
 
         constructor(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
                     _grammar: grammar.GrammarParser | grammar.Grammar,
                     options: ParserOptions = undefined) {
             this.debug = options?.debug ?? false;
+            this.debugAll = this.debug && (options?.debugAll ?? false);
             if (Array.isArray(_tokenizer)) {
                 _tokenizer = lexicon.lexer(_tokenizer);
             }
@@ -144,8 +147,9 @@ export namespace ast {
                     current = null;
                     return false;
                 }
+                let changeRule = parent.traceId !== current.traceId;
                 if (isValidMatch) {
-                    if (parent.traceId !== current.traceId) { // add children only if parent is another node
+                    if (changeRule) { // add children only if parent is another node
                         const actualNode = !!current.nodeFactory ? current.nodeFactory(current) : current.node;
                         if (actualNode) {
                             if (Array.isArray(actualNode)) {
@@ -185,6 +189,21 @@ export namespace ast {
                     // skip other symbols
                     parent.symbols = [];
                 }
+                if (this.debug && changeRule) {
+                    this.log.debug(`${" ".repeat(parents.length)}`
+                        + ` [/${current.node.name} ${current.traceId}]`
+                        + ` ${isValidMatch ? "✓" : "⨉"}`
+                    );
+                }
+                //
+                // if (this.debug) {
+                //     this.log.debug(`${" ".repeat(parents.length)} `
+                //         + ` ${isValidMatch ? "✓" : "⨉"}`
+                //         + ` [${current.node.name} ${current.traceId}]`
+                //         + ` rule=${current.symbols.map(_symbolToString).join(" ")} token=${nextToken.term}`
+                //     );
+                // }
+
                 if (isValidMatch) {
                     _resetTraceOnMatch();
                     tokensToParse.unmark();
@@ -193,13 +212,13 @@ export namespace ast {
                     tokensToParse.reset();
                     nextToken = tokensToParse.peekValue();
 
-                    if (this.debug) {
-                        this.log.debug(`${" ".repeat(parents.length)} `
-                            + ` ${isValidMatch ? "✓" : "⨉"}`
-                            + ` [${current.node.name} ${current.traceId}]`
-                            + ` reset tokens buffer to ${nextToken.term}`
-                        );
-                    }
+                    // if (this.debugAll) {
+                    //     this.log.debug(`${" ".repeat(parents.length)} `
+                    //         + ` ${isValidMatch ? "✓" : "⨉"}`
+                    //         + ` [${current.node.name} ${current.traceId}]`
+                    //         + ` reset tokens buffer to ${nextToken.term}`
+                    //     );
+                    // }
                 }
                 current = parent;
             }
@@ -210,9 +229,17 @@ export namespace ast {
                 tokensToParse.mark();
                 current = _makeNewContext(newRule);
                 current.modifier = reference.modifier;
+
+                if (this.debug) {
+                    this.log.debug(`${" ".repeat(parents.length)}`
+                        + `[${current.node.name} ${current.traceId}]`
+                        + ` ${current.symbols.map(_symbolToString).join(" ")} ?= ${nextToken.term}`
+                    );
+                }
             }
 
             const _matchSymbolToToken = (reference: grammar.Reference) => {
+                let prevToken = nextToken;
                 isValidMatch = reference.name === nextToken.term;
 
                 if (isValidMatch) {
@@ -249,6 +276,15 @@ export namespace ast {
                     // consume all symbols
                     current.symbols = [];
                 }
+
+                if (this.debug) {
+                    this.log.debug(`${" ".repeat(parents.length)}`
+                        + `${isValidMatch ? "✓" : "⨉"}`
+                        // + ` [${current.node.name} ${current.traceId}]`
+                        + ` ${reference.name}${reference.modifier ?? ""} ?= ${prevToken.term}`
+                    );
+                }
+
             }
 
             const _expandSymbolGroup = (group: grammar.Group) => {
@@ -264,6 +300,13 @@ export namespace ast {
                 }
             }
 
+            if (this.debug) {
+                this.log.debug(`${" ".repeat(parents.length)}`
+                    + `[${current.node.name} ${current.traceId}]`
+                    + ` ${current.symbols.map(_symbolToString).join(" ")} ?= ${nextToken.term}`
+                );
+            }
+
             while (current) {
                 /*
                  * current context describes the current rule and the symbols we are parsing
@@ -274,18 +317,18 @@ export namespace ast {
                  *      if a match is invalid, reset the tokens buffer
                  */
                 const symbol: grammar.Symbol = current.symbols[0];
-                if (this.debug && symbol) {
-                    this.log.debug(`${" ".repeat(parents.length)} `
-                        + ` ${isValidMatch ? "✓" : "⨉"}`
-                        + ` [${current.node.name} ${current.traceId}]`
-                        + ` ${nextToken ? nextToken.term : "NoToken"}`
-                        + ` =? ${current.symbols.map(_symbolToString).join(",")}`
-                        // + ` symbol=${_symbolToString(symbol)}`
-                        // + ` ${current.operator ?? ""}`
-                        // + ` ${current.modifier ?? ""}`
-                        // + ` previousMatch=${isValidMatch}`
-                    );
-                }
+                // if (this.debugAll && symbol) {
+                //     this.log.debug(`${" ".repeat(parents.length)} `
+                //         + ` ${isValidMatch ? "✓" : "⨉"}`
+                //         + ` [${current.node.name} ${current.traceId}]`
+                //         + ` ${nextToken ? nextToken.term : "NoToken"}`
+                //         + ` =? ${current.symbols.map(_symbolToString).join(",")}`
+                //         // + ` symbol=${_symbolToString(symbol)}`
+                //         // + ` ${current.operator ?? ""}`
+                //         // + ` ${current.modifier ?? ""}`
+                //         // + ` previousMatch=${isValidMatch}`
+                //     );
+                // }
                 if (current.symbols.length === 0 || !nextToken) {
                     _closeCurrentContext();
                     continue;
@@ -308,15 +351,16 @@ export namespace ast {
                 this.log.warn(`Parse failed`);
             }
             if (nextToken) {
-                let nextTokens = [...tokensToParse].slice(0, 3).map(x => JSON.stringify(x)).join("\n ");
+                let nextTokens = [...tokensToParse].slice(0, 6).map(x => JSON.stringify(x)).join("\n ");
                 // this.log.warn(`Parsing stops while populating node: ${trace.nodes?.[trace.nodes.length - 1]?.name} \n ${nextTokens}`);
+
                 let trace_info = {
                     node: trace.lastFail?.node?.name,
                     traceId: trace.lastFail?.traceId,
                     nextToken: trace.lastFail?.nextToken?.term,
                     nextTokenIndex: trace.lastFail?.nextTokenIndex
                 }
-                this.log.warn(`Parsing stops: \n${JSON.stringify(trace_info, null, 2)}`)
+                this.log.warn(`Parsing stops: \n${JSON.stringify(trace_info, null, 2)} \nNot parsed tokens:\n ${nextTokens}`)
             }
             return rootNode;
         }
