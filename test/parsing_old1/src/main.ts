@@ -23,7 +23,7 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 // console.log("\nTOKENIZATION")
 // console.log([..._parser.tokenizer.tokenize(content)]);
 
-console.log("\nABSTRACT SYNTAX TREE")
+// console.log("\nABSTRACT SYNTAX TREE")
 // _templateParser.debug = true
 let _ast = templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
