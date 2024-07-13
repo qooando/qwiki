@@ -14,6 +14,8 @@ export namespace grammar {
     }
 
     export type Symbol = Reference | Group;
+    export let isSymbolGroup = (x: any) => x && "operator" in x;
+    export let isSymbolReference = (x: any) => x && "name" in x;
 
     export interface ParsingRule {
         from: string
