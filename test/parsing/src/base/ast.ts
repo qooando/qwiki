@@ -271,37 +271,28 @@ export namespace ast {
 
             return root.value[1].node;
         }
+    }
 
-        parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
-               _grammar: grammar.GrammarParser | grammar.Grammar,
-               options
-                   :
-                   ParserOptions = undefined
-        ) {
-            return new Parser(_tokenizer, _grammar, options);
-        }
+    export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
+                           _grammar: grammar.GrammarParser | grammar.Grammar,
+                           options
+                               :
+                               ParserOptions = undefined
+    ) {
+        return new Parser(_tokenizer, _grammar, options);
+    }
 
-        identity(ctx
-                     :
-                     NodeFactoryContext
-        ):
-            Node | Node[] {
+    export namespace nodeFactory {
+
+        export function identity(ctx: NodeFactoryContext): Node | Node[] {
             return ctx.node;
         }
 
-        mergeUp(ctx
-                    :
-                    NodeFactoryContext
-        ):
-            Node | Node[] {
+        export function mergeUp(ctx: NodeFactoryContext): Node | Node[] {
             return ctx.node.children;
         }
 
-        ignore(ctx
-                   :
-                   NodeFactoryContext
-        ):
-            Node | Node[] {
+        export function ignore(ctx: NodeFactoryContext): Node | Node[] {
             return null;
         }
 
