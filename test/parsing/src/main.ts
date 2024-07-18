@@ -23,16 +23,21 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 // console.log("\nTOKENIZATION")
 // console.log([..._parser.tokenizer.tokenize(content)]);
 
+console.log("\nGRAMMAR")
+console.log(JSON.stringify([...templateParser.grammar.graph.vertices.entries()].map(x => x[1].toString()), null, 2));
+
 console.log("\nABSTRACT SYNTAX TREE")
+
+
 // _templateParser.debug = true
-let _ast = templateParser.parse(content);
+// let _ast = templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 
 // console.log("\nAST STRUCTURE")
 // console.log(stringify(_ast));
 
-let templateRenderer = temple.renderer({debug: true});
+// let templateRenderer = temple.renderer({debug: true});
 
 // console.log("\nRENDER TO HTML")
 // let out = templateRenderer.render(_ast, {
