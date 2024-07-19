@@ -92,7 +92,6 @@ export namespace grammar {
                     ...consequents.split(/\s+|(?=[()*+?|])/).filter(x => !/^\s*$/.test(x)),
                     ruleEndVertexName
                 ];
-                let previousPreviousVertexNames: string[] = []
                 let previousVertexNames: string[] = []
                 let groups: GrammarRuleVertexData[] = [startVertexData];
                 let lastClosedGroup: GrammarRuleVertexData = null;
@@ -116,7 +115,6 @@ export namespace grammar {
                             g.upsertVertex(groupStartVertexName, vertexData);
                             previousVertexNames.forEach(n => g.upsertDirectedEdge(n, groupStartVertexName));
                             groups.push(vertexData);
-                            previousPreviousVertexNames = previousVertexNames;
                             previousVertexNames = [groupStartVertexName];
                             break;
                         }
@@ -132,7 +130,6 @@ export namespace grammar {
                             lastClosedGroup = group;
                             g.upsertVertex(groupEndVertexName, vertexData);
                             previousVertexNames.forEach(n => g.upsertDirectedEdge(n, groupEndVertexName));
-                            previousPreviousVertexNames = previousVertexNames;
                             previousVertexNames = [groupEndVertexName];
                             break;
                         }
@@ -140,34 +137,42 @@ export namespace grammar {
                             // current group of symbols from ( to | or from | to | is a group
                             // we need to link it to the group end and restart the group from the beginning
                             previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentGroup.groupEndVertexName));
-                            previousPreviousVertexNames = previousVertexNames;
                             previousVertexNames = [currentGroup.groupStartVertexName];
                             break;
                         }
                         case "?": {
                             // next node should connect to previous node and its antecedents
+                            let previousPreviousVertexNames = previousVertexNames.flatMap(n => {
+                                if (lastClosedGroup?.groupEndVertexName === n) {
+                                    return [...g.getVertex(lastClosedGroup.groupStartVertexName).in.keys()]
+                                } else {
+                                    return [...g.getVertex(n).in.keys()]
+                                }
+                            });
+                            // FIXME make them unique
                             previousVertexNames = [...previousPreviousVertexNames, ...previousVertexNames];
-                            previousPreviousVertexNames = [];
                             break;
                         }
                         case "*": {
                             // loop on itself or group
-                            previousVertexNames.forEach(n => {
-                                if (lastClosedGroup.groupEndVertexName === n) {
+                            let previousPreviousVertexNames = previousVertexNames.flatMap(n => {
+                                if (lastClosedGroup?.groupEndVertexName === n) {
                                     g.upsertDirectedEdge(n, lastClosedGroup.groupStartVertexName);
+                                    return [...g.getVertex(lastClosedGroup.groupStartVertexName).in.keys()]
                                 } else {
                                     g.upsertDirectedEdge(n, n);
+                                    return [...g.getVertex(n).in.keys()]
                                 }
                             });
                             // next node should connect to previous node and its antecedents
+                            // FIXME make them unique
                             previousVertexNames = [...previousPreviousVertexNames, ...previousVertexNames];
-                            previousPreviousVertexNames = [];
                             break;
                         }
                         case "+": {
-                            // loop on the group or on itself
+                            // loop on itself
                             previousVertexNames.forEach(n => {
-                                if (lastClosedGroup.groupEndVertexName === n) {
+                                if (lastClosedGroup?.groupEndVertexName === n) {
                                     g.upsertDirectedEdge(n, lastClosedGroup.groupStartVertexName);
                                 } else {
                                     g.upsertDirectedEdge(n, n);
@@ -178,11 +183,9 @@ export namespace grammar {
                         default: { // and
                             if (currentGroup.groupStartVertexName === token) {
                                 previousVertexNames.forEach(n => g.upsertDirectedEdge(n, token));
-                                previousPreviousVertexNames = previousVertexNames;
                                 previousVertexNames = [token];
                             } else if (currentGroup.groupEndVertexName === token) {
                                 previousVertexNames.forEach(n => g.upsertDirectedEdge(n, token));
-                                previousPreviousVertexNames = previousVertexNames;
                                 previousVertexNames = []; // end of this rule
                             } else {
                                 const currentVertexName = `${ruleName}_${token}_${index}`,
@@ -196,7 +199,6 @@ export namespace grammar {
                                     };
                                 g.upsertVertex(currentVertexName, vertexData);
                                 previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentVertexName));
-                                previousPreviousVertexNames = previousVertexNames;
                                 previousVertexNames = [currentVertexName];
                             }
                         }
