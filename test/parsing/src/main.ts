@@ -28,9 +28,7 @@ console.log(JSON.stringify([...templateParser.grammar.graph.vertices.entries()].
 
 console.log("\nABSTRACT SYNTAX TREE")
 
-
-// _templateParser.debug = true
-// let _ast = templateParser.parse(content);
+let _ast = templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 

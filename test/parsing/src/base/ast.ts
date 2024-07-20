@@ -1,9 +1,7 @@
 import {lexicon} from "./lexicon.js";
 import {grammar} from "./grammar.js";
 import {iterators} from "./iterators.js";
-import {isMatch} from "lodash";
-import {Graph, Vertex} from "./util/Graph";
-import {grammarRules} from "./lang/temple";
+import {Graph, Vertex} from "./util/Graph.js";
 
 export namespace ast {
 
@@ -81,31 +79,45 @@ export namespace ast {
 
             let nextIndex = 0;
 
-            let currentWalkStack: WalkContext[] = [{
+            let currentWalkHighPriorityQueue: WalkContext[] = [{
                 id: nextIndex++,
                 astItem: rootItem,
-                grammarVertex: grammarGraph.getVertex(this.grammar.startRule),
+                grammarVertex: grammarGraph.getVertex(this.grammar.startVertexName),
                 returnContext: null,
-            }]
-            let nextWalkStack: WalkContext[] = [];
+            }];
+            let currentWalkLowPriorityQueue: WalkContext[] = []; // contains END symbols
+
+            let nextWalkHighPriorityQueue: WalkContext[] = [];
+            let nextWalkLowPriorityQueue: WalkContext[] = [];
 
             let termIterator: IteratorResult<lexicon.Term> = null;
 
             while ((termIterator = termsToParse.next())) {
-                const currentTerm: lexicon.Term = termIterator.value;
-                let isMatch = !termIterator.done;
+                const currentTerm: lexicon.Term = termIterator.done ? {
+                    term: null,
+                    content: null
+                } : termIterator.value;
+                let isMatch = termIterator.done;
 
                 if (this.debug) {
-                    console.debug(`Parser current term: ${currentTerm.term}`);
+                    console.debug(`Parse term: ${currentTerm.term}`);
                 }
 
-                while (currentWalkStack.length) {
-                    let ctx: WalkContext = currentWalkStack.shift(),
+                while (currentWalkHighPriorityQueue.length || currentWalkLowPriorityQueue.length) {
+                    let ctx: WalkContext = currentWalkHighPriorityQueue.shift() || currentWalkLowPriorityQueue.shift(),
                         grammarVertex: Vertex = ctx.grammarVertex,
                         grammarData: grammar.GrammarRuleVertexData = grammarVertex.data;
 
                     if (this.debug) {
-                        console.debug(`Parser step (${ctx.id}): parent=${ctx.astItem.name}, returnCtx=(${ctx.returnContext?.id}), grammar=${ctx.grammarVertex.name})`);
+                        const stepType =
+                            grammarData.isRuleStart ? "RULE_START" :
+                                grammarData.isRuleEnd ? "RULE_END" :
+                                    grammarData.isGroupStart ? "GROUP_START" :
+                                        grammarData.isGroupEnd ? "GROUP_END" :
+                                            grammarData.isRuleReference ? "RULE_REF" :
+                                                grammarData.isTerminal ? "TERMINAL" : "UNKNOWN";
+                        console.debug(`Parser step (${ctx.id}): ${stepType.padEnd(11)} parent=${ctx.astItem.name}, ` +
+                            `returnCtx=(${ctx.returnContext?.id ?? ""}), grammar=${ctx.grammarVertex.name}`);
                     }
 
                     if (grammarData.isRuleStart) {
@@ -123,45 +135,49 @@ export namespace ast {
                             astVertexFactoryFun: grammarData.astVertexFactoryFun,
                         }
 
-                        for (const childGrammarVertex of grammarVertex.out.values()) {
-                            currentWalkStack.push({
+                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                            (childGrammarEdge.to.data.isRuleEnd ?
+                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
+                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
                                 id: nextIndex++,
                                 astItem: newAstItem,
-                                grammarVertex: childGrammarVertex.to,
+                                grammarVertex: childGrammarEdge.to,
                                 returnContext: ctx.returnContext,
                             });
                         }
 
                     } else if (grammarData.isRuleEnd) {
                         /*
-                            A rule ends
-                            - clear current stack, we have a rule match, thus we don't need to test other rules
-                              and the stack contains only entris from other rules
+                            A rule ends, this is an alternative relative to other symbols or
+                            the only alternative, thus we need to expand this as if there is a match
                             - add current astVertex to its parent children
                             - use returnContext to return to the previous rule in the correct place
                               and continue from there
                          */
-                        currentWalkStack = [];
+                        // isMatch = true; // ?
 
                         ctx.astItem.parent.children.push(ctx.astItem);
                         // note we don't call astVertexFactoryFun here, we do it later when we create the Graph
 
                         // switch context back and continue
-                        ctx = ctx.returnContext;
-                        if (ctx == null) {
-                            // FIXME
+                        if (ctx.returnContext == null) {
+                            console.warn(`Parser, no return context for step (${ctx.id})`)
+                            break;
                         }
+                        ctx = ctx.returnContext;
                         grammarVertex = ctx.grammarVertex;
                         if (grammarVertex.name === "__ROOT__") {
                             // FIXME
                         }
                         grammarData = grammarVertex.data;
 
-                        for (const childGrammarVertex of grammarVertex.out.values()) {
-                            currentWalkStack.push({
+                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                            (childGrammarEdge.to.data.isRuleEnd ?
+                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
+                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
                                 id: nextIndex++,
                                 astItem: ctx.astItem,
-                                grammarVertex: childGrammarVertex.to,
+                                grammarVertex: childGrammarEdge.to,
                                 returnContext: ctx.returnContext,
                             });
                         }
@@ -170,11 +186,13 @@ export namespace ast {
                         /*
                          this is a group start, just expand children contexts in current stack
                          */
-                        for (const childGrammarVertex of grammarVertex.out.values()) {
-                            currentWalkStack.push({
+                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                            (childGrammarEdge.to.data.isRuleEnd ?
+                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
+                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
                                 id: nextIndex++,
                                 astItem: ctx.astItem,
-                                grammarVertex: childGrammarVertex.to,
+                                grammarVertex: childGrammarEdge.to,
                                 returnContext: ctx.returnContext,
                             });
                         }
@@ -183,11 +201,13 @@ export namespace ast {
                         /*
                          this is a group end, just expand children contexts in current stack
                          */
-                        for (const childGrammarVertex of grammarVertex.out.values()) {
-                            currentWalkStack.push({
+                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                            (childGrammarEdge.to.data.isRuleEnd ?
+                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
+                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
                                 id: nextIndex++,
                                 astItem: ctx.astItem,
-                                grammarVertex: childGrammarVertex.to,
+                                grammarVertex: childGrammarEdge.to,
                                 returnContext: ctx.returnContext,
                             });
                         }
@@ -202,7 +222,7 @@ export namespace ast {
                         if (!nextGrammarVertex) {
                             throw new Error(`Vertex not found: ${grammarData.expectedVertexName}`);
                         }
-                        currentWalkStack.push({
+                        currentWalkHighPriorityQueue.push({
                             id: nextIndex++,
                             astItem: ctx.astItem,
                             grammarVertex: nextGrammarVertex,
@@ -219,6 +239,8 @@ export namespace ast {
                         isMatch = grammarData.expectedTerm === currentTerm.term;
 
                         if (isMatch) {
+                            console.debug(`Parser found a match: ${currentTerm.term}`);
+
                             const leafAstItem: AstItem = {
                                 name: currentTerm.term,
                                 content: currentTerm.content,
@@ -230,25 +252,29 @@ export namespace ast {
 
                             ctx.astItem.children.push(leafAstItem);
 
-                            for (const childGrammarVertex of grammarVertex.out.values()) {
-                                nextWalkStack.push({
+                            for (const childGrammarEdge of grammarVertex.out.values()) {
+                                (childGrammarEdge.to.data.isRuleEnd ?
+                                    nextWalkLowPriorityQueue.unshift.bind(nextWalkLowPriorityQueue) :
+                                    nextWalkHighPriorityQueue.push.bind(nextWalkHighPriorityQueue))({
                                     id: nextIndex++,
                                     astItem: ctx.astItem,
-                                    grammarVertex: childGrammarVertex.to,
+                                    grammarVertex: childGrammarEdge.to,
                                     returnContext: ctx.returnContext,
                                 });
                             }
+
+                            break;
                         }
 
                     } else {
                         throw new Error(`Not implemented branch for grammar data: ${JSON.stringify(grammarData)}`);
                     }
-                }
+                } // end inner while
 
                 if (!isMatch) {
                     // FIXME error! no match for currentToken
                     const nextTerms = [...termsToParse].slice(0, 6).map(t => t.term).join("\n ");
-                    console.error(`Parser stops. No match for term '${currentTerm.term}'. \nContext:\n ${nextTerms}`);
+                    console.error(`Parser stops, no match for term '${currentTerm.term}'. \n Next terms:\n ${nextTerms}`);
                     break;
                 }
 
@@ -256,8 +282,10 @@ export namespace ast {
                     break;
                 }
 
-                currentWalkStack = nextWalkStack;
-                nextWalkStack = [];
+                currentWalkHighPriorityQueue = nextWalkHighPriorityQueue;
+                nextWalkHighPriorityQueue = [];
+                currentWalkLowPriorityQueue = nextWalkLowPriorityQueue;
+                nextWalkLowPriorityQueue = [];
             }
 
             const outputGraph = new AstGraph();

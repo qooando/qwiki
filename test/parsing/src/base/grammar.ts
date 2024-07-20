@@ -56,6 +56,7 @@ export namespace grammar {
 
     export class GrammarParser {
         graph: Graph;
+        startVertexName: string;
         rawRules: Map<string, { consequents: string, nodeFactory?: ast.AstVertexFactoryFun }>;
         startRule: string;
         // grammar: Map<string, GrammarRule>;
@@ -67,6 +68,7 @@ export namespace grammar {
             // first rule
             this.startRule = rules[0][0];
             this.rawRules = new Map(rules.map(x => [x[0], {consequents: x[1], nodeFactory: x[2]}]));
+            this.startVertexName = `${this.startRule}_START`;
 
             // populate graph
             for (const [ruleName, consequents, nodeFactory] of rules) {
