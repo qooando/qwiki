@@ -1,4 +1,5 @@
 export interface VisitContext {
+    previous?: Vertex;
     cycles: Array<Array<Vertex>> // NOTE: this can be a non-exhaustive list of cycles
     beforeVisit: Array<Vertex>
     afterVisit: Array<Vertex>
@@ -212,6 +213,7 @@ export class Graph {
             node = this.getVertex(node);
         }
         while (node instanceof Vertex) {
+            context.previous = node;
             node = callback(node, context);
         }
         return node;

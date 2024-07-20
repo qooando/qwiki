@@ -2,7 +2,7 @@ import {ast} from "./ast.js";
 
 export namespace render {
 
-    export type RenderNodeFunction<Context> = (node: ast.Node, ctx: Context) => any;
+    export type RenderNodeFunction<Context> = (node: ast.AstItem, ctx: Context) => any;
 
     export interface RenderingRule<Context> {
         event: string
@@ -34,7 +34,7 @@ export namespace render {
         | RenderingRuleAsTuple<Context>[]
         | RenderingDelegate<Context>;
 
-    export type RenderFunction<Context> = (<SubContext extends Context>(ast: ast.Node, ctx: SubContext) => SubContext);
+    export type RenderFunction<Context> = (<SubContext extends Context>(ast: ast.AstItem, ctx: SubContext) => SubContext);
 
     export interface RenderingContext {
         depth?: number
@@ -92,14 +92,14 @@ export namespace render {
             }
         }
 
-        renderChildren(ast: ast.Node, ctx: Context = null): Context {
+        renderChildren(ast: ast.AstItem, ctx: Context = null): Context {
             ctx.depth++;
             ast.children.forEach(c => this.render(c, ctx));
             ctx.depth--;
             return ctx;
         }
 
-        render(ast: ast.Node, ctx: Context = null): Context {
+        render(ast: ast.AstItem, ctx: Context = null): Context {
             ctx ??= {depth: 0} as Context;
             ctx.depth ??= 0;
             ctx.contextVariables ??= {};
@@ -178,16 +178,16 @@ export namespace render {
 
         import SimpleContext = render.context.SimpleContext;
 
-        export function ignore<Context>(node: ast.Node, ctx: Context) {
+        export function ignore<Context>(node: ast.AstItem, ctx: Context) {
             return ctx;
         }
 
-        export function renderChildren<Context extends RenderingContext>(node: ast.Node, ctx: Context) {
+        export function renderChildren<Context extends RenderingContext>(node: ast.AstItem, ctx: Context) {
             return ctx.renderChildren(node, ctx);
         }
 
         export function delegateTo<Context extends SimpleContext<any>>(renderer: Renderer<Context>) {
-            return function _delegateTo(node: ast.Node, ctx: Context) {
+            return function _delegateTo(node: ast.AstItem, ctx: Context) {
                 let subctx = Object.assign({}, ctx);
                 subctx.render = null;
                 subctx.renderChildren = null;
@@ -198,7 +198,7 @@ export namespace render {
         }
 
         export function delegateChildrenTo<Context extends SimpleContext<any>>(renderer: Renderer<Context>) {
-            return function _delegateChildrenTo(node: ast.Node, ctx: Context) {
+            return function _delegateChildrenTo(node: ast.AstItem, ctx: Context) {
                 let subctx = Object.assign({}, ctx);
                 subctx.render = null;
                 subctx.renderChildren = null;
@@ -208,25 +208,25 @@ export namespace render {
             }
         }
 
-        export function appendContextVariableValue(node: ast.Node, ctx: SimpleContext<string>) {
+        export function appendContextVariableValue(node: ast.AstItem, ctx: SimpleContext<string>) {
             ctx.output += ctx.contextVariables[node.content];
             return ctx;
         }
 
-        export function appendContent(node: ast.Node, ctx: SimpleContext<string>) {
+        export function appendContent(node: ast.AstItem, ctx: SimpleContext<string>) {
             ctx.output += node.content;
             return ctx;
         }
 
         export function appendConstant(value: string, indent: boolean = true) {
-            return function _appendConstant(node: ast.Node, ctx: SimpleContext<string>) {
+            return function _appendConstant(node: ast.AstItem, ctx: SimpleContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + value + "\n";
                 return ctx;
             }
         }
 
         export function appendPlaceholder(indent: boolean = true) {
-            return function _appendPlaceholder(node: ast.Node, ctx: SimpleContext<string>) {
+            return function _appendPlaceholder(node: ast.AstItem, ctx: SimpleContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "[[" + node.name + "]]\n";
                 ctx.renderChildren(node, ctx);
                 return ctx;
@@ -234,21 +234,21 @@ export namespace render {
         }
 
         export function appendName(indent: boolean = true) {
-            return function _appendName(node: ast.Node, ctx: SimpleContext<string>) {
+            return function _appendName(node: ast.AstItem, ctx: SimpleContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + node.name + "\n";
                 return ctx;
             }
         }
 
         export function appendNameStart(indent: boolean = true) {
-            return function _appendNameStart(node: ast.Node, ctx: SimpleContext<string>) {
+            return function _appendNameStart(node: ast.AstItem, ctx: SimpleContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "START " + node.name + "\n";
                 return ctx;
             }
         }
 
         export function appendNameEnd(indent: boolean = true) {
-            return function _appendNameEnd(node: ast.Node, ctx: SimpleContext<string>) {
+            return function _appendNameEnd(node: ast.AstItem, ctx: SimpleContext<string>) {
                 ctx.output += (indent ? " ".repeat(ctx.depth) : "") + "END " + node.name + "\n";
                 return ctx;
             }

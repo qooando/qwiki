@@ -2,6 +2,7 @@ import {render} from "../render.js"
 import {ast} from "../ast.js";
 import {grammar} from "../grammar.js"
 import {lexicon} from "../lexicon.js";
+import {Vertex} from "../util/Graph";
 
 let enableIfIsCode = (ctx: lexicon.LexerContext) => ctx.captureCode
 let enableIfIsNotCode = (ctx: lexicon.LexerContext) => !ctx.captureCode
@@ -71,8 +72,8 @@ export let grammarRules: grammar.Grammar = [
     ["value", "variable | constant"],
     ["assign_from", "left_operand FROM expression"],
 
-    ["variable", "REFERENCE IDENTIFIER", (ctx): ast.Node => {
-        return {name: ctx.node.name, children: [], content: ctx.node.children[1].content}
+    ["variable", "REFERENCE IDENTIFIER", (ctx): Vertex | Vertex[] => {
+        return {name: ctx.data.name, data: {content: ctx.data.children[1].content}, in: new Map(), out: new Map()}
     }],
     ["constant", "CONTENT | STRING | NUMBER | boolean | NULL"],
     ["boolean", "TRUE | FALSE"],

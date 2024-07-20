@@ -9,7 +9,7 @@ export namespace grammar {
         name: string;
         term: string;
         children?: Node[]
-        nodeFactory?: ast.NodeFactoryFun
+        nodeFactory?: ast.AstVertexFactoryFun
     }
 
     // export interface Reference {
@@ -35,25 +35,28 @@ export namespace grammar {
     // export let isArrayOfParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && isParsingRuleAsTuple(x[0]);
     // export type Grammar = GrammarRule[] | GrammarRuleAsTuple[] | string[][];
 
-    export type GrammarRule = [string, string] | [string, string, ast.NodeFactoryFun];
+    export type GrammarRule = [string, string] | [string, string, ast.AstVertexFactoryFun];
     export type Grammar = GrammarRule[];
 
     export type GrammarRuleVertexData = {
         isTerminal: boolean,
-        expectedTerm?: string,
-        expectedVertexName?: string,
         isGroupStart?: boolean,
         isGroupEnd?: boolean,
+        isRuleStart?: boolean,
+        isRuleEnd?: boolean,
+        isRuleReference?: boolean,
+
+        expectedTerm?: string,
+        expectedVertexName?: string,
         groupStartVertexName?: string,
         groupEndVertexName?: string,
-
         ruleName?: string,
-        nodeFactory?: ast.NodeFactoryFun,
+        astVertexFactoryFun?: ast.AstVertexFactoryFun,
     }
 
     export class GrammarParser {
         graph: Graph;
-        rawRules: Map<string, { consequents: string, nodeFactory?: ast.NodeFactoryFun }>;
+        rawRules: Map<string, { consequents: string, nodeFactory?: ast.AstVertexFactoryFun }>;
         startRule: string;
         // grammar: Map<string, GrammarRule>;
         // startRule: GrammarRule;
@@ -72,6 +75,8 @@ export namespace grammar {
                     ruleEndVertexName = `${ruleName}_END`,
                     startVertexData: GrammarRuleVertexData = {
                         isTerminal: true,
+                        isRuleStart: true,
+                        isRuleEnd: false,
                         ruleName: ruleName,
                         isGroupStart: true,
                         groupStartVertexName: ruleStartVertexName,
@@ -80,8 +85,10 @@ export namespace grammar {
                     endVertexData: GrammarRuleVertexData = {
                         isTerminal: true,
                         ruleName: ruleName,
-                        nodeFactory: nodeFactory,
-                        isGroupEnd: true
+                        astVertexFactoryFun: nodeFactory,
+                        isGroupEnd: true,
+                        isRuleStart: false,
+                        isRuleEnd: true,
                     };
 
                 g.upsertVertex(ruleStartVertexName, startVertexData);
@@ -193,9 +200,10 @@ export namespace grammar {
                                     vertexData: GrammarRuleVertexData = {
                                         expectedTerm: token,
                                         expectedVertexName: isTerminal ? null : `${token}_START`,
+                                        isTerminal: isTerminal,
+                                        isRuleReference: !isTerminal,
                                         isGroupStart: token.startsWith("_START"),
                                         isGroupEnd: token.endsWith("_END"),
-                                        isTerminal: isTerminal
                                     };
                                 g.upsertVertex(currentVertexName, vertexData);
                                 previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentVertexName));

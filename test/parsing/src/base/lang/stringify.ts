@@ -5,7 +5,7 @@ export let stringifyLang = render.renderer(
     [["*", render.visitor.appendName(), null]]
 );
 
-export function stringify(_ast: ast.Node) {
+export function stringify(_ast: ast.AstItem) {
     let out: render.context.SimpleContext<string> = stringifyLang.render(_ast, {
         output: ""
     });
