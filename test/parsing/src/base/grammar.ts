@@ -68,13 +68,13 @@ export namespace grammar {
             // first rule
             this.startRule = rules[0][0];
             this.rawRules = new Map(rules.map(x => [x[0], {consequents: x[1], nodeFactory: x[2]}]));
-            this.startVertexName = `${this.startRule}_START`;
+            this.startVertexName = `${this.startRule}_$START`;
 
             // populate graph
             for (const [ruleName, consequents, nodeFactory] of rules) {
                 // first rule is the starting rule
-                const ruleStartVertexName = `${ruleName}_START`,
-                    ruleEndVertexName = `${ruleName}_END`,
+                const ruleStartVertexName = `${ruleName}_$START`,
+                    ruleEndVertexName = `${ruleName}_$END`,
                     startVertexData: GrammarRuleVertexData = {
                         isTerminal: true,
                         isRuleStart: true,
@@ -112,8 +112,8 @@ export namespace grammar {
                     let currentGroup = groups[groups.length - 1];
                     switch (token) {
                         case "(": {// group
-                            const groupStartVertexName = `${ruleName}_(_${index}_START`,
-                                groupEndVertexName = `${ruleName}_)_${index}_END`,
+                            const groupStartVertexName = `${ruleName}_(_${index}_$START`,
+                                groupEndVertexName = `${ruleName}_)_${index}_$END`,
                                 vertexData: GrammarRuleVertexData = {
                                     isTerminal: true,
                                     isGroupStart: true,
@@ -201,11 +201,11 @@ export namespace grammar {
                                     isTerminal = !this.rawRules.has(token),
                                     vertexData: GrammarRuleVertexData = {
                                         expectedTerm: token,
-                                        expectedVertexName: isTerminal ? null : `${token}_START`,
+                                        expectedVertexName: isTerminal ? null : `${token}_$START`,
                                         isTerminal: isTerminal,
                                         isRuleReference: !isTerminal,
-                                        isGroupStart: token.startsWith("_START"),
-                                        isGroupEnd: token.endsWith("_END"),
+                                        isGroupStart: token.startsWith("_$START"),
+                                        isGroupEnd: token.endsWith("_$END"),
                                     };
                                 g.upsertVertex(currentVertexName, vertexData);
                                 previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentVertexName));

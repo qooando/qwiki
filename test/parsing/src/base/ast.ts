@@ -63,9 +63,12 @@ export namespace ast {
 
             type WalkContext = {
                 id: number,
+                nesting: number,
                 astItem: AstItem,
                 grammarVertex: Vertex,
-                returnContext: WalkContext,
+                returnContext: {
+                    ctx: WalkContext
+                }
             }
 
             const termsToParse: iterators.BufferedIterator<lexicon.Term> = iterators.buffered(this.tokenizer.tokenize(raw));
@@ -79,16 +82,17 @@ export namespace ast {
 
             let nextIndex = 0;
 
-            let currentWalkHighPriorityQueue: WalkContext[] = [{
+            let toVisitH: WalkContext[] = [{ // currentWalkHighPriorityQueue
                 id: nextIndex++,
+                nesting: 0,
                 astItem: rootItem,
                 grammarVertex: grammarGraph.getVertex(this.grammar.startVertexName),
                 returnContext: null,
             }];
-            let currentWalkLowPriorityQueue: WalkContext[] = []; // contains END symbols
+            let toVisitL: WalkContext[] = []; // contains END symbols // currentWalkLowPriorityQueue
 
-            let nextWalkHighPriorityQueue: WalkContext[] = [];
-            let nextWalkLowPriorityQueue: WalkContext[] = [];
+            let nextToVisitH: WalkContext[] = []; // nextWalkHighPriorityQueue
+            let nextToVisitL: WalkContext[] = []; // nextWalkLowPriorityQueue
 
             let termIterator: IteratorResult<lexicon.Term> = null;
 
@@ -103,8 +107,15 @@ export namespace ast {
                     console.debug(`Parse term: ${currentTerm.term}`);
                 }
 
-                while (currentWalkHighPriorityQueue.length || currentWalkLowPriorityQueue.length) {
-                    let ctx: WalkContext = currentWalkHighPriorityQueue.shift() || currentWalkLowPriorityQueue.shift(),
+                while (toVisitH.length || toVisitL.length) {
+                    if (this.debugAll) {
+                        console.debug(
+                            " " +
+                            [...toVisitH, ...toVisitL].map(x => `(${x.id} ${x.grammarVertex.name})`).join(" ")
+                        );
+                    }
+
+                    let ctx: WalkContext = toVisitH.shift() || toVisitL.shift(),
                         grammarVertex: Vertex = ctx.grammarVertex,
                         grammarData: grammar.GrammarRuleVertexData = grammarVertex.data;
 
@@ -112,12 +123,21 @@ export namespace ast {
                         const stepType =
                             grammarData.isRuleStart ? "RULE_START" :
                                 grammarData.isRuleEnd ? "RULE_END" :
-                                    grammarData.isGroupStart ? "GROUP_START" :
-                                        grammarData.isGroupEnd ? "GROUP_END" :
-                                            grammarData.isRuleReference ? "RULE_REF" :
-                                                grammarData.isTerminal ? "TERMINAL" : "UNKNOWN";
-                        console.debug(`Parser step (${ctx.id}): ${stepType.padEnd(11)} parent=${ctx.astItem.name}, ` +
-                            `returnCtx=(${ctx.returnContext?.id ?? ""}), grammar=${ctx.grammarVertex.name}`);
+                                    grammarData.isRuleReference ? "RULE_REF" :
+                                        grammarData.isGroupStart ? "GROUP_START" :
+                                            grammarData.isGroupEnd ? "GROUP_END" :
+                                                grammarData.isTerminal ? "TERMINAL" :
+                                                    "UNKNOWN";
+                        /*if (this.debugAll) {
+                            console.debug(`Parser step (${ctx.id}): ${stepType.padEnd(11)} ${ctx.grammarVertex.name.padEnd(30)}` +
+                                ` parent=${ctx.astItem.name},` +
+                                ` returnCtx=(${ctx.returnContext[0].id ?? ""})`);
+                        } else */
+                        if (stepType === "TERMINAL") {
+                            console.debug(" ".repeat(ctx.nesting) + `(${ctx.id}) ${ctx.astItem.originGrammarVertex.data.ruleName}/${ctx.grammarVertex.name.padEnd(30)}`);
+                        } else if (stepType === "RULE_START") {
+                            console.debug(" ".repeat(ctx.nesting) + `(${ctx.id}) ${ctx.grammarVertex?.data?.ruleName ?? "ROOT"}`);
+                        }
                     }
 
                     if (grammarData.isRuleStart) {
@@ -135,14 +155,15 @@ export namespace ast {
                             astVertexFactoryFun: grammarData.astVertexFactoryFun,
                         }
 
-                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                        for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
                             (childGrammarEdge.to.data.isRuleEnd ?
-                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
-                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
+                                toVisitL.unshift.bind(toVisitL) :
+                                toVisitH.unshift.bind(toVisitH))({
                                 id: nextIndex++,
+                                nesting: ctx.nesting + 1,
                                 astItem: newAstItem,
                                 grammarVertex: childGrammarEdge.to,
-                                returnContext: ctx.returnContext,
+                                returnContext: ctx.returnContext
                             });
                         }
 
@@ -164,21 +185,22 @@ export namespace ast {
                             console.warn(`Parser, no return context for step (${ctx.id})`)
                             break;
                         }
-                        ctx = ctx.returnContext;
+                        ctx = ctx.returnContext.ctx;
                         grammarVertex = ctx.grammarVertex;
                         if (grammarVertex.name === "__ROOT__") {
                             // FIXME
                         }
                         grammarData = grammarVertex.data;
 
-                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                        for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
                             (childGrammarEdge.to.data.isRuleEnd ?
-                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
-                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
+                                toVisitL.unshift.bind(toVisitL) :
+                                toVisitH.unshift.bind(toVisitH))({
                                 id: nextIndex++,
+                                nesting: ctx.nesting,
                                 astItem: ctx.astItem,
                                 grammarVertex: childGrammarEdge.to,
-                                returnContext: ctx.returnContext,
+                                returnContext: ctx.returnContext
                             });
                         }
 
@@ -186,14 +208,15 @@ export namespace ast {
                         /*
                          this is a group start, just expand children contexts in current stack
                          */
-                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                        for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
                             (childGrammarEdge.to.data.isRuleEnd ?
-                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
-                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
+                                toVisitL.unshift.bind(toVisitL) :
+                                toVisitH.unshift.bind(toVisitH))({
                                 id: nextIndex++,
+                                nesting: ctx.nesting + 1,
                                 astItem: ctx.astItem,
                                 grammarVertex: childGrammarEdge.to,
-                                returnContext: ctx.returnContext,
+                                returnContext: ctx.returnContext
                             });
                         }
 
@@ -201,14 +224,15 @@ export namespace ast {
                         /*
                          this is a group end, just expand children contexts in current stack
                          */
-                        for (const childGrammarEdge of grammarVertex.out.values()) {
+                        for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
                             (childGrammarEdge.to.data.isRuleEnd ?
-                                currentWalkLowPriorityQueue.unshift.bind(currentWalkLowPriorityQueue) :
-                                currentWalkHighPriorityQueue.push.bind(currentWalkHighPriorityQueue))({
+                                toVisitL.unshift.bind(toVisitL) :
+                                toVisitH.unshift.bind(toVisitH))({
                                 id: nextIndex++,
+                                nesting: ctx.nesting - 1,
                                 astItem: ctx.astItem,
                                 grammarVertex: childGrammarEdge.to,
-                                returnContext: ctx.returnContext,
+                                returnContext: ctx.returnContext
                             });
                         }
 
@@ -222,11 +246,14 @@ export namespace ast {
                         if (!nextGrammarVertex) {
                             throw new Error(`Vertex not found: ${grammarData.expectedVertexName}`);
                         }
-                        currentWalkHighPriorityQueue.push({
+                        toVisitH.unshift({
                             id: nextIndex++,
+                            nesting: ctx.nesting,
                             astItem: ctx.astItem,
                             grammarVertex: nextGrammarVertex,
-                            returnContext: ctx
+                            returnContext: {
+                                ctx: ctx
+                            }
                         })
 
                     } else if (grammarData.isTerminal) {
@@ -252,11 +279,12 @@ export namespace ast {
 
                             ctx.astItem.children.push(leafAstItem);
 
-                            for (const childGrammarEdge of grammarVertex.out.values()) {
+                            for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
                                 (childGrammarEdge.to.data.isRuleEnd ?
-                                    nextWalkLowPriorityQueue.unshift.bind(nextWalkLowPriorityQueue) :
-                                    nextWalkHighPriorityQueue.push.bind(nextWalkHighPriorityQueue))({
+                                    nextToVisitL.unshift.bind(nextToVisitL) :
+                                    nextToVisitH.unshift.bind(nextToVisitH))({
                                     id: nextIndex++,
+                                    nesting: ctx.nesting,
                                     astItem: ctx.astItem,
                                     grammarVertex: childGrammarEdge.to,
                                     returnContext: ctx.returnContext,
@@ -282,10 +310,10 @@ export namespace ast {
                     break;
                 }
 
-                currentWalkHighPriorityQueue = nextWalkHighPriorityQueue;
-                nextWalkHighPriorityQueue = [];
-                currentWalkLowPriorityQueue = nextWalkLowPriorityQueue;
-                nextWalkLowPriorityQueue = [];
+                toVisitH = nextToVisitH;
+                nextToVisitH = [];
+                toVisitL = nextToVisitL;
+                nextToVisitL = [];
             }
 
             const outputGraph = new AstGraph();
