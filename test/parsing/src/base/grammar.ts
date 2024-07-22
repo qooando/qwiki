@@ -42,7 +42,7 @@ export namespace grammar {
         }
         from.forEach(f => {
             if (f.childOnSuccess) {
-                throw new Error(`${f.id} &→ ${f.childOnSuccess.id}. Cannot substitute child with ${to.id}`)
+                throw new Error(`${f.id} &→ ${f.childOnSuccess?.id}. Cannot substitute child with ${to.id}`)
             }
             f.childOnSuccess = to;
             to.parentsFromSuccess ??= [];
@@ -58,7 +58,7 @@ export namespace grammar {
         }
         from.forEach(f => {
             if (f.childOnFail) {
-                throw new Error(`${f.id} |→ ${f.childOnSuccess.id}. Cannot substitute child with ${to.id}`)
+                throw new Error(`${f.id} |→ ${f.childOnFail?.id}. Cannot substitute child with ${to.id}`)
             }
             f.childOnFail = to
             to.parentsFromFail ??= [];
@@ -275,10 +275,18 @@ export namespace grammar {
                                 // for each parent we want to add its FAIL condition to parentsOnFailContinue
                                 if (p.nodeType === GrammarNodeType.GROUP_END) {
                                     // for groups, just link the groupFailNode
-                                    toLinkOnContinueAfterFail.push(p.groupFailNode);
+                                    toLinkOnSuccess.push(p.groupFailNode);
+                                    let k = currentContext.toLinkOnFail.indexOf(p.groupFailNode);
+                                    if (k >= 0) {
+                                        currentContext.toLinkOnFail.splice(k, 1);
+                                    }
                                 } else {
                                     // for normal nodes, link the node itself on fail
                                     toLinkOnContinueAfterFail.push(p);
+                                    let k = currentContext.toLinkOnFail.indexOf(p);
+                                    if (k >= 0) {
+                                        currentContext.toLinkOnFail.splice(k, 1);
+                                    }
                                 }
 
                             }
@@ -289,20 +297,27 @@ export namespace grammar {
                             // repeat on success
                             // continue on fail
                             if (toLinkOnSuccess.length !== 1) {
-                                throw new Error(`too much parents for repetition`)
+                                throw new Error(`Too much parents for repetition`)
                             }
-                            for (const p of toLinkOnSuccess) {
-                                // for each parent we want to add its FAIL condition to parentsOnFailContinue
-                                if (p.nodeType === GrammarNodeType.GROUP_END) {
-                                    // for groups, just link the groupFailNode
-                                    linkOnSuccess(p, p.groupStartNode);
-                                    toLinkOnContinueAfterFail.push(p.groupFailNode);
-                                } else {
-                                    // for normal nodes, link the node itself on fail
-                                    linkOnSuccess(p, p);
-                                    toLinkOnContinueAfterFail.push(p);
+                            const p = toLinkOnSuccess[0];
+                            toLinkOnSuccess = [];
+                            // for each parent we want to add its FAIL condition to parentsOnFailContinue
+                            if (p.nodeType === GrammarNodeType.GROUP_END) {
+                                // for groups, just link the groupFailNode
+                                linkOnSuccess(p, p.groupStartNode);
+                                toLinkOnSuccess.push(p.groupFailNode);
+                                let k = currentContext.toLinkOnFail.indexOf(p.groupFailNode);
+                                if (k >= 0) {
+                                    currentContext.toLinkOnFail.splice(k, 1);
                                 }
-
+                            } else {
+                                // for normal nodes, link the node itself on fail
+                                linkOnSuccess(p, p);
+                                toLinkOnContinueAfterFail.push(p);
+                                let k = currentContext.toLinkOnFail.indexOf(p);
+                                if (k >= 0) {
+                                    currentContext.toLinkOnFail.splice(k, 1);
+                                }
                             }
                             break;
                         }

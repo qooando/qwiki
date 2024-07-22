@@ -25,9 +25,10 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 
 console.log("\nGRAMMAR")
 for (let node of templateParser.grammar.nodes.values()) {
-    console.log(` ${node.id} ` +
-        (node.childOnSuccess ? ` &→ ${node.childOnSuccess.id}` : "") +
-        (node.childOnFail ? ` |→ ${node.childOnFail.id}` : ""));
+    const padding = 35;
+    console.log(` ${node.id.padEnd(padding)} ` +
+        (node.childOnSuccess ? ` &→ ${node.childOnSuccess.id.padEnd(padding)}` : "") +
+        (node.childOnFail ? ` |→ ${node.childOnFail.id.padEnd(padding)}` : ""));
 }
 
 console.log("\nABSTRACT SYNTAX TREE")
