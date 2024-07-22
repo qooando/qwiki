@@ -24,9 +24,10 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 // console.log([..._parser.tokenizer.tokenize(content)]);
 
 console.log("\nGRAMMAR")
-for(let node of templateParser.grammar.nodes.values()) {
-    let andChildren = (node.children ?? []).map(c => c.id).join(", ");
-    console.log(` ${node.id} ` + (andChildren.length ? ` &→ ${andChildren} `: "") + (node.sibling ? ` |→ ${node.sibling.id}` : ""));
+for (let node of templateParser.grammar.nodes.values()) {
+    console.log(` ${node.id} ` +
+        (node.childOnSuccess ? ` &→ ${node.childOnSuccess.id}` : "") +
+        (node.childOnFail ? ` |→ ${node.childOnFail.id}` : ""));
 }
 
 console.log("\nABSTRACT SYNTAX TREE")

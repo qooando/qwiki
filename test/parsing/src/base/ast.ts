@@ -46,7 +46,7 @@ export namespace ast {
                 _tokenizer = lexicon.lexer(_tokenizer);
             }
             if (Array.isArray(_grammar)) {
-                _grammar = grammar.parser(_grammar);
+                _grammar = grammar.parser(_grammar, {debug: this.debug});
             }
             this.tokenizer = _tokenizer as lexicon.Lexer;
             this.grammar = _grammar as grammar.GrammarParser;
@@ -327,9 +327,7 @@ export namespace ast {
 
     export function parser(_tokenizer: lexicon.Lexer | lexicon.Lexicon,
                            _grammar: grammar.GrammarParser | grammar.Grammar,
-                           options
-                               :
-                               ParserOptions = undefined
+                           options: ParserOptions = undefined
     ) {
         return new Parser(_tokenizer, _grammar, options);
     }
