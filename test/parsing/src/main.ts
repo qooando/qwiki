@@ -24,11 +24,14 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 // console.log([..._parser.tokenizer.tokenize(content)]);
 
 console.log("\nGRAMMAR")
-console.log(JSON.stringify([...templateParser.grammar.graph.vertices.entries()].map(x => x[1].toString()), null, 2));
+for(let node of templateParser.grammar.nodes.values()) {
+    let andChildren = (node.children ?? []).map(c => c.id).join(", ");
+    console.log(` ${node.id} ` + (andChildren.length ? ` &→ ${andChildren} `: "") + (node.sibling ? ` |→ ${node.sibling.id}` : ""));
+}
 
 console.log("\nABSTRACT SYNTAX TREE")
 
-let _ast = templateParser.parse(content);
+// let _ast = templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 

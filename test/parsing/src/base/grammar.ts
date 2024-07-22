@@ -3,213 +3,262 @@ import {Graph, Vertex} from "./util/Graph.js";
 
 export namespace grammar {
 
-    import nodeFactory = ast.nodeFactory;
+    const SUFFIX_BEGIN = "_$BEGIN",
+        SUFFIX_END = "_$END",
+        SUFFIX_FAIL = "_$FAIL";
 
-    export interface Node {
-        name: string;
-        term: string;
-        children?: Node[]
-        nodeFactory?: ast.AstVertexFactoryFun
+    export enum GrammarNodeType {
+        TERMINAL,
+        RULE_START,
+        RULE_END,
+        RULE_FAIL,
+        RULE_REFERENCE,
+        GROUP_START,
+        GROUP_END,
+        GROUP_FAIL
     }
 
-    // export interface Reference {
-    //     name: string;
-    //     modifier?: "?" | "+" | "*";
-    // }
-    //
-    // export interface Group {
-    //     symbols: Symbol[];
-    //     operator: "or" | "and";
-    //     modifier?: "?" | "+" | "*";
-    // }
-    //
-    // export type Symbol = Reference | Group;
-    // export let isSymbolGroup = (x: any) => x && "operator" in x;
-    // export let isSymbolReference = (x: any) => x && "name" in x;
-    // export type GrammarRule = [string,]
-    //
-    // export let isGrammarRule = (x: any) => x && "from" in x && "to" in x && "nodeFactory" in x;
-    // export let isArrayOfParsingRule = (x: any) => x && Array.isArray(x) && isGrammarRule(x[0]);
-    // export type GrammarRuleAsTuple = ([string, string] | [string, string, ast.NodeFactoryFun] | [string, string, ast.NodeFactoryFun]);
-    // export let isParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && x.length >= 2 && x.length <= 3;
-    // export let isArrayOfParsingRuleAsTuple = (x: any) => x && Array.isArray(x) && isParsingRuleAsTuple(x[0]);
-    // export type Grammar = GrammarRule[] | GrammarRuleAsTuple[] | string[][];
+    export interface GrammarNode {
+        id: string;
+        nodeType: GrammarNodeType
+        parents?: GrammarNode[]
+        children?: GrammarNode[]    // children of this node
+        sibling?: GrammarNode       // children of the same parent THEY ARE IN OR
+        astNodeFactoryFun?: ast.AstNodeFactoryFun
 
-    export type GrammarRule = [string, string] | [string, string, ast.AstVertexFactoryFun];
+        ruleName?: string,
+        expectedTerm?: string,
+        expectedNodeName?: string,
+        groupStartNode?: GrammarNode,
+        groupEndNode?: GrammarNode,
+        groupFailNode?: GrammarNode,
+        astVertexFactoryFun?: ast.AstNodeFactoryFun
+    }
+
+    export function linkChild(from: GrammarNode | GrammarNode[], to: GrammarNode) {
+        if (!Array.isArray(from)) {
+            from = [from];
+        }
+        from.forEach(f => {
+            f.children ??= [];
+            f.children.push(to);
+            to.parents ??= [];
+            to.parents.push(f);
+        })
+    }
+
+    export function linkSibling(from: GrammarNode | GrammarNode[], to: GrammarNode) {
+        if (!Array.isArray(from)) {
+            from = [from];
+        }
+        from.forEach(f => f.sibling = to);
+    }
+
+    export type GrammarRule = [string, string] | [string, string, ast.AstNodeFactoryFun];
     export type Grammar = GrammarRule[];
 
-    export type GrammarRuleVertexData = {
-        isTerminal: boolean,
-        isGroupStart?: boolean,
-        isGroupEnd?: boolean,
-        isRuleStart?: boolean,
-        isRuleEnd?: boolean,
-        isRuleReference?: boolean,
-
-        expectedTerm?: string,
-        expectedVertexName?: string,
-        groupStartVertexName?: string,
-        groupEndVertexName?: string,
-        ruleName?: string,
-        astVertexFactoryFun?: ast.AstVertexFactoryFun,
-    }
-
     export class GrammarParser {
-        graph: Graph;
-        startVertexName: string;
-        rawRules: Map<string, { consequents: string, nodeFactory?: ast.AstVertexFactoryFun }>;
-        startRule: string;
-        // grammar: Map<string, GrammarRule>;
-        // startRule: GrammarRule;
+        nodes: Map<string, GrammarNode>;
+        startNode: GrammarNode;
+
+        rawRules: Map<string, { consequents: string, nodeFactory?: ast.AstNodeFactoryFun }>;
+        rawStartRule: string;
 
         constructor(rules: Grammar) {
-            let g = this.graph = new Graph();
-
             // first rule
-            this.startRule = rules[0][0];
+            this.rawStartRule = rules[0][0];
             this.rawRules = new Map(rules.map(x => [x[0], {consequents: x[1], nodeFactory: x[2]}]));
-            this.startVertexName = `${this.startRule}_$START`;
+            this.nodes = new Map();
+
+            type SaveContext = {
+                groupStartNode: GrammarNode,
+                orParents: GrammarNode[]
+            }
 
             // populate graph
             for (const [ruleName, consequents, nodeFactory] of rules) {
                 // first rule is the starting rule
-                const ruleStartVertexName = `${ruleName}_$START`,
-                    ruleEndVertexName = `${ruleName}_$END`,
-                    startVertexData: GrammarRuleVertexData = {
-                        isTerminal: true,
-                        isRuleStart: true,
-                        isRuleEnd: false,
+                const ruleStartId = `${ruleName}${SUFFIX_BEGIN}`,
+                    ruleEndId = `${ruleName}${SUFFIX_END}`,
+                    ruleFailId = `${ruleName}${SUFFIX_FAIL}`,
+                    ruleStartNode: GrammarNode = {
+                        id: ruleStartId,
+                        nodeType: GrammarNodeType.RULE_START,
                         ruleName: ruleName,
-                        isGroupStart: true,
-                        groupStartVertexName: ruleStartVertexName,
-                        groupEndVertexName: ruleEndVertexName
+                        astNodeFactoryFun: nodeFactory
                     },
-                    endVertexData: GrammarRuleVertexData = {
-                        isTerminal: true,
+                    ruleEndNode: GrammarNode = {
+                        id: ruleEndId,
+                        nodeType: GrammarNodeType.RULE_END,
                         ruleName: ruleName,
-                        astVertexFactoryFun: nodeFactory,
-                        isGroupEnd: true,
-                        isRuleStart: false,
-                        isRuleEnd: true,
+                        astNodeFactoryFun: nodeFactory
+                    },
+                    ruleFailNode: GrammarNode = {
+                        id: ruleFailId,
+                        nodeType: GrammarNodeType.RULE_FAIL,
+                        ruleName: ruleName,
+                        astNodeFactoryFun: nodeFactory
                     };
-
-                g.upsertVertex(ruleStartVertexName, startVertexData);
-                g.upsertVertex(ruleEndVertexName, endVertexData);
+                ruleStartNode.groupStartNode = ruleEndNode.groupStartNode = ruleFailNode.groupStartNode = ruleStartNode;
+                ruleStartNode.groupEndNode = ruleEndNode.groupEndNode = ruleFailNode.groupEndNode = ruleEndNode;
+                ruleStartNode.groupFailNode = ruleEndNode.groupFailNode = ruleFailNode.groupFailNode = ruleFailNode;
+                this.addNode(ruleStartNode, ruleEndNode, ruleFailNode);
 
                 let tokens = [
-                    ruleStartVertexName,
+                    ruleStartId,
                     ...consequents.split(/\s+|(?=[()*+?|])/).filter(x => !/^\s*$/.test(x)),
-                    ruleEndVertexName
+                    ruleEndId
                 ];
-                let previousVertexNames: string[] = []
-                let groups: GrammarRuleVertexData[] = [startVertexData];
-                let lastClosedGroup: GrammarRuleVertexData = null;
+                let andParents: GrammarNode[] = [] // parents
+
+                let savedContexts: SaveContext[] = [{
+                    groupStartNode: ruleStartNode,
+                    orParents: []
+                }];
 
                 tokens.forEach((token, index) => {
                     if (!token) {
                         return;
                     }
-                    let currentGroup = groups[groups.length - 1];
+                    let parentContext = savedContexts[0];
+                    let parentGroupStartNode = parentContext.groupStartNode;
+                    let orParents = parentContext.orParents;
+
                     switch (token) {
-                        case "(": {// group
-                            const groupStartVertexName = `${ruleName}_(_${index}_$START`,
-                                groupEndVertexName = `${ruleName}_)_${index}_$END`,
-                                vertexData: GrammarRuleVertexData = {
-                                    isTerminal: true,
-                                    isGroupStart: true,
-                                    isGroupEnd: false,
-                                    groupStartVertexName: groupStartVertexName,
-                                    groupEndVertexName: groupEndVertexName
+                        case "(": { // group
+                            const groupStartId = `${ruleName}_(_${index}${SUFFIX_BEGIN}`,
+                                groupEndId = `${ruleName}_)_${index}${SUFFIX_END}`,
+                                groupFailId = `${ruleName}_)_${index}${SUFFIX_FAIL}`,
+                                groupStartNode: GrammarNode = {
+                                    id: groupStartId,
+                                    nodeType: GrammarNodeType.GROUP_START,
+                                    ruleName: ruleName,
+                                },
+                                groupEndNode: GrammarNode = {
+                                    id: groupEndId,
+                                    nodeType: GrammarNodeType.GROUP_END,
+                                    ruleName: ruleName,
+                                },
+                                groupFailNode: GrammarNode = {
+                                    id: groupFailId,
+                                    nodeType: GrammarNodeType.GROUP_FAIL,
+                                    ruleName: ruleName,
                                 };
-                            g.upsertVertex(groupStartVertexName, vertexData);
-                            previousVertexNames.forEach(n => g.upsertDirectedEdge(n, groupStartVertexName));
-                            groups.push(vertexData);
-                            previousVertexNames = [groupStartVertexName];
+                            groupStartNode.groupStartNode = groupEndNode.groupStartNode = groupFailNode.groupStartNode = groupStartNode;
+                            groupStartNode.groupEndNode = groupEndNode.groupEndNode = groupFailNode.groupEndNode = groupEndNode;
+                            groupStartNode.groupFailNode = groupEndNode.groupFailNode = groupFailNode.groupFailNode = groupFailNode;
+
+                            this.addNode(groupStartNode, groupEndNode, groupFailNode);
+                            linkChild(andParents, groupStartNode);
+                            savedContexts.push({
+                                groupStartNode: groupStartNode,
+                                orParents: []
+                            });
+                            andParents = [groupStartNode];
                             break;
                         }
                         case ")": {
-                            const group = groups.pop(),
-                                groupEndVertexName = group.groupEndVertexName,
-                                vertexData: GrammarRuleVertexData = {
-                                    isTerminal: true,
-                                    isGroupStart: false,
-                                    isGroupEnd: true,
-                                    groupEndVertexName: groupEndVertexName
-                                };
-                            lastClosedGroup = group;
-                            g.upsertVertex(groupEndVertexName, vertexData);
-                            previousVertexNames.forEach(n => g.upsertDirectedEdge(n, groupEndVertexName));
-                            previousVertexNames = [groupEndVertexName];
+                            let groupEndNode = parentGroupStartNode.groupEndNode,
+                                groupFailNode = parentGroupStartNode.groupFailNode;
+                            linkChild(andParents, groupEndNode);
+                            linkSibling(orParents, groupFailNode);
+                            andParents = [groupEndNode];
+                            savedContexts.shift();
+                            savedContexts[0].orParents.push(groupFailNode);
                             break;
                         }
-                        case "|": { // or
-                            // current group of symbols from ( to | or from | to | is a group
-                            // we need to link it to the group end and restart the group from the beginning
-                            previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentGroup.groupEndVertexName));
-                            previousVertexNames = [currentGroup.groupStartVertexName];
+                        case "|": {
+                            const groupStartId = `${ruleName}_|_${index}${SUFFIX_BEGIN}`,
+                                groupEndNode: GrammarNode = parentGroupStartNode.groupEndNode,
+                                groupFailNode: GrammarNode = parentGroupStartNode.groupFailNode,
+                                groupStartNode: GrammarNode = {
+                                    id: groupStartId,
+                                    nodeType: GrammarNodeType.GROUP_START,
+                                    ruleName: ruleName,
+                                    groupEndNode: groupEndNode,
+                                    groupFailNode: groupFailNode
+                                };
+                            groupStartNode.groupStartNode = groupStartNode;
+                            this.addNode(groupStartNode);
+                            linkChild(andParents, groupEndNode);
+                            linkSibling(orParents, groupStartNode);
+                            savedContexts.shift() // remove previous saved context (the previous group in the same parent group)
+                            savedContexts.unshift({
+                                groupStartNode: groupStartNode,
+                                orParents: []
+                            });
+                            andParents = [groupStartNode];
                             break;
                         }
                         case "?": {
                             // next node should connect to previous node and its antecedents
-                            let previousPreviousVertexNames = previousVertexNames.flatMap(n => {
-                                if (lastClosedGroup?.groupEndVertexName === n) {
-                                    return [...g.getVertex(lastClosedGroup.groupStartVertexName).in.keys()]
+                            let grandparentNodes = andParents.flatMap(p => {
+                                if (p.nodeType === GrammarNodeType.GROUP_END) {
+                                    return p.groupStartNode.parents.slice();
                                 } else {
-                                    return [...g.getVertex(n).in.keys()]
+                                    return p.parents.slice();
                                 }
                             });
                             // FIXME make them unique
-                            previousVertexNames = [...previousPreviousVertexNames, ...previousVertexNames];
+                            andParents = [...grandparentNodes, ...andParents];
                             break;
                         }
                         case "*": {
                             // loop on itself or group
-                            let previousPreviousVertexNames = previousVertexNames.flatMap(n => {
-                                if (lastClosedGroup?.groupEndVertexName === n) {
-                                    g.upsertDirectedEdge(n, lastClosedGroup.groupStartVertexName);
-                                    return [...g.getVertex(lastClosedGroup.groupStartVertexName).in.keys()]
+                            // next node should connect to previous node and its antecedents
+                            let grandparentNodes = andParents.flatMap(p => {
+                                if (p.nodeType === GrammarNodeType.GROUP_END) {
+                                    linkChild(p, p.groupStartNode)
+                                    return p.groupStartNode.parents.slice();
                                 } else {
-                                    g.upsertDirectedEdge(n, n);
-                                    return [...g.getVertex(n).in.keys()]
+                                    linkChild(p, p)
+                                    return p.parents.slice();
                                 }
                             });
-                            // next node should connect to previous node and its antecedents
                             // FIXME make them unique
-                            previousVertexNames = [...previousPreviousVertexNames, ...previousVertexNames];
+                            andParents = [...grandparentNodes, ...andParents];
                             break;
                         }
                         case "+": {
                             // loop on itself
-                            previousVertexNames.forEach(n => {
-                                if (lastClosedGroup?.groupEndVertexName === n) {
-                                    g.upsertDirectedEdge(n, lastClosedGroup.groupStartVertexName);
+                            andParents.forEach(p => {
+                                if (p.nodeType === GrammarNodeType.GROUP_END) {
+                                    linkChild(p, p.groupStartNode);
                                 } else {
-                                    g.upsertDirectedEdge(n, n);
+                                    linkChild(p, p)
                                 }
                             });
                             break;
                         }
                         default: { // and
-                            if (currentGroup.groupStartVertexName === token) {
-                                previousVertexNames.forEach(n => g.upsertDirectedEdge(n, token));
-                                previousVertexNames = [token];
-                            } else if (currentGroup.groupEndVertexName === token) {
-                                previousVertexNames.forEach(n => g.upsertDirectedEdge(n, token));
-                                previousVertexNames = []; // end of this rule
+                            if (parentGroupStartNode.groupStartNode.id === token && parentGroupStartNode.nodeType === GrammarNodeType.RULE_START) { // start rule
+                                const referencedNode = this.nodes.get(token);
+                                linkChild(andParents, referencedNode)
+                                andParents = [referencedNode];
+                            } else if (parentGroupStartNode.groupEndNode.id === token && parentGroupStartNode.nodeType === GrammarNodeType.RULE_END) { // end rule
+                                const referencedNode = this.nodes.get(token);
+                                linkChild(andParents, referencedNode)
+                                linkSibling(orParents, parentGroupStartNode.groupFailNode);
+                                andParents = [];
+                            } else if (parentGroupStartNode.groupFailNode.id === token && parentGroupStartNode.nodeType === GrammarNodeType.RULE_FAIL) { // fail rule
+                                // const referencedNode = this.nodes.get(token);
+                                // linkChild(andParents, referencedNode)
+                                // andParents = [];
                             } else {
-                                const currentVertexName = `${ruleName}_${token}_${index}`,
-                                    isTerminal = !this.rawRules.has(token),
-                                    vertexData: GrammarRuleVertexData = {
-                                        expectedTerm: token,
-                                        expectedVertexName: isTerminal ? null : `${token}_$START`,
-                                        isTerminal: isTerminal,
-                                        isRuleReference: !isTerminal,
-                                        isGroupStart: token.startsWith("_$START"),
-                                        isGroupEnd: token.endsWith("_$END"),
+                                // terminal or rule reference
+                                const newNodeId: string = `${ruleName}_${token}_${index}`,
+                                    newNodeType: GrammarNodeType = this.rawRules.has(token) ? GrammarNodeType.RULE_REFERENCE : GrammarNodeType.TERMINAL,
+                                    newNode: GrammarNode = {
+                                        id: newNodeId,
+                                        nodeType: newNodeType,
+                                        ruleName: ruleName,
+                                        expectedTerm: newNodeType === GrammarNodeType.TERMINAL ? token : null,
+                                        expectedNodeName: newNodeType === GrammarNodeType.TERMINAL ? null : `${token}${SUFFIX_BEGIN}`
                                     };
-                                g.upsertVertex(currentVertexName, vertexData);
-                                previousVertexNames.forEach(n => g.upsertDirectedEdge(n, currentVertexName));
-                                previousVertexNames = [currentVertexName];
+                                linkChild(andParents, newNode)
+                                this.addNode(newNode);
+                                orParents.push(newNode);
+                                andParents = [newNode];
                             }
                         }
                     }
@@ -223,6 +272,24 @@ export namespace grammar {
                 return `${e[0]} := ${e[1].consequents}`
             }).join("\n");
         }
+
+        protected addNode(...nodes: GrammarNode[]) {
+            nodes.forEach(node => {
+                if (!this.startNode) {
+                    this.startNode = node;
+                }
+                this.nodes.set(node.id, node)
+            });
+        }
+
+        protected linkChild(from: GrammarNode | GrammarNode[], to: GrammarNode) {
+            linkChild(from, to);
+        }
+
+        protected linkSibling(from: GrammarNode, to: GrammarNode) {
+            linkSibling(from, to);
+        }
+
     }
 
     export function parser(rules: Grammar) {
