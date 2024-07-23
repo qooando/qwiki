@@ -77,6 +77,7 @@ export let grammarRules: grammar.Grammar = [
     }],
     ["constant", "CONTENT | STRING | NUMBER | boolean | NULL"],
     ["boolean", "TRUE | FALSE"],
+    ["test", "A+ ( B C )+"],
 ];
 // FIXME current implementation is not properly optimized but it is enough simple
 // TODO precompile grammar with optimization, e.g. if a rule does not contain X avoid to visit it at all

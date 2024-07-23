@@ -92,7 +92,8 @@ export namespace grammar {
 
             type SaveContext = {
                 groupStartNode: GrammarNode,
-                toLinkOnFail: GrammarNode[]
+                toLinkOnFail: GrammarNode[],
+                visitedTokens: string[]
             }
 
             // populate graph
@@ -148,8 +149,10 @@ export namespace grammar {
                 //  - a list of parents for an actual FAIL, we link them to the fail node when group is closed
                 let savedContexts: SaveContext[] = [{
                     groupStartNode: ruleStartNode,
-                    toLinkOnFail: []
+                    toLinkOnFail: [],
+                    visitedTokens: []
                 }];
+                let visitedContexts: SaveContext[] = [];
 
                 // visit tokens until exhaustion.
                 let tokenIndex = -1;
@@ -198,7 +201,8 @@ export namespace grammar {
                             // create a new context
                             savedContexts.unshift({
                                 groupStartNode: groupStartNode,
-                                toLinkOnFail: []
+                                toLinkOnFail: [],
+                                visitedTokens: [currentToken]
                             });
                             toLinkOnSuccess = [groupStartNode];
                             toLinkOnContinueAfterFail = [];
@@ -217,10 +221,12 @@ export namespace grammar {
                             toLinkOnSuccess = [groupEndNode];
                             toLinkOnContinueAfterFail = [];
                             // remove the group context from saved contexts
-                            savedContexts.shift();
+                            currentContext.visitedTokens.push(currentToken);
+                            visitedContexts.unshift(savedContexts.shift());
                             // add the groupFailNode in the context parentsOnFail
                             // thus the next context closing connects it to its fail node
                             savedContexts[0].toLinkOnFail.push(groupFailNode);
+                            savedContexts[0].visitedTokens.push(...currentContext.visitedTokens)
                             break;
                         }
                         case "|": {
@@ -257,11 +263,15 @@ export namespace grammar {
                             toLinkOnSuccess = [groupStartNode];
                             toLinkOnContinueAfterFail = [];
                             // remove the previous group context
-                            savedContexts.shift();
+                            visitedContexts.unshift(savedContexts.shift());
+                            if (savedContexts.length) {
+                                savedContexts[0].visitedTokens.push(...currentContext.visitedTokens);
+                            }
                             // create a new context for the new group
                             savedContexts.unshift({
                                 groupStartNode: groupStartNode,
-                                toLinkOnFail: []
+                                toLinkOnFail: [],
+                                visitedTokens: [currentToken]
                             });
                             break;
                         }
@@ -269,6 +279,7 @@ export namespace grammar {
                             if (toLinkOnSuccess.length !== 1) {
                                 throw new Error(`too much parents for optional`)
                             }
+                            currentContext.visitedTokens.push(currentToken);
                             // this is the optional symbol
                             // previous nodes can be matched or not
                             for (const p of toLinkOnSuccess) {
@@ -299,6 +310,7 @@ export namespace grammar {
                             if (toLinkOnSuccess.length !== 1) {
                                 throw new Error(`Too much parents for repetition`)
                             }
+                            currentContext.visitedTokens.push(currentToken);
                             const p = toLinkOnSuccess[0];
                             toLinkOnSuccess = [];
                             // for each parent we want to add its FAIL condition to parentsOnFailContinue
@@ -325,14 +337,16 @@ export namespace grammar {
                             if (toLinkOnSuccess.length !== 1) {
                                 throw new Error(`too much parents for one or more repetitions`)
                             }
-                            // FIXME
-                            // expand in ()* directly in tokens to parse
-
-
+                            const p = toLinkOnSuccess[0];
+                            if (p.nodeType === GrammarNodeType.GROUP_END) {
+                                ruleTokensToVisit.unshift(...visitedContexts[0].visitedTokens, "*")
+                            } else {
+                                ruleTokensToVisit.unshift(currentContext.visitedTokens[currentContext.visitedTokens.length - 1], "*")
+                            }
                             break;
                         }
                         default: { // and
-
+                            currentContext.visitedTokens.push(currentToken);
                             // terminal or rule reference
                             const newNodeId: string = `${ruleName}_${currentToken}_${tokenIndex}`,
                                 newNodeType: GrammarNodeType = this.rawRules.has(currentToken) ? GrammarNodeType.RULE_REFERENCE : GrammarNodeType.TERMINAL,
