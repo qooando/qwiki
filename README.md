@@ -14,3 +14,5 @@ Features I want to implement are:
 - import and export of a lot of formats (
 - frontend
 - live inclusion and transclusion
+
+It is still under heavy development, there is no stable version.
