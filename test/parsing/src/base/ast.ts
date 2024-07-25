@@ -1,10 +1,11 @@
 import {lexicon} from "./lexicon.js";
 import {grammar} from "./grammar.js";
-import {iterators} from "./iterators.js";
 import {Graph, Vertex} from "./util/Graph.js";
+import GrammarNodeType = grammar.GrammarNodeType;
 
 export namespace ast {
 
+    import GrammarNode = grammar.GrammarNode;
     export let AstGraph = Graph;
 
     export interface AstItem {
@@ -55,267 +56,155 @@ export namespace ast {
         parse(raw: string): Graph {
             const self = this;
 
-            // /*
-            //  * we visit in depth, we create AstVertex setting parent
-            //  * but we set children only if there is a match?
-            //  * FIXME we need a better strategy
-            //  */
-            //
-            // type WalkContext = {
-            //     id: number,
-            //     nesting: number,
-            //     astItem: AstItem,
-            //     grammarVertex: Vertex,
-            //     returnContext: {
-            //         ctx: WalkContext
-            //     }
-            // }
-            //
             // const termsToParse: iterators.BufferedIterator<lexicon.Term> = iterators.buffered(this.tokenizer.tokenize(raw));
-            // const grammarGraph = this.grammar.graph;
-            //
-            // const rootItem: AstItem = {
-            //     name: "__ROOT__",
-            //     parent: null,
-            //     children: []
-            // }
-            //
-            // let nextIndex = 0;
-            //
-            // let toVisitH: WalkContext[] = [{ // currentWalkHighPriorityQueue
-            //     id: nextIndex++,
-            //     nesting: 0,
-            //     astItem: rootItem,
-            //     grammarVertex: grammarGraph.getVertex(this.grammar.startVertexName),
-            //     returnContext: null,
-            // }];
-            // let toVisitL: WalkContext[] = []; // contains END symbols // currentWalkLowPriorityQueue
-            //
-            // let nextToVisitH: WalkContext[] = []; // nextWalkHighPriorityQueue
-            // let nextToVisitL: WalkContext[] = []; // nextWalkLowPriorityQueue
-            //
-            // let termIterator: IteratorResult<lexicon.Term> = null;
-            //
-            // while ((termIterator = termsToParse.next())) {
-            //     const currentTerm: lexicon.Term = termIterator.done ? {
-            //         term: null,
-            //         content: null
-            //     } : termIterator.value;
-            //     let atLeastOneMatch = termIterator.done;
-            //
-            //     if (this.debug) {
-            //         console.debug(`Parse term '${currentTerm.term}': '${currentTerm.content.replace(/\n/g, "\\n")}'`);
-            //     }
-            //
-            //     while (toVisitH.length || toVisitL.length) {
-            //         if (this.debugAll) {
-            //             console.debug(
-            //                 " " +
-            //                 [...toVisitH, ...toVisitL].map(x => `(${x.id} ${x.grammarVertex.name})`).join(" ")
-            //             );
-            //         }
-            //
-            //         let ctx: WalkContext = toVisitH.shift() || toVisitL.shift(),
-            //             grammarVertex: Vertex = ctx.grammarVertex,
-            //             grammarData: grammar.GrammarRuleVertexData = grammarVertex.data;
-            //
-            //         if (this.debug) {
-            //             const stepType =
-            //                 grammarData.isRuleStart ? "RULE_START" :
-            //                     grammarData.isRuleEnd ? "RULE_END" :
-            //                         grammarData.isRuleReference ? "RULE_REF" :
-            //                             grammarData.isGroupStart ? "GROUP_START" :
-            //                                 grammarData.isGroupEnd ? "GROUP_END" :
-            //                                     grammarData.isTerminal ? "TERMINAL" :
-            //                                         "UNKNOWN";
-            //             /*if (this.debugAll) {
-            //                 console.debug(`Parser step (${ctx.id}): ${stepType.padEnd(11)} ${ctx.grammarVertex.name.padEnd(30)}` +
-            //                     ` parent=${ctx.astItem.name},` +
-            //                     ` returnCtx=(${ctx.returnContext[0].id ?? ""})`);
-            //             } else */
-            //             if (stepType === "TERMINAL") {
-            //                 console.debug(" ".repeat(ctx.nesting) + `(${ctx.id} ${ctx.astItem.originGrammarVertex.data.ruleName}/${ctx.grammarVertex.name})`);
-            //             } else if (stepType === "RULE_START") {
-            //                 console.debug(" ".repeat(ctx.nesting) + `(${ctx.id} ${ctx.grammarVertex?.data?.ruleName ?? "ROOT"})`);
-            //             }
-            //         }
-            //
-            //         if (grammarData.isRuleStart) {
-            //             /*
-            //                 Start a new rule
-            //                 - create a default ast vertex
-            //                     - set its parent to the current ctx parent
-            //                 - expand the grammar vertex to current stack and continue
-            //              */
-            //             const newAstItem: AstItem = {
-            //                 name: grammarData.ruleName,
-            //                 parent: ctx.astItem,
-            //                 children: [],
-            //                 originGrammarVertex: grammarVertex,
-            //                 astVertexFactoryFun: grammarData.astVertexFactoryFun,
-            //             }
-            //
-            //             for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
-            //                 (childGrammarEdge.to.data.isRuleEnd ?
-            //                     toVisitL.unshift.bind(toVisitL) :
-            //                     toVisitH.unshift.bind(toVisitH))({
-            //                     id: nextIndex++,
-            //                     nesting: ctx.nesting + 1,
-            //                     astItem: newAstItem,
-            //                     grammarVertex: childGrammarEdge.to,
-            //                     returnContext: ctx.returnContext
-            //                 });
-            //             }
-            //
-            //         } else if (grammarData.isRuleEnd) {
-            //             /*
-            //                 A rule ends, this is an alternative relative to other symbols or
-            //                 the only alternative, thus we need to expand this as if there is a match
-            //                 - add current astVertex to its parent children
-            //                 - use returnContext to return to the previous rule in the correct place
-            //                   and continue from there
-            //              */
-            //             // isMatch = true; // ?
-            //
-            //             ctx.astItem.parent.children.push(ctx.astItem);
-            //             // note we don't call astVertexFactoryFun here, we do it later when we create the Graph
-            //
-            //             // switch context back and continue
-            //             if (ctx.returnContext == null) {
-            //                 console.warn(`Parser, no return context for (${ctx.id} ${ctx.astItem.originGrammarVertex.data.ruleName}/${ctx.grammarVertex.name}))`)
-            //                 break;
-            //             }
-            //             ctx = ctx.returnContext.ctx;
-            //             grammarVertex = ctx.grammarVertex;
-            //             if (grammarVertex.name === "__ROOT__") {
-            //                 // FIXME
-            //             }
-            //             grammarData = grammarVertex.data;
-            //
-            //             for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
-            //                 (childGrammarEdge.to.data.isRuleEnd ?
-            //                     toVisitL.unshift.bind(toVisitL) :
-            //                     toVisitH.unshift.bind(toVisitH))({
-            //                     id: nextIndex++,
-            //                     nesting: ctx.nesting,
-            //                     astItem: ctx.astItem,
-            //                     grammarVertex: childGrammarEdge.to,
-            //                     returnContext: ctx.returnContext
-            //                 });
-            //             }
-            //
-            //         } else if (grammarData.isGroupStart) {
-            //             /*
-            //              this is a group start, just expand children contexts in current stack
-            //              */
-            //             for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
-            //                 (childGrammarEdge.to.data.isRuleEnd ?
-            //                     toVisitL.unshift.bind(toVisitL) :
-            //                     toVisitH.unshift.bind(toVisitH))({
-            //                     id: nextIndex++,
-            //                     nesting: ctx.nesting + 1,
-            //                     astItem: ctx.astItem,
-            //                     grammarVertex: childGrammarEdge.to,
-            //                     returnContext: ctx.returnContext
-            //                 });
-            //             }
-            //
-            //         } else if (grammarData.isGroupEnd) {
-            //             /*
-            //              this is a group end, just expand children contexts in current stack
-            //              */
-            //             for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
-            //                 (childGrammarEdge.to.data.isRuleEnd ?
-            //                     toVisitL.unshift.bind(toVisitL) :
-            //                     toVisitH.unshift.bind(toVisitH))({
-            //                     id: nextIndex++,
-            //                     nesting: ctx.nesting - 1,
-            //                     astItem: ctx.astItem,
-            //                     grammarVertex: childGrammarEdge.to,
-            //                     returnContext: ctx.returnContext
-            //                 });
-            //             }
-            //
-            //         } else if (grammarData.isRuleReference) {
-            //             /*
-            //              this is a rule reference
-            //              - find the matching rule from the grammarGraph
-            //              - create a new context and set return context to current
-            //              */
-            //             const nextGrammarVertex = grammarGraph.getVertex(grammarData.expectedVertexName);
-            //             if (!nextGrammarVertex) {
-            //                 throw new Error(`Vertex not found: ${grammarData.expectedVertexName}`);
-            //             }
-            //             toVisitH.unshift({
-            //                 id: nextIndex++,
-            //                 nesting: ctx.nesting,
-            //                 astItem: ctx.astItem,
-            //                 grammarVertex: nextGrammarVertex,
-            //                 returnContext: {
-            //                     ctx: ctx
-            //                 }
-            //             })
-            //
-            //         } else if (grammarData.isTerminal) {
-            //             /*
-            //              this is terminal, thus it MUST MATCHES the currentTerm
-            //              if OK
-            //                 - create a leaf AstItem and add it to parent children
-            //                 - push child contexts in the next stack
-            //              */
-            //             const isMatch = grammarData.expectedTerm === currentTerm.term;
-            //             atLeastOneMatch = atLeastOneMatch || isMatch;
-            //
-            //             if (isMatch) {
-            //                 console.debug(`Parser found a match: ${currentTerm.term}`);
-            //
-            //                 const leafAstItem: AstItem = {
-            //                     name: currentTerm.term,
-            //                     content: currentTerm.content,
-            //                     parent: ctx.astItem,
-            //                     children: [],
-            //                     originGrammarVertex: grammarVertex,
-            //                     astVertexFactoryFun: grammarData.astVertexFactoryFun
-            //                 };
-            //
-            //                 ctx.astItem.children.push(leafAstItem);
-            //
-            //                 for (const childGrammarEdge of [...grammarVertex.out.values()].reverse()) {
-            //                     (childGrammarEdge.to.data.isRuleEnd ?
-            //                         nextToVisitL.unshift.bind(nextToVisitL) :
-            //                         nextToVisitH.unshift.bind(nextToVisitH))({
-            //                         id: nextIndex++,
-            //                         nesting: ctx.nesting,
-            //                         astItem: ctx.astItem,
-            //                         grammarVertex: childGrammarEdge.to,
-            //                         returnContext: ctx.returnContext,
-            //                     });
-            //                 }
-            //             }
-            //
-            //         } else {
-            //             throw new Error(`Not implemented branch for grammar data: ${JSON.stringify(grammarData)}`);
-            //         }
-            //     } // end inner while
-            //
-            //     if (!atLeastOneMatch) {
-            //         // FIXME error! no match for currentToken
-            //         // const nextTerms = [...termsToParse].slice(0, 6).map(t => t.term).join("\n ");
-            //         // console.error(`Parser stops, no match for term '${currentTerm.term}'. \n Next terms:\n ${nextTerms}`);
-            //         const content = [currentTerm, ...termsToParse].slice(0, 6).map(t => t.content).join(" ");
-            //         console.error(`Parser stops, no match for term '${currentTerm.term}': '${currentTerm.content}' at \n${content}`);
-            //         break;
-            //     }
-            //
-            //     if (termIterator.done) {
-            //         break;
-            //     }
-            //
-            //     toVisitH = nextToVisitH;
-            //     nextToVisitH = [];
-            //     toVisitL = nextToVisitL;
-            //     nextToVisitL = [];
-            // }
+            const termsToParse = this.tokenizer.tokenize((raw));
+            const startRule = this.grammar.startNode;
+            const rules = this.grammar.nodes;
+
+            /*
+                for every input term we must check all candidates (OR)
+                and continue to the next symbols and term with the paths that match the term
+             */
+
+            type WalkNode = {
+                id: number,
+                nesting: number,
+                previous: WalkNode,
+                return?: WalkNode
+                grammarNode: GrammarNode,
+                ruleGrammarNode?: GrammarNode
+            }
+
+            let nextIndex = 0;
+
+            const rootWalkNode: WalkNode = {
+                id: nextIndex++,
+                nesting: 0,
+                previous: null,
+                grammarNode: this.grammar.startNode,
+                ruleGrammarNode: this.grammar.startNode
+            }
+
+            let endWalkNode: WalkNode = null,
+                lastVisit: WalkNode = null;
+            let toVisitCurrent: WalkNode[] = [rootWalkNode],
+                toVisitNext: WalkNode[] = [];
+
+            let termIterator: IteratorResult<lexicon.Term> = null;
+
+            while ((termIterator = termsToParse.next())) {
+                // termIterator can be done, in that case we need to reach the END of all symbols to visit
+                // without further match
+                const currentTerm = termIterator.value;
+                if (this.debug) {
+                    console.debug(`Parse ${currentTerm?.term}`);
+                }
+                const visitedCurrent: Set<any> = new Set();
+                while (toVisitCurrent.length) {
+                    const currentWalkNode = lastVisit = toVisitCurrent.shift();
+                    // avoid to visit the same node for this token
+                    // NOTE, it was already visited somewhere, its result already matched
+                    // if (visitedCurrent.has(currentWalkNode.ruleGrammarNode.id)) {
+                    //     continue;
+                    // }
+                    // visitedCurrent.add(currentWalkNode.ruleGrammarNode.id);
+
+                    const currentGrammarNode = currentWalkNode.grammarNode;
+                    if (this.debug) {
+                        console.debug(` ${" ".repeat(currentWalkNode.nesting)}(${currentWalkNode.id}) ${currentGrammarNode.id}`);
+                    }
+                    switch (currentGrammarNode.nodeType) {
+                        case grammar.GrammarNodeType.RULE_START:
+                        case grammar.GrammarNodeType.GROUP_START:
+                        case grammar.GrammarNodeType.GROUP_END:
+                            toVisitCurrent.unshift(...[...currentGrammarNode.children.values()]
+                                .map(n => {
+                                    return {
+                                        id: nextIndex++,
+                                        nesting: currentWalkNode.nesting + (currentGrammarNode.nodeType === GrammarNodeType.GROUP_END ? -1 : +1),
+                                        previous: currentWalkNode,
+                                        grammarNode: n,
+                                        ruleGrammarNode: currentWalkNode.ruleGrammarNode,
+                                        return: currentWalkNode.return
+                                    }
+                                }));
+                            break;
+                        case grammar.GrammarNodeType.RULE_END:
+                            const returnWalkNode = currentWalkNode.return
+                            if (returnWalkNode) {
+                                toVisitCurrent.unshift(...[...returnWalkNode.ruleGrammarNode.children]
+                                    .map(n => {
+                                        return {
+                                            id: nextIndex++,
+                                            nesting: returnWalkNode.nesting + 1,
+                                            previous: returnWalkNode,
+                                            grammarNode: n,
+                                            ruleGrammarNode: returnWalkNode.ruleGrammarNode,
+                                            return: returnWalkNode.return
+                                        }
+                                    }));
+                            } else {
+                                if (currentTerm != null) {
+                                    console.warn("Parse error: grammar ends but input is not fully parsed");
+                                }
+                                // continue just to be sure there is a better match
+                                endWalkNode = currentWalkNode;
+                            }
+                            break;
+                        case grammar.GrammarNodeType.RULE_REFERENCE:
+                            const nextGrammarNode = this.grammar.nodes.get(currentGrammarNode.mustExpandToRuleName);
+                            toVisitCurrent.unshift({
+                                id: nextIndex++,
+                                nesting: currentWalkNode.nesting + 1,
+                                previous: currentWalkNode,
+                                grammarNode: nextGrammarNode,
+                                ruleGrammarNode: nextGrammarNode,
+                                return: currentWalkNode
+                            });
+                            break;
+                        case grammar.GrammarNodeType.TERMINAL:
+                            if (currentGrammarNode.mustMatchTerm === currentTerm?.term) {
+                                if (this.debug) {
+                                    console.debug(`> Match ${currentTerm?.term}`)
+                                }
+                                toVisitNext.unshift(...[...currentGrammarNode.children.values()]
+                                    .map(n => {
+                                        return {
+                                            id: nextIndex++,
+                                            nesting: currentWalkNode.nesting,
+                                            previous: currentWalkNode,
+                                            grammarNode: n,
+                                            ruleGrammarNode: currentWalkNode.ruleGrammarNode,
+                                            return: currentWalkNode.return
+                                        }
+                                    }));
+                            }
+                            break;
+                        default:
+                            throw new Error(`Parsing error: grammar node type not implemented: ${currentGrammarNode.nodeType}`);
+                    }
+
+                } // end single toVisit element visit
+
+                toVisitCurrent = toVisitNext;
+                toVisitNext = [];
+
+                if (termIterator.done || endWalkNode) {
+                    break;
+                }
+            } // end term visit
+
+            if (!endWalkNode || endWalkNode.ruleGrammarNode.groupStartNode !== rootWalkNode.grammarNode) {
+                console.error(`Parsing error: input doesn't match the grammar`)
+            }
+
+            if (!termIterator.done) {
+                const currentTerm = termIterator.value;
+                const content = [currentTerm, ...termsToParse].slice(0, 6).map(t => t.content).join(" ");
+                console.error(`Parser error: parser stops, no match for term '${currentTerm.term}': '${currentTerm.content}' at \n${content}`);
+            }
+
+            // FIXME starting from the endWalkNode follow the parent and rebuild the full hierarchy
 
             const outputGraph = new AstGraph();
             // start from rootItem and populate the graph accordingly

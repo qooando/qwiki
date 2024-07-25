@@ -5,9 +5,11 @@ import {render} from "./base/render.js";
 import {ast} from "./base/ast.js";
 import {stringify} from "./base/lang/stringify.js";
 import * as yaml from "js-yaml";
-import * as temple from "./base/lang/temple.js";
+// import * as temple from "./base/lang/temple.js";
+import * as temple from "./base/lang/test.js";
 
-let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
+// let content = fs.readFileSync(`${process.cwd()}/asset/template1.html`, "utf8");
+let content = "AAAAAABDCCCA"
 let templateParser = temple.parser({debug: true});
 
 // let _tokens = _templateParser.tokenizer.tokenize(content);
@@ -26,14 +28,15 @@ for (let t of [...templateParser.tokenizer.tokenize(content)]) {
 console.log("\nGRAMMAR")
 for (let node of templateParser.grammar.nodes.values()) {
     const padding = 35;
-    console.log(` ${node.id.padEnd(padding)} ` +
-        (node.childOnSuccess ? ` &→ ${node.childOnSuccess.id.padEnd(padding)}` : "") +
-        (node.childOnFail ? ` |→ ${node.childOnFail.id.padEnd(padding)}` : ""));
+    console.log(
+        " " + node.id.padEnd(padding) +
+        (node.children ? " → " + node.children.map(x => x.id).join(", ") : "")
+    );
 }
 
 console.log("\nABSTRACT SYNTAX TREE")
 
-// let _ast = templateParser.parse(content);
+let _ast = templateParser.parse(content);
 // console.log(JSON.stringify(_ast, null, 2));
 // console.log(yaml.dump(_ast));
 
