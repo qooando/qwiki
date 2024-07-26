@@ -130,13 +130,14 @@ export namespace ast {
                                 }));
                             break;
                         case grammar.GrammarNodeType.RULE_END:
+                            currentWalkNode.nesting -= 1;
                             const returnWalkNode = currentWalkNode.return
                             if (returnWalkNode) {
                                 toVisitCurrent.unshift(...[...returnWalkNode.grammarNode.children]
                                     .map(n => {
                                         return {
                                             id: nextIndex++,
-                                            nesting: returnWalkNode.nesting + 1,
+                                            nesting: returnWalkNode.nesting,
                                             previous: currentWalkNode,
                                             grammarNode: n,
                                             ruleGrammarNode: returnWalkNode.ruleGrammarNode,
@@ -203,15 +204,16 @@ export namespace ast {
 
             // FIXME starting from the endWalkNode follow the parent and rebuild the full hierarchy
             if (this.debug) {
-                function *_backvisit(child: WalkNode) {
+                function* _backvisit(child: WalkNode) {
                     while (child) {
                         yield child;
                         child = child.previous
                     }
                 }
+
                 var walkpath = [..._backvisit(endWalkNode)];
                 walkpath.reverse()
-                console.log(walkpath.map(x => x.grammarNode.id).join('\n'));
+                console.log(walkpath.map(x => " ".repeat(x.nesting) + x.grammarNode.id).join('\n'));
             }
 
             const outputGraph = new AstGraph();
