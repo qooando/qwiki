@@ -80,8 +80,8 @@ export namespace grammar {
                     ruleStartNode: GrammarNode = {
                         id: `${originalRuleName}${SUFFIX_BEGIN}`,
                         nodeType: GrammarNodeType.RULE_START,
-                        parents: new Set(),
-                        children: new Set(),
+                        parents: new Set<GrammarNode>(),
+                        children: new Set<GrammarNode>(),
                         originRuleName: originalRuleName,
                         astNodeFactoryFun: nodeFactory
                     },
@@ -89,8 +89,8 @@ export namespace grammar {
                     ruleEndNode: GrammarNode = {
                         id: `${originalRuleName}${SUFFIX_END}`,
                         nodeType: GrammarNodeType.RULE_END,
-                        parents: new Set(),
-                        children: new Set(),
+                        parents: new Set<GrammarNode>(),
+                        children: new Set<GrammarNode>(),
                         originRuleName: originalRuleName,
                         astNodeFactoryFun: nodeFactory
                     };
@@ -140,16 +140,16 @@ export namespace grammar {
                                 groupStartNode: GrammarNode = {
                                     id: `${originalRuleName}_(_${tokenIndex}${SUFFIX_BEGIN}`,
                                     nodeType: GrammarNodeType.GROUP_START,
-                                    parents: new Set(),
-                                    children: new Set(),
+                                    parents: new Set<GrammarNode>(),
+                                    children: new Set<GrammarNode>(),
                                     originRuleName: originalRuleName,
                                 },
                                 // create a new group end node
                                 groupEndNode: GrammarNode = {
                                     id: `${originalRuleName}_)_${tokenIndex}${SUFFIX_END}`,
                                     nodeType: GrammarNodeType.GROUP_END,
-                                    parents: new Set(),
-                                    children: new Set(),
+                                    parents: new Set<GrammarNode>(),
+                                    children: new Set<GrammarNode>(),
                                     originRuleName: originalRuleName,
                                 };
                             // set cross references
@@ -253,8 +253,8 @@ export namespace grammar {
                                 newNode: GrammarNode = {
                                     id: newNodeId,
                                     nodeType: newNodeType,
-                                    children: new Set(),
-                                    parents: new Set(),
+                                    children: new Set<GrammarNode>(),
+                                    parents: new Set<GrammarNode>(),
                                     originRuleName: originalRuleName,
                                     mustMatchTerm: newNodeType === GrammarNodeType.TERMINAL ? currentToken : null,
                                     mustExpandToRuleName: newNodeType === GrammarNodeType.TERMINAL ? null : `${currentToken}${SUFFIX_BEGIN}`

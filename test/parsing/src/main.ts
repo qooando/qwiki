@@ -30,7 +30,7 @@ for (let node of templateParser.grammar.nodes.values()) {
     const padding = 35;
     console.log(
         " " + node.id.padEnd(padding) +
-        (node.children ? " → " + node.children.map(x => x.id).join(", ") : "")
+        (node.children ? " → " + [...node.children.values()].map(x => x.id).join(", ") : "")
     );
 }
 

@@ -132,7 +132,7 @@ export namespace ast {
                         case grammar.GrammarNodeType.RULE_END:
                             const returnWalkNode = currentWalkNode.return
                             if (returnWalkNode) {
-                                toVisitCurrent.unshift(...[...returnWalkNode.ruleGrammarNode.children]
+                                toVisitCurrent.unshift(...[...returnWalkNode.grammarNode.children]
                                     .map(n => {
                                         return {
                                             id: nextIndex++,
@@ -144,9 +144,6 @@ export namespace ast {
                                         }
                                     }));
                             } else {
-                                if (currentTerm != null) {
-                                    console.warn("Parse error: grammar ends but input is not fully parsed");
-                                }
                                 // continue just to be sure there is a better match
                                 endWalkNode = currentWalkNode;
                             }
@@ -189,12 +186,12 @@ export namespace ast {
                 toVisitCurrent = toVisitNext;
                 toVisitNext = [];
 
-                if (termIterator.done || endWalkNode) {
+                if (termIterator.done || toVisitCurrent.length === 0) {
                     break;
                 }
             } // end term visit
 
-            if (!endWalkNode || endWalkNode.ruleGrammarNode.groupStartNode !== rootWalkNode.grammarNode) {
+            if (!endWalkNode || endWalkNode.ruleGrammarNode !== rootWalkNode.ruleGrammarNode) {
                 console.error(`Parsing error: input doesn't match the grammar`)
             }
 

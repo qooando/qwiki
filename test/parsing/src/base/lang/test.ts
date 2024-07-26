@@ -10,16 +10,15 @@ let enableIfIsNotCode = (ctx: lexicon.LexerContext) => !ctx.captureCode
 export let lexicalRules: lexicon.Lexicon = [
     ["A", /A/y, null],
     ["B", /B/y, null],
-    ["B", /C/y, null],
+    ["C", /C/y, null],
     ["D", /D/y, null],
 ];
 
 export let grammarRules: grammar.Grammar = [
-    ["a", "A+"],
-    // ["a", "( A+ | b | c | d )* A*"],
-    // ["b", "B+"],
-    // ["c", "C+"],
-    // ["d", "D+"],
+    ["a", "A+ b d c A*"],
+    ["b", "B+"],
+    ["c", "C+"],
+    ["d", "D+"],
 ];
 
 export function parser(options: ast.ParserOptions = undefined) {
