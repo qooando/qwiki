@@ -246,24 +246,42 @@ export namespace grammar {
                         }
                         default: { // and
                             currentContext.visitedTokens.push(currentToken);
-                            // Here we can have rule reference or terminals
-                            const newNodeId: string = `${originalRuleName}_${currentToken}_${tokenIndex}`,
-                                newNodeType: GrammarNodeType = this.rawRules.has(currentToken) ? GrammarNodeType.RULE_REFERENCE : GrammarNodeType.TERMINAL,
-                                // create the new node
-                                newNode: GrammarNode = {
-                                    id: newNodeId,
-                                    nodeType: newNodeType,
-                                    children: new Set<GrammarNode>(),
-                                    parents: new Set<GrammarNode>(),
-                                    originRuleName: originalRuleName,
-                                    mustMatchTerm: newNodeType === GrammarNodeType.TERMINAL ? currentToken : null,
-                                    mustExpandToRuleName: newNodeType === GrammarNodeType.TERMINAL ? null : `${currentToken}${SUFFIX_BEGIN}`
-                                };
-                            // add node
-                            this.addNode(newNode);
-                            // link with previous
-                            linkChildren(previousNodes, newNode)
-                            previousNodes = [newNode];
+                            const newNodeType: GrammarNodeType = this.rawRules.has(currentToken) ? GrammarNodeType.RULE_REFERENCE : GrammarNodeType.TERMINAL;
+
+                            switch (newNodeType) {
+                                case grammar.GrammarNodeType.RULE_REFERENCE: {
+                                    const newNode: GrammarNode = {
+                                        id: `${originalRuleName}_${currentToken}_${tokenIndex}`,
+                                        nodeType: newNodeType,
+                                        children: new Set<GrammarNode>(),
+                                        parents: new Set<GrammarNode>(),
+                                        originRuleName: originalRuleName,
+                                        mustExpandToRuleName: `${currentToken}${SUFFIX_BEGIN}`
+                                    };
+                                    // add node
+                                    this.addNode(newNode);
+                                    // link with previous
+                                    linkChildren(previousNodes, newNode)
+                                    previousNodes = [newNode];
+                                    break;
+                                }
+                                case grammar.GrammarNodeType.TERMINAL: {
+                                    const newNode: GrammarNode = {
+                                        id: `${originalRuleName}_${currentToken}_${tokenIndex}`,
+                                        nodeType: newNodeType,
+                                        children: new Set<GrammarNode>(),
+                                        parents: new Set<GrammarNode>(),
+                                        originRuleName: originalRuleName,
+                                        mustMatchTerm: currentToken
+                                    };
+                                    // add node
+                                    this.addNode(newNode);
+                                    // link with previous
+                                    linkChildren(previousNodes, newNode)
+                                    previousNodes = [newNode];
+                                    break;
+                                }
+                            }
                         }
                     }
                 } // end tokens

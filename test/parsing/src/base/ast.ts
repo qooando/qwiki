@@ -137,7 +137,7 @@ export namespace ast {
                                         return {
                                             id: nextIndex++,
                                             nesting: returnWalkNode.nesting + 1,
-                                            previous: returnWalkNode,
+                                            previous: currentWalkNode,
                                             grammarNode: n,
                                             ruleGrammarNode: returnWalkNode.ruleGrammarNode,
                                             return: returnWalkNode.return
@@ -202,6 +202,17 @@ export namespace ast {
             }
 
             // FIXME starting from the endWalkNode follow the parent and rebuild the full hierarchy
+            if (this.debug) {
+                function *_backvisit(child: WalkNode) {
+                    while (child) {
+                        yield child;
+                        child = child.previous
+                    }
+                }
+                var walkpath = [..._backvisit(endWalkNode)];
+                walkpath.reverse()
+                console.log(walkpath.map(x => x.grammarNode.id).join('\n'));
+            }
 
             const outputGraph = new AstGraph();
             // start from rootItem and populate the graph accordingly
